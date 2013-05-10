@@ -98,14 +98,16 @@ namespace LazerTagHostUI
 			w12.Fill = false;
 			// Container child vboxPlayerControls.Gtk.Box+BoxChild
 			this.comboboxentryRenamePlayer = global::Gtk.ComboBoxEntry.NewText ();
-			this.comboboxentryRenamePlayer.AppendText (global::Mono.Unix.Catalog.GetString ("Duckbob"));
-			this.comboboxentryRenamePlayer.AppendText (global::Mono.Unix.Catalog.GetString ("Raptor007"));
-			this.comboboxentryRenamePlayer.AppendText (global::Mono.Unix.Catalog.GetString ("ChubChub"));
-			this.comboboxentryRenamePlayer.AppendText (global::Mono.Unix.Catalog.GetString ("Nojoe"));
-			this.comboboxentryRenamePlayer.AppendText (global::Mono.Unix.Catalog.GetString ("Nein"));
-			this.comboboxentryRenamePlayer.AppendText (global::Mono.Unix.Catalog.GetString ("Sparhawk2k"));
-			this.comboboxentryRenamePlayer.AppendText (global::Mono.Unix.Catalog.GetString ("Blue"));
-			this.comboboxentryRenamePlayer.AppendText (global::Mono.Unix.Catalog.GetString ("Gold"));
+			this.comboboxentryRenamePlayer.AppendText (global::Mono.Unix.Catalog.GetString ("Charlie"));
+			this.comboboxentryRenamePlayer.AppendText (global::Mono.Unix.Catalog.GetString ("Cougar"));
+			this.comboboxentryRenamePlayer.AppendText (global::Mono.Unix.Catalog.GetString ("Goose"));
+			this.comboboxentryRenamePlayer.AppendText (global::Mono.Unix.Catalog.GetString ("Iceman"));
+			this.comboboxentryRenamePlayer.AppendText (global::Mono.Unix.Catalog.GetString ("Jester"));
+			this.comboboxentryRenamePlayer.AppendText (global::Mono.Unix.Catalog.GetString ("Maverick"));
+			this.comboboxentryRenamePlayer.AppendText (global::Mono.Unix.Catalog.GetString ("Merlin"));
+			this.comboboxentryRenamePlayer.AppendText (global::Mono.Unix.Catalog.GetString ("Slider"));
+			this.comboboxentryRenamePlayer.AppendText (global::Mono.Unix.Catalog.GetString ("Viper"));
+			this.comboboxentryRenamePlayer.AppendText (global::Mono.Unix.Catalog.GetString ("Wolfman"));
 			this.comboboxentryRenamePlayer.Name = "comboboxentryRenamePlayer";
 			this.vboxPlayerControls.Add (this.comboboxentryRenamePlayer);
 			global::Gtk.Box.BoxChild w13 = ((global::Gtk.Box.BoxChild)(this.vboxPlayerControls[this.comboboxentryRenamePlayer]));

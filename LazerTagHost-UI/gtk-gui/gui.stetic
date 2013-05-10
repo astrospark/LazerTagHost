@@ -810,14 +810,16 @@ Hunt The Prey
               <widget class="Gtk.ComboBoxEntry" id="comboboxentryRenamePlayer">
                 <property name="MemberName" />
                 <property name="IsTextCombo">True</property>
-                <property name="Items" translatable="yes">Duckbob
-Raptor007
-ChubChub
-Nojoe
-Nein
-Sparhawk2k
-Blue
-Gold</property>
+                <property name="Items" translatable="yes">Charlie
+Cougar
+Goose
+Iceman
+Jester
+Maverick
+Merlin
+Slider
+Viper
+Wolfman</property>
               </widget>
               <packing>
                 <property name="Position">1</property>
