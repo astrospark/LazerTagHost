@@ -738,26 +738,18 @@ namespace LazerTagHostLibrary
         
         private bool ProcessMessage(string command, string[] parameters)
         {
+            if (parameters.Length != 2)
+            {
+                return false;
+            }
+
+            UInt16 data = UInt16.Parse(parameters[0], NumberStyles.AllowHexSpecifier);
+            UInt16 number_of_bits = UInt16.Parse(parameters[1]);
+
             switch (command) {
             case "LTX":
-            {
-                if (parameters.Length != 2) {
-                    return false;
-                }
-                
-                UInt16 data = UInt16.Parse(parameters[0], NumberStyles.AllowHexSpecifier);
-                UInt16 number_of_bits = UInt16.Parse(parameters[1]);
-                
                 return ProcessPacket(IRPacket.PacketType.PACKET_TYPE_LTX, data, number_of_bits);
-            }
             case "LTTO":
-                if (parameters.Length != 2) {
-                    return false;
-                }
-                
-                UInt16 data = UInt16.Parse(parameters[0], NumberStyles.AllowHexSpecifier);
-                UInt16 number_of_bits = UInt16.Parse(parameters[1]);
-
                 HostDebugWriteLine(String.Format("LTTO: {0:d},{1:x}", number_of_bits, data));
                 break;
             default:
