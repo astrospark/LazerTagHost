@@ -1333,18 +1333,19 @@ namespace LazerTagHostLibrary
             
             if (ltz != null) {
                 string input = ltz.TryReadCommand();
-                
-                int command_length = input.IndexOf(':');
-                if (command_length > 0) {
-                    string command = input.Substring(0,command_length);
+                if (input != null) {
+                    int command_length = input.IndexOf(':');
+                    if (command_length > 0) {
+                        string command = input.Substring(0,command_length);
                     
                     
-                    string paramters_line = input.Substring(command_length + 2);
-                    string[] paramters = paramters_line.Split(',');
+                        string paramters_line = input.Substring(command_length + 2);
+                        string[] paramters = paramters_line.Split(',');
                     
-                    ProcessMessage(command, paramters);
-                } else {
-                    HostDebugWriteLine("DEBUG: " + input);
+                        ProcessMessage(command, paramters);
+                    } else {
+                        HostDebugWriteLine("DEBUG: " + input);
+                    }
                 }
             }
             
