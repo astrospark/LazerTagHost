@@ -37,7 +37,7 @@ public partial class MainWindow
 
 	private global::Gtk.Label labelReloads;
 
-	private global::Gtk.Label labelSheild;
+	private global::Gtk.Label labelShield;
 
 	private global::Gtk.Label labelTags;
 
@@ -53,7 +53,7 @@ public partial class MainWindow
 
 	private global::Gtk.SpinButton spinbuttonReloads;
 
-	private global::Gtk.SpinButton spinbuttonSheild;
+	private global::Gtk.SpinButton spinbuttonShield;
 
 	private global::Gtk.SpinButton spinbuttonTags;
 
@@ -265,11 +265,11 @@ public partial class MainWindow
 		w23.XOptions = ((global::Gtk.AttachOptions)(4));
 		w23.YOptions = ((global::Gtk.AttachOptions)(4));
 		// Container child table1.Gtk.Table+TableChild
-		this.labelSheild = new global::Gtk.Label ();
-		this.labelSheild.Name = "labelSheild";
-		this.labelSheild.LabelProp = global::Mono.Unix.Catalog.GetString ("Sheild");
-		this.table1.Add (this.labelSheild);
-		global::Gtk.Table.TableChild w24 = ((global::Gtk.Table.TableChild)(this.table1[this.labelSheild]));
+		this.labelShield = new global::Gtk.Label ();
+		this.labelShield.Name = "labelShield";
+		this.labelShield.LabelProp = global::Mono.Unix.Catalog.GetString ("Shield");
+		this.table1.Add (this.labelShield);
+		global::Gtk.Table.TableChild w24 = ((global::Gtk.Table.TableChild)(this.table1[this.labelShield]));
 		w24.TopAttach = ((uint)(6));
 		w24.BottomAttach = ((uint)(7));
 		w24.XOptions = ((global::Gtk.AttachOptions)(4));
@@ -374,15 +374,15 @@ public partial class MainWindow
 		w31.XOptions = ((global::Gtk.AttachOptions)(4));
 		w31.YOptions = ((global::Gtk.AttachOptions)(4));
 		// Container child table1.Gtk.Table+TableChild
-		this.spinbuttonSheild = new global::Gtk.SpinButton (0, 99, 1);
-		this.spinbuttonSheild.CanFocus = true;
-		this.spinbuttonSheild.Name = "spinbuttonSheild";
-		this.spinbuttonSheild.Adjustment.PageIncrement = 10;
-		this.spinbuttonSheild.ClimbRate = 1;
-		this.spinbuttonSheild.Numeric = true;
-		this.spinbuttonSheild.Value = 30;
-		this.table1.Add (this.spinbuttonSheild);
-		global::Gtk.Table.TableChild w32 = ((global::Gtk.Table.TableChild)(this.table1[this.spinbuttonSheild]));
+		this.spinbuttonShield = new global::Gtk.SpinButton (0, 99, 1);
+		this.spinbuttonShield.CanFocus = true;
+		this.spinbuttonShield.Name = "spinbuttonShield";
+		this.spinbuttonShield.Adjustment.PageIncrement = 10;
+		this.spinbuttonShield.ClimbRate = 1;
+		this.spinbuttonShield.Numeric = true;
+		this.spinbuttonShield.Value = 30;
+		this.table1.Add (this.spinbuttonShield);
+		global::Gtk.Table.TableChild w32 = ((global::Gtk.Table.TableChild)(this.table1[this.spinbuttonShield]));
 		w32.TopAttach = ((uint)(6));
 		w32.BottomAttach = ((uint)(7));
 		w32.LeftAttach = ((uint)(1));

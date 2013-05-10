@@ -336,9 +336,9 @@ Hunt The Prey
               </packing>
             </child>
             <child>
-              <widget class="Gtk.Label" id="labelSheild">
+              <widget class="Gtk.Label" id="labelShield">
                 <property name="MemberName" />
-                <property name="LabelProp" translatable="yes">Sheild</property>
+                <property name="LabelProp" translatable="yes">Shield</property>
               </widget>
               <packing>
                 <property name="TopAttach">6</property>
@@ -529,7 +529,7 @@ Hunt The Prey
               </packing>
             </child>
             <child>
-              <widget class="Gtk.SpinButton" id="spinbuttonSheild">
+              <widget class="Gtk.SpinButton" id="spinbuttonShield">
                 <property name="MemberName" />
                 <property name="CanFocus">True</property>
                 <property name="Upper">99</property>

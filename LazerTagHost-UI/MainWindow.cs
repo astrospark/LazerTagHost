@@ -74,7 +74,7 @@ public partial class MainWindow : Gtk.Window
                         ConvertGameValue(spinbuttonGameTime.ValueAsInt),
                         ConvertGameValue(spinbuttonTags.ValueAsInt),
                         ConvertGameValue(spinbuttonReloads.ValueAsInt),
-                        ConvertGameValue(spinbuttonSheild.ValueAsInt),
+                        ConvertGameValue(spinbuttonShield.ValueAsInt),
                         ConvertGameValue(spinbuttonMega.ValueAsInt),
                         this.checkbuttonFriendlyFire.Active,
                         this.checkbuttonMedicMode.Active,
@@ -85,7 +85,7 @@ public partial class MainWindow : Gtk.Window
         hw.Show();
     }
 
-    private void SetGameDefaults(int time, int reloads, int mega, int sheilds, int tags, bool ff, bool medic, int teams, bool medic_enabled, int time_step)
+    private void SetGameDefaults(int time, int reloads, int mega, int shields, int tags, bool ff, bool medic, int teams, bool medic_enabled, int time_step)
     {
         spinbuttonGameTime.Value = time;
         if (time_step == 2) {
@@ -99,7 +99,7 @@ public partial class MainWindow : Gtk.Window
         spinbuttonGameTime.Adjustment.StepIncrement = time_step;
         spinbuttonReloads.Value = reloads;
         spinbuttonMega.Value = mega;
-        spinbuttonSheild.Value = sheilds;
+        spinbuttonShield.Value = shields;
         spinbuttonTags.Value = tags;
         checkbuttonFriendlyFire.Active = ff;
         if (teams <= 1) {

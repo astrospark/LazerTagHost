@@ -27,7 +27,7 @@ namespace LazerTagHostLibrary
             public int game_start_countdown_seconds;
             public byte tags;
             public byte reloads;
-            public byte sheild;
+            public byte shield;
             public byte mega;
             public bool team_tag;
             public bool medic_mode;
@@ -125,7 +125,7 @@ namespace LazerTagHostLibrary
         private void BaseGameSet(byte game_time_minutes, 
                                       byte tags,
                                       byte reloads,
-                                      byte sheilds,
+                                      byte shields,
                                       byte mega,
                                       bool team_tag,
                                       bool medic_mode)
@@ -133,7 +133,7 @@ namespace LazerTagHostLibrary
             game_state.game_time_minutes = game_time_minutes;
             game_state.tags = tags;
             game_state.reloads = reloads;
-            game_state.sheild = sheilds;
+            game_state.shield = shields;
             game_state.mega = mega;
             game_state.team_tag = team_tag;
             game_state.medic_mode = medic_mode;
@@ -1053,7 +1053,7 @@ namespace LazerTagHostLibrary
                                     byte game_time_minutes,
                                     byte tags,
                                     byte reloads,
-                                    byte sheilds,
+                                    byte shields,
                                     byte mega,
                                     bool team_tag,
                                     bool medic_mode,
@@ -1063,7 +1063,7 @@ namespace LazerTagHostLibrary
             BaseGameSet(game_time_minutes,
                         tags,
                         reloads,
-                        sheilds,
+                        shields,
                         mega,
                         team_tag,
                         medic_mode);
@@ -1073,7 +1073,7 @@ namespace LazerTagHostLibrary
         public void Init2TeamHostMode(byte game_time_minutes,
                                       byte tags,
                                       byte reloads,
-                                      byte sheilds,
+                                      byte shields,
                                       byte mega,
                                       bool team_tag,
                                       bool medic_mode)
@@ -1082,7 +1082,7 @@ namespace LazerTagHostLibrary
             BaseGameSet(game_time_minutes,
                         tags,
                         reloads,
-                        sheilds,
+                        shields,
                         mega,
                         team_tag,
                         medic_mode);
@@ -1092,7 +1092,7 @@ namespace LazerTagHostLibrary
         public void Init3TeamHostMode(byte game_time_minutes,
                                       byte tags,
                                       byte reloads,
-                                      byte sheilds,
+                                      byte shields,
                                       byte mega,
                                       bool team_tag,
                                       bool medic_mode)
@@ -1101,7 +1101,7 @@ namespace LazerTagHostLibrary
             BaseGameSet(game_time_minutes,
                         tags,
                         reloads,
-                        sheilds,
+                        shields,
                         mega,
                         team_tag,
                         medic_mode);
@@ -1111,7 +1111,7 @@ namespace LazerTagHostLibrary
         public void InitCustomHostMode(byte game_time_minutes, 
                                       byte tags,
                                       byte reloads,
-                                      byte sheilds,
+                                      byte shields,
                                       byte mega,
                                       bool team_tag,
                                       bool medic_mode)
@@ -1120,7 +1120,7 @@ namespace LazerTagHostLibrary
             BaseGameSet(game_time_minutes,
                         tags,
                         reloads,
-                        sheilds,
+                        shields,
                         mega,
                         team_tag,
                         medic_mode);
@@ -1411,7 +1411,7 @@ namespace LazerTagHostLibrary
                         game_state.game_time_minutes,
                         game_state.tags,
                         game_state.reloads,
-                        game_state.sheild,
+                        game_state.shield,
                         game_state.mega,
 
                         extended_tagging,

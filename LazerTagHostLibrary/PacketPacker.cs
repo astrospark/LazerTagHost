@@ -92,7 +92,7 @@ namespace LazerTagHostLibrary
             int game_time_minutes,
             int tags,
             int reloads,
-            int sheild,
+            int shield,
             int mega,
 
             bool extended_tagging,
@@ -145,7 +145,7 @@ namespace LazerTagHostLibrary
                 DecimalToDecimalHex((byte)game_time_minutes), //game time minutes
                 DecimalToDecimalHex((byte)tags), //tags
                 DecimalToDecimalHex((byte)reloads), //reloads
-                DecimalToDecimalHex((byte)sheild), //sheild
+                DecimalToDecimalHex((byte)shield), //shield
                 DecimalToDecimalHex((byte)mega), //mega
                 flags,
                 flags2,
