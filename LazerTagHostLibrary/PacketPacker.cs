@@ -117,8 +117,8 @@ namespace LazerTagHostLibrary
             Debug.Assert(number_of_teams_in_game >= 0 && number_of_teams_in_game <= 3);
             byte flags =
                 (byte)((extended_tagging ? 1 : 0) << 7
-                    | (unlimited_ammo ? 1 : 1) << 6
-                    | (unlimited_mega ? 1 : 1) << 5
+					| (unlimited_mega ? 1 : 0) << 6
+					| (unlimited_ammo ? 1 : 0) << 5
                     | (friendly_fire ? 1 : 0) << 4
                     | (medic_mode ? 1 : 0) << 3
                     | (rapid_tags ? 1 : 0) << 2
