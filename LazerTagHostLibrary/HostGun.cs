@@ -748,14 +748,14 @@ namespace LazerTagHostLibrary
             UInt16 data = UInt16.Parse(parameters[0], NumberStyles.AllowHexSpecifier);
             UInt16 number_of_bits = UInt16.Parse(parameters[1]);
 
-            switch (command) {
-            case "LTX":
-                return ProcessPacket(IRPacket.PacketType.PACKET_TYPE_LTX, data, number_of_bits);
-            case "LTTO":
-                HostDebugWriteLine(String.Format("LTTO: {0:d},{1:x}", number_of_bits, data));
-                break;
-            default:
-                break;
+            switch (command)
+			{
+				case "LTX":
+					return ProcessPacket(IRPacket.PacketType.PACKET_TYPE_LTX, data, number_of_bits);
+				case "LTTO":
+					break;
+				default:
+					break;
             }
             
             return false;
