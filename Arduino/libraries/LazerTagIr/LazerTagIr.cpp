@@ -102,9 +102,9 @@ void LazerTagIrSend::sendLazerTag(unsigned long data, int nbits, bool beacon)
 	{
 		currentBit = (data >> shift) & 0x1;
 		if (currentBit)
-			mark(PHOENIX_LTX_ONE_MARK);
+			mark(LAZERTAG_SIG_BIT_ONE);
 		else
-			mark(PHOENIX_LTX_ZERO_MARK);
+			mark(LAZERTAG_SIG_BIT_ZERO);
 
 		space(LAZERTAG_SIG_BIT_PAUSE);
 	}
