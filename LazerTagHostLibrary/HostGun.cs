@@ -95,7 +95,7 @@ namespace LazerTagHostLibrary
         private const int MINIMUM_PLAYER_COUNT_START = 2;
         private const int GAME_START_COUNTDOWN_ADVERTISEMENT_INTERVAL_SECONDS = 1;
         //1s breaks
-        private const int GAME_DEBREIF_ADVERTISEMENT_INTERVAL_SECONDS = 3;
+        private const int GAME_DEBRIEF_ADVERTISEMENT_INTERVAL_SECONDS = 3;
         private const int GAME_OVER_ADVERTISEMENT_INTERVAL_SECONDS = 5;
         private const int INTER_PACKET_BYTE_DELAY_MILISECONDS = 100;
         private const int MAX_PLAYER_COUNT = 24;
@@ -1033,7 +1033,7 @@ namespace LazerTagHostLibrary
                 HostDebugWriteLine("Debriefing");
                 break;
             case HostingState.HOSTING_STATE_GAME_OVER:
-                HostDebugWriteLine("Debreif Done");
+                HostDebugWriteLine("Debrief Done");
                 break;
             default:
                 return false;
@@ -1518,23 +1518,23 @@ namespace LazerTagHostLibrary
             {
                 if (now > next_announce) {
 
-                    Player next_debreif = null;
+                    Player next_debrief = null;
 
-                    //pull players off the debreif list at random
+                    //pull players off the debrief list at random
                     {
-                        List<Player> undebreifed = new List<Player>();
+                        List<Player> undebriefed = new List<Player>();
                         foreach (Player p in players) {
                             if (!p.HasBeenDebriefed()) {
-                                undebreifed.Add(p);
+                                undebriefed.Add(p);
                             }
                         }
 
-                        if (undebreifed.Count > 0) {
-                             next_debreif = undebreifed[new Random().Next() % undebreifed.Count];
+                        if (undebriefed.Count > 0) {
+                             next_debrief = undebriefed[new Random().Next() % undebriefed.Count];
                         }
                     }
 
-                    if (next_debreif == null) {
+                    if (next_debrief == null) {
                         HostDebugWriteLine("All players breifed");
 
                         RankPlayers();
@@ -1544,9 +1544,9 @@ namespace LazerTagHostLibrary
                         break;
                     }
                     
-                    UInt16 player_index = (UInt16)((next_debreif.team_number & 0xf) << 4 | (next_debreif.player_number & 0xf));
+                    UInt16 player_index = (UInt16)((next_debrief.team_number & 0xf) << 4 | (next_debrief.player_number & 0xf));
                     
-                    next_announce = now.AddSeconds(GAME_DEBREIF_ADVERTISEMENT_INTERVAL_SECONDS);
+                    next_announce = now.AddSeconds(GAME_DEBRIEF_ADVERTISEMENT_INTERVAL_SECONDS);
                     UInt16[] values = new UInt16[]{
                         (UInt16)CommandCode.COMMAND_CODE_SCORE_ANNOUNCEMENT,
                         game_id,//Game ID

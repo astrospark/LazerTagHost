@@ -20,7 +20,7 @@ namespace LazerTagHostLibrary
         public int damage = 0;
         //still alive at end of match
         public bool alive = false;
-        //true if the debreifing stated a report was coming but one not received yet
+        //true if the debriefing stated a report was coming but one not received yet
         public bool[] has_score_report_for_team = new bool[3] {false, false, false};
         public int[,] hit_by_team_player_count = new int[3,8];
         public int[,] hit_team_player_count = new int[3,8];
