@@ -1,5 +1,5 @@
 /*
- * IRremote: IRrecvDemo - demonstrates receiving IR codes with IRrecv
+ * IRremote: IRrecvDump - dump details of IR codes with IRrecv
  * An IR detector/demodulator must be connected to the input RECV_PIN.
  * Version 0.1 July, 2009
  * Copyright 2009 Ken Shirriff
@@ -9,12 +9,16 @@
 #include <IRremote.h>
 
 int RECV_PIN = 11;
-int RELAY_PIN = 4;
 
 IRrecv irrecv(RECV_PIN);
-IRsend irsend;
 
 decode_results results;
+
+void setup()
+{
+  Serial.begin(9600);
+  irrecv.enableIRIn(); // Start the receiver
+}
 
 // Dumps out the decode_results structure.
 // Call this after IRrecv::decode()
@@ -39,17 +43,12 @@ void dump(decode_results *results) {
     else if (results->decode_type == RC6) {
       Serial.print("Decoded RC6: ");
     }
-    else if (results->decode_type == PHOENIX_LTX) {
-      Serial.print("LTX: ");
-    }
-    else if (results->decode_type == LAZER_TAG_TEAM_OPS) {
-      Serial.print("LTTO: ");
-    }
     Serial.print(results->value, HEX);
-    Serial.print(", ");
-    Serial.println(results->bits, DEC);
+    Serial.print(" (");
+    Serial.print(results->bits, DEC);
+    Serial.println(" bits)");
   }
-  /*Serial.print("Raw (");
+  Serial.print("Raw (");
   Serial.print(count, DEC);
   Serial.print("): ");
 
@@ -62,50 +61,14 @@ void dump(decode_results *results) {
     }
     Serial.print(" ");
   }
-  Serial.println("");*/
+  Serial.println("");
 }
 
-void setup()
-{
-  pinMode(RELAY_PIN, OUTPUT);
-  pinMode(13, OUTPUT);
-  Serial.begin(115200);
-  Serial.println("Start");
-  irrecv.enableIRIn(); // Start the receiver
-}
-
-/*int on = 0;
-unsigned long last = millis();*/
 
 void loop() {
   if (irrecv.decode(&results)) {
+    Serial.println(results.value, HEX);
     dump(&results);
-    
-    
-    irrecv.enableIRIn();
-    //Serial.print("Value: ");
-    //Serial.println(results.value, BIN);
-    
     irrecv.resume(); // Receive the next value
-  } else if (Serial.available() >= 2) {
-    byte high = Serial.read();
-    byte low = Serial.read();
-    
-    byte count = (high >> 1) & 0xf;
-    byte type = (high >> 5) & 0x1;
-    short value = (short)low | (((short)high & 0x1) << 8);
-    
-    /*Serial.print("Recv: ");
-    Serial.print(value, HEX);
-    Serial.print(", ");
-    Serial.println(count, DEC);*/
-    if (type == 0x00) {
-      irsend.sendPHOENIX_LTX(value, count);
-    } else if (type == 0x01) {
-      irsend.sendLTTO(value, count);
-    }
-    
-    irrecv.enableIRIn();
-    irrecv.resume();
   }
 }
