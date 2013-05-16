@@ -169,7 +169,7 @@ void IRsend::sendRC6(unsigned long data, int nbits)
 }*/
 
 void IRsend::sendPHOENIX_LTX(unsigned long data, int nbits) {
-  enableIROut(36);
+  enableIROut(38);
   //HEAD
   mark(PHOENIX_HDR_MARK);
   space(PHOENIX_HDR_SPACE);
@@ -188,7 +188,7 @@ void IRsend::sendPHOENIX_LTX(unsigned long data, int nbits) {
 }
 
 void IRsend::sendLTTO(unsigned long data, int nbits) {
-  enableIROut(36);
+  enableIROut(38);
   //HEAD
   mark(LTTO_HDR_MARK_ONE);
   space(LTTO_HDR_SPACE);
@@ -249,7 +249,7 @@ void IRsend::enableIROut(int khz) {
 
   // The top value for the timer.  The modulation frequency will be SYSCLOCK / 2 / OCR2A.
   OCR2A = SYSCLOCK / 2 / khz / 1000;
-  OCR2B = OCR2A / 3; // 33% duty cycle
+  OCR2B = OCR2A / 2; // 50% duty cycle
 }
 
 IRrecv::IRrecv(int recvpin)
