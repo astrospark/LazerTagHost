@@ -64,16 +64,18 @@ namespace LazerTagHostUI
             Player found_player = hg.LookupPlayer((int)team_index + 1, (int)player_index);
     
             if (found_player == null) return "Open";
-    
-            string text = found_player.player_name;
+
+			string text = String.Format("{0} ({1}:{2:d2}) ", found_player.player_name, team_index + 1, player_index + 1);
     
             switch (hg.GetGameState()) {
             case HostGun.HostingState.HOSTING_STATE_SUMMARY:
-                text += " / " + (found_player.HasBeenDebriefed() ? "Done" : "Waiting");
+                text += (found_player.HasBeenDebriefed() ? "Done" : "Waiting");
                 break;
             case HostGun.HostingState.HOSTING_STATE_GAME_OVER:
                 string postfix = "";
                 switch (found_player.individual_rank) {
+					case 0:
+		                break;
                     case 1:
                         postfix = "st";
                         break;
@@ -87,7 +89,7 @@ namespace LazerTagHostUI
                         postfix = "th";
                         break;
                 }
-                text += " / " + found_player.individual_rank + postfix;
+                text += found_player.individual_rank + postfix;
 
                 if (relative_scoresheet) {
                     Player selected_player = GetSelectedPlayer();
@@ -104,10 +106,9 @@ namespace LazerTagHostUI
                     }
                 } else {
                     if (hg.IsZoneGame()) {
-                        text += "\nZone Time: "
-                            + (found_player.zone_time / 60) + ":" + (found_player.zone_time % 60);
+                        text += string.Format("\nZone Time: {0}:{1:d2}",found_player.zone_time / 60, found_player.zone_time % 60);
                     } else {
-                        text += "\nScore: " + found_player.score + " Dmg Recv: " + found_player.damage;
+						text += String.Format("\nScore: {0} Dmg Recv: {1}",found_player.score, found_player.damage);
                     }
                 }
 
