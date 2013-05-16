@@ -555,7 +555,9 @@ namespace LazerTagHostLibrary
                 
                 bool collision = false;
                 foreach (Player collision_check_player in players) {
-                    if (collision_check_player.player_id == player_id) {
+                    if (collision_check_player.player_id == player_id &&
+						!collision_check_player.confirmed)
+					{
                         collision = true;
                         break;
                     }
