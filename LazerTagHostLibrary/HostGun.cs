@@ -1494,21 +1494,33 @@ namespace LazerTagHostLibrary
                     default:
                         break;
                     }
-#region TestData
-                    //TODO: Won't get called if next announce is not advanced
-                } else if (Console.KeyAvailable) {
-                    char input = (char)Console.Read();
-                    
-                    if (input >= '0' && input <= '7') {
-                        int player_number = input - '0';
-                        
-                        int damage = 0;
-                        Shoot(host_shot_team_number, player_number, damage, true);
-                    } else {
-                        host_shot_team_number = (host_shot_team_number % 3) + 1;
-                        HostDebugWriteLine("Host gun set to shoot for team: " + host_shot_team_number);
-                    }
                 }
+#region TestData
+                //TODO: Won't get called if next announce is not advanced
+				try
+				{
+					if (Console.KeyAvailable)
+					{
+						char input = (char)Console.Read();
+
+						if (input >= '0' && input <= '7')
+						{
+							int player_number = input - '0';
+
+							int damage = 0;
+							Shoot(host_shot_team_number, player_number, damage, true);
+						}
+						else
+						{
+							host_shot_team_number = (host_shot_team_number % 3) + 1;
+							HostDebugWriteLine("Host gun set to shoot for team: " + host_shot_team_number);
+						}
+					}
+				}
+				catch (InvalidOperationException)
+				{
+					// Console input not available. Ignore.
+				}
 #endregion
                 break;
             }
