@@ -1494,6 +1494,22 @@ namespace LazerTagHostLibrary
                     default:
                         break;
                     }
+
+					// Keep sending out a countdown for taggers that may have missed it
+					var values = new UInt16[]
+						{
+							(UInt16) CommandCode.COMMAND_CODE_COUNTDOWN_TO_GAME_START,
+							game_id, //Game ID
+							DecimalToDecimalHex((byte)(((state_change_timeout - now).Seconds % 5) + 1)),
+							0x08, //players on team 1
+							0x08, //players on team 2
+							0x08, //players on team 3
+						};
+					TransmitPacket2(ref values);
+	                if (next_announce < now || next_announce > now.AddMilliseconds(1000))
+	                {
+		                next_announce = now.AddMilliseconds(1000);
+	                }
                 }
 #region TestData
                 //TODO: Won't get called if next announce is not advanced
