@@ -1533,7 +1533,7 @@ namespace LazerTagHostLibrary
                     }
 
                     if (next_debrief == null) {
-                        HostDebugWriteLine("All players breifed");
+                        HostDebugWriteLine("All players briefed");
 
                         RankPlayers();
                         PrintScoreReport();
