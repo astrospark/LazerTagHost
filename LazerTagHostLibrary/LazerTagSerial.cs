@@ -48,7 +48,7 @@ namespace LazerTagHostLibrary
                 return null;
             } else if (serial_port.BytesToRead > 0) {
                 string input = serial_port.ReadLine();
-                
+                Console.Write("RX: {0}", input);
                 return input;
             }
             return null;
@@ -91,15 +91,16 @@ namespace LazerTagHostLibrary
 
         public void TransmitPacket(ref UInt16[] values)
         {
-            for (int i = 0; i < values.Length; i++) {
-                UInt16 packet = values[i];
-                EnqueueLTX(packet,(UInt16)(i == 0 ? 9 : 8));
-            }
+			var hexValues = new string[values.Length];
+			for (int i = 0; i < values.Length; i++)
+			{
+				EnqueueLTX(values[i], (UInt16) (i == 0 ? 9 : 8));
+				hexValues[i] = string.Format("0x{0:X2}", values[i]);
+			}
             UInt16 checksum = ComputeChecksum2(ref values);
             checksum |= 0x100;
             EnqueueLTX(checksum,9);
-			String debug = "TX: " + String.Join(", ", values) + ", " + checksum;
-			Console.WriteLine(debug);
+	        Console.WriteLine("TX: {0}, 0x{1:X3}", string.Join(", ", hexValues),checksum);
         }
 
         static public byte ComputeChecksum2(ref UInt16[]values)

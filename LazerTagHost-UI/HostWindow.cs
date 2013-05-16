@@ -63,7 +63,6 @@ namespace LazerTagHostUI
     
             Player found_player = hg.LookupPlayer((int)team_index + 1, (int)player_index);
     
-            //Console.WriteLine("Set " + team_index + "," + player_index + " to " + (found ? "found" : "not found"));
             if (found_player == null) return "Open";
     
             string text = found_player.player_name;
@@ -204,7 +203,6 @@ namespace LazerTagHostUI
         }
 
         void PlayerSelectionScreen.HostControlListener.SelectionChanged(uint team_index, uint player_index) {
-        Console.WriteLine("t" + team_index + "p" + player_index);
             if (relative_scoresheet) {
                 RefreshPlayerList();
             }

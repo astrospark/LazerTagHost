@@ -465,12 +465,10 @@ long IRrecv::decodePHOENIX_LTX(decode_results *results) {
 		    data |= 0;
 		    results->bits++;
 	    } else {
-	      Serial.println(i, DEC);
 	      return ERR;
 	    }
 	  } else {
 	    if (!MATCH_SPACE(results->rawbuf[offset], PHOENIX_LTX_SPACE)) {
-		    Serial.println(i, DEC);
 	      return ERR;
 	    }
 	  }

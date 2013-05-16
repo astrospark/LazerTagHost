@@ -1345,8 +1345,6 @@ namespace LazerTagHostLibrary
                         string[] paramters = paramters_line.Split(',');
                     
                         ProcessMessage(command, paramters);
-                    } else {
-                        HostDebugWriteLine("DEBUG: " + input);
                     }
                 }
             }
