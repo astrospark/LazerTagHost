@@ -98,13 +98,8 @@ namespace LazerTagHostLibrary
             UInt16 checksum = ComputeChecksum2(ref values);
             checksum |= 0x100;
             EnqueueLTX(checksum,9);
-            System.Console.WriteLine("TX Count {0:d}", q.Count);
-            String debug = "TX: ";
-            foreach (UInt16 v in values) {
-                debug += v.ToString() + ",";
-            }
-            System.Console.WriteLine(debug);
-
+			String debug = "TX: " + String.Join(", ", values) + ", " + checksum;
+			Console.WriteLine(debug);
         }
 
         static public byte ComputeChecksum2(ref UInt16[]values)

@@ -1369,9 +1369,7 @@ namespace LazerTagHostLibrary
 
                     bool extended_tagging = false;
                     bool unlimited_ammo = game_state.reloads == 0xff;
-                    HostDebugWriteLine("unlimited_ammo " + game_state.reloads + ", " + unlimited_ammo);
                     bool unlimited_mega = game_state.mega == 0xff;
-                    HostDebugWriteLine("unlimited_mega " + game_state.mega + ", " + unlimited_mega);
                     bool friendly_fire = game_state.team_tag;
                     bool medic_mode = game_state.medic_mode;
                     bool rapid_tags = false;

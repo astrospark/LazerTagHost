@@ -132,8 +132,6 @@ namespace LazerTagHostLibrary
                     | (base_areas_are_hospitals ? 1 : 0) << 3
                     | (base_areas_fire_at_players ? 1 : 0) << 2
                     | (number_of_teams_in_game & 0x03));
-            String flags_string = String.Format("{0:x}{1:x}",flags,flags2);
-            Console.WriteLine(flags_string);
             /*flags = 0x78;
             flags2 = 0xA3;
             flags_string = String.Format("{0:x}{1:x}",flags,flags2);
