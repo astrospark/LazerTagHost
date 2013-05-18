@@ -31,7 +31,8 @@ void setup()
   lazerTagReceive.enableIRIn();
 }
 
-void loop() {
+void loop()
+{
   if (lazerTagReceive.decode(&results))
   {
     dump(&results);
@@ -65,7 +66,16 @@ void dump(decode_results *results)
       Serial.print("LTTO: ");
       break;
     default:
-      Serial.println("Could not decode message");
+      Serial.print("RAW: ");
+      for (int i = 0; i < results->rawlen; i++)
+      {
+        Serial.print(results->rawbuf[i] * USECPERTICK, DEC);
+        if (i < (results->rawlen - 1))
+        {
+          Serial.print(", ");
+        }
+      }
+      Serial.println();
       return;
   }
   Serial.print(results->value, HEX);
