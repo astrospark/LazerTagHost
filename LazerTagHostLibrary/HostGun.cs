@@ -3,6 +3,7 @@ using System.IO.Ports;
 using System.Globalization;
 using System.Collections.Generic;
 using System.Collections;
+using System.Text;
 
 
 namespace LazerTagHostLibrary
@@ -492,7 +493,25 @@ namespace LazerTagHostLibrary
         private bool ProcessCommandSequence()
         {
             DateTime now = DateTime.Now;
-            
+
+	        {
+		        IRPacket command_packet = incoming_packet_queue[0];
+				if (command_packet.data == (UInt16)CommandCode.COMMAND_CODE_TEXT_MESSAGE)
+				{
+					var message = new StringBuilder();
+					int i = 1;
+					while (i < incoming_packet_queue.Count &&
+                           incoming_packet_queue[i].data >= 0x20 &&
+						   incoming_packet_queue[i].data <= 0x7e &&
+						   incoming_packet_queue[i].number_of_bits == 8)
+					{
+						message.Append(Convert.ToChar(incoming_packet_queue[i].data));
+						i++;
+					}
+					Console.WriteLine("Received Text Message: {0}", message);
+				}
+	        }
+
             switch (hosting_state) {
             case HostingState.HOSTING_STATE_IDLE:
             {
@@ -1004,6 +1023,12 @@ namespace LazerTagHostLibrary
 
 
         }
+
+	    public void SendTextMessage(string message)
+	    {
+			var values = PacketPacker.packTextMessage(message);
+		    TransmitPacket2(ref values);
+	    }
 #endregion
 
         private bool ChangeState(DateTime now, HostingState state) {

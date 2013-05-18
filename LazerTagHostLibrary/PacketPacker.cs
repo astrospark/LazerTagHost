@@ -154,18 +154,18 @@ namespace LazerTagHostLibrary
             return values;
         }
 
-        //Entirely untested
-        public static UInt16[] packTextMessage(String message) {
-            //No idea what the maximum length is, 5 works
-            Debug.Assert(message.Length <= 5);
-            UInt16[] values = new UInt16[message.Length + 1];
-            //values[0] = (UInt16)HostGun.CommandCode.COMMAND_CODE_TEXT_MESSAGE;
-            int i = 0;
-            char[] source = message.ToCharArray();
-            for (i = 0; i < source.Length; i++) {
-                values[i+1] = source[i];
-            }
-            return values;
+        public static UInt16[] packTextMessage(String message)
+		{
+			Debug.Assert(message.Length <= 10);
+			var values = new UInt16[message.Length + 2];
+			values[0] = (UInt16)HostGun.CommandCode.COMMAND_CODE_TEXT_MESSAGE;
+			var source = message.ToCharArray();
+			for (int i = 0; i < source.Length; i++)
+			{
+				values[i + 1] = source[i];
+			}
+			values[message.Length + 1] = 0;
+			return values;
         }
     }
 }
