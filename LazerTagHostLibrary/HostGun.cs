@@ -826,7 +826,8 @@ namespace LazerTagHostLibrary
 
         private void RankPlayers()
         {
-            switch (game_state.game_type) {
+            switch (game_state.game_type)
+			{
             case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
             case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
             case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
@@ -891,19 +892,54 @@ namespace LazerTagHostLibrary
 
                 break;
             }
-            case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
+			case CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST:
+			{
+				var rankings = new SortedList<int, Player>();
+				/*
+				- Ranks are based on receiving 2 points per tag landed on players
+				and losing 1 point for every time you’re tagged by a another player
+				*/
+
+				foreach (Player player in players)
+				{
+					player.score = -player.damage;
+					for (int playerIndex = 0; playerIndex < 8; playerIndex++) // TODO: Fix this to work with up to 24 players
+					{
+						player.score += 2 * player.hit_team_player_count[0, playerIndex];
+					}
+
+					//we want high rankings out first
+					rankings.Add(-player.score << 8 | player.player_id, player);
+				}
+
+				//Determine PlayerRanks
+				int rank = 0;
+				int lastScore = 99;
+				foreach (KeyValuePair<int, Player> ranking in rankings)
+				{
+					Player player = ranking.Value;
+					if (player.score != lastScore)
+					{
+						rank++;
+						lastScore = player.score;
+					}
+					player.individual_rank = rank;
+				}
+				break;
+			}
+			case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
             case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
             case CommandCode.COMMAND_CODE_HUNT_THE_PREY_GAME_MODE_HOST: //Untested
             case CommandCode.COMMAND_CODE_HIDE_AND_SEEK_GAME_MODE_HOST: //Untested
             {
-                SortedList<int, Player> rankings = new SortedList<int, Player>();
+                var rankings = new SortedList<int, Player>();
                 //for team score
-                int[] players_alive_per_team = new int[3] { 0,0,0, };
+	            var players_alive_per_team = new int[] {0, 0, 0,};
                 //for tie breaking team scores
-                int[] team_alive_score = new int[3] { 0,0,0, };
-                int[] team_final_score = new int[3] { 0,0,0, };
+	            var team_alive_score = new int[3] {0, 0, 0,};
+	            var team_final_score = new int[3] {0, 0, 0,};
                 //rank for each team
-                int[] team_rank = new int[3] { 0,0,0, };
+	            var team_rank = new int[3] {0, 0, 0,};
                 /*
                 - Individual ranks are based on receiving 2 points per tag landed on players
                 from other teams, and losing 1 point for every time you’re tagged by a player
@@ -919,42 +955,51 @@ namespace LazerTagHostLibrary
                 could affect your team’s ranking.
                 */
 
-                foreach (Player p in players) {
+                foreach (Player p in players)
+				{
                     int score = - p.damage;
                     int team_index = 0;
                     int player_index = 0;
                     //TODO: test to make sure scoring works accurately
-                    for (team_index = 0; team_index < 3; team_index++) {
-                        for (player_index = 0; player_index < 8; player_index++) {
-                            if (p.team_index == team_index) {
+                    for (team_index = 0; team_index < 3; team_index++)
+					{
+                        for (player_index = 0; player_index < 8; player_index++)
+						{
+                            if (p.team_index == team_index)
+							{
                                 //Friendly fire
                                 score -= 2 * p.hit_team_player_count[team_index, player_index];
-                            } else {
+                            }
+							else
+							{
                                 score += 2 * p.hit_team_player_count[team_index, player_index];
                             }
                         }
                     }
                     
                     p.score = score;
-                    if (p.alive) {
-                        players_alive_per_team[p.team_index] ++;
-                        team_alive_score[p.team_index] += score;
+                    if (p.alive)
+                    {
+	                    players_alive_per_team[p.team_index]++;
+	                    team_alive_score[p.team_index] += score;
                     }
                     //prevent duplicates
-                    score = score << 8 | p.player_id;
+					score = score << 8 | p.player_id;
                     //we want high rankings out first
-                    rankings.Add(-score, p);
-                }
+					rankings.Add(-score, p);
+				}
                 
                 //Determine Team Ranks
-                for (int i = 0; i < 3; i++) {
+                for (int i = 0; i < 3; i++)
+				{
                     HostDebugWriteLine("Team " + (i + 1) + " Had " + players_alive_per_team[i] + " Players alive");
                     HostDebugWriteLine("Combined Score: " + team_alive_score[i]);
                     team_final_score[i] = (players_alive_per_team[i] << 10)
                                         + (team_alive_score[i] << 2);
                     HostDebugWriteLine("Final: Team " + (i + 1) + " Score " + team_final_score[i]);
                 }
-                for (int i = 0; i < 3; i++) {
+                for (int i = 0; i < 3; i++)
+				{
                     team_rank[i] = 3;
                     if (team_final_score[i] >= team_final_score[(i + 1) % 3]) {
                         team_rank[i]--;
@@ -968,8 +1013,8 @@ namespace LazerTagHostLibrary
                 //Determine PlayerRanks
                 int rank = 0;
                 int last_score = 99;
-                foreach(KeyValuePair<int, Player> e in rankings) {
-
+                foreach(KeyValuePair<int, Player> e in rankings)
+				{
                     Player p = e.Value;
                     if (p.score != last_score) {
                         rank++;
