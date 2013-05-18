@@ -293,13 +293,13 @@ public partial class MainWindow
 		w26.XOptions = ((global::Gtk.AttachOptions)(4));
 		w26.YOptions = ((global::Gtk.AttachOptions)(4));
 		// Container child table1.Gtk.Table+TableChild
-		this.spinbuttonCountdownTime = new global::Gtk.SpinButton (10, 120, 1);
+		this.spinbuttonCountdownTime = new global::Gtk.SpinButton (10, 30, 1);
 		this.spinbuttonCountdownTime.CanFocus = true;
 		this.spinbuttonCountdownTime.Name = "spinbuttonCountdownTime";
 		this.spinbuttonCountdownTime.Adjustment.PageIncrement = 10;
 		this.spinbuttonCountdownTime.ClimbRate = 1;
 		this.spinbuttonCountdownTime.Numeric = true;
-		this.spinbuttonCountdownTime.Value = 60;
+		this.spinbuttonCountdownTime.Value = 30;
 		this.table1.Add (this.spinbuttonCountdownTime);
 		global::Gtk.Table.TableChild w27 = ((global::Gtk.Table.TableChild)(this.table1[this.spinbuttonCountdownTime]));
 		w27.TopAttach = ((uint)(3));
