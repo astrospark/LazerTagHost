@@ -3,6 +3,7 @@ using System.IO.Ports;
 using System.Globalization;
 using System.Collections.Generic;
 using System.Collections;
+using System.Linq;
 using System.Text;
 
 
@@ -113,6 +114,7 @@ namespace LazerTagHostLibrary
         private HostChangedListener listener = null;
         private DateTime state_change_timeout;
         private DateTime next_announce;
+	    private int _debriefPlayerSequence = 0;
 
 #region SerialProtocol
         private List<IRPacket> incoming_packet_queue = new List<IRPacket>();
@@ -1535,17 +1537,12 @@ namespace LazerTagHostLibrary
 				{
                     Player next_debrief = null;
 
-                    //pull players off the debrief list at random
-                    {
-                        List<Player> undebriefed = new List<Player>();
-                        foreach (Player p in players) {
-                            if (!p.HasBeenDebriefed()) {
-                                undebriefed.Add(p);
-                            }
-                        }
-
-                        if (undebriefed.Count > 0) {
-                             next_debrief = undebriefed[new Random().Next() % undebriefed.Count];
+					{
+                        var undebriefed = players.Where(p => !p.HasBeenDebriefed()).ToList();
+	                    if (undebriefed.Count > 0)
+	                    {
+							_debriefPlayerSequence = _debriefPlayerSequence < int.MaxValue ? _debriefPlayerSequence + 1 : 0;
+							next_debrief = undebriefed[_debriefPlayerSequence % undebriefed.Count];
                         }
                     }
 
