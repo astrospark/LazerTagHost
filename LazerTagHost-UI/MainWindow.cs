@@ -10,7 +10,7 @@ public partial class MainWindow : Gtk.Window
     private HostWindow hw = null;
     HostGun.CommandCode game_type = HostGun.CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST;
 
-    public MainWindow () : base(Gtk.WindowType.Toplevel)
+    public MainWindow () : base(WindowType.Toplevel)
     {
         Build ();
 
@@ -45,7 +45,7 @@ public partial class MainWindow : Gtk.Window
         imageTransceiverStatus.Pixbuf = Stetic.IconLoader.LoadIcon(this, gtk_name, Gtk.IconSize.Menu);
     }
 
-    protected virtual void TransceiverChanged (object sender, System.EventArgs e)
+    protected virtual void TransceiverChanged (object sender, EventArgs e)
     {
         if (hg.SetDevice(comboboxentryArduinoPorts.ActiveText)) {
             buttonStartHost.Sensitive = true;
@@ -68,7 +68,7 @@ public partial class MainWindow : Gtk.Window
         return (byte)input;
     }
 
-    protected void StartGameType (object sender, System.EventArgs e)
+    protected void StartGameType (object sender, EventArgs e)
     {
         hg.DynamicHostMode(game_type,
                         ConvertGameValue(spinbuttonGameTime.ValueAsInt),
@@ -76,8 +76,8 @@ public partial class MainWindow : Gtk.Window
                         ConvertGameValue(spinbuttonReloads.ValueAsInt),
                         ConvertGameValue(spinbuttonShield.ValueAsInt),
                         ConvertGameValue(spinbuttonMega.ValueAsInt),
-                        this.checkbuttonFriendlyFire.Active,
-                        this.checkbuttonMedicMode.Active,
+                        checkbuttonFriendlyFire.Active,
+                        checkbuttonMedicMode.Active,
                         ConvertGameValue(spinbuttonNumberOfTeams.ValueAsInt));
 
         hg.SetGameStartCountdownTime(spinbuttonCountdownTime.ValueAsInt);
@@ -174,19 +174,8 @@ public partial class MainWindow : Gtk.Window
         }
     }
 
-    protected virtual void GameTypeChanged (object sender, System.EventArgs e)
+    protected virtual void GameTypeChanged (object sender, EventArgs e)
     {
-
         UpdateGameType();
     }
-    
-    
-
-    
-
-    
-    
-
-
-
 }
