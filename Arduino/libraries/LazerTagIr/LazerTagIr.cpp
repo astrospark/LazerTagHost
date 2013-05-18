@@ -20,8 +20,6 @@ int LazerTagIrReceive::decode(decode_results *results)
 
 long LazerTagIrReceive::decodeLazerTag(decode_results *results)
 {
-	if (results->rawlen < 18) return ERR;
-
 	int offset = 1;
 
 	// Presync
@@ -35,10 +33,12 @@ long LazerTagIrReceive::decodeLazerTag(decode_results *results)
 	// Sync
 	if (MATCH_MARK(results->rawbuf[offset], LAZERTAG_SIG_TAG_SYNC))
 	{
+		if (results->rawlen < 18) return ERR;
 		results->decode_type = TYPE_LAZERTAG_TAG;
 	}
 	else if (MATCH_MARK(results->rawbuf[offset], LAZERTAG_SIG_BEACON_SYNC))
 	{
+		if (results->rawlen < 14) return ERR;
 		results->decode_type = TYPE_LAZERTAG_BEACON;
 	}
 	else return ERR;
