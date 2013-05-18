@@ -18,8 +18,7 @@ namespace LazerTagHostLibrary
     {
         static private void HostDebugWriteLine(string line)
         {
-            DateTime now = DateTime.Now;
-            Console.WriteLine("Host: (" + now + ") " + line);
+            Console.WriteLine("{0}: {1}", DateTime.Now, line);
         }
 
         private struct GameState {
@@ -694,17 +693,16 @@ namespace LazerTagHostLibrary
             case HostingState.HOSTING_STATE_SUMMARY:
             {
                 IRPacket command_packet = incoming_packet_queue[0];
-                switch ((CommandCode)command_packet.data) {
-                case CommandCode.COMMAND_CODE_PLAYER_REPORT_SCORE:
-                    return ProcessPlayerReportScore();
-                case CommandCode.COMMAND_CODE_PLAYER_HIT_BY_TEAM_1_REPORT:
-                case CommandCode.COMMAND_CODE_PLAYER_HIT_BY_TEAM_2_REPORT:
-                case CommandCode.COMMAND_CODE_PLAYER_HIT_BY_TEAM_3_REPORT:
-                    return ProcessPlayerHitByTeamReport();
-                default:
-                    break;
+                switch ((CommandCode)command_packet.data)
+				{
+					case CommandCode.COMMAND_CODE_PLAYER_REPORT_SCORE:
+						return ProcessPlayerReportScore();
+					case CommandCode.COMMAND_CODE_PLAYER_HIT_BY_TEAM_1_REPORT:
+					case CommandCode.COMMAND_CODE_PLAYER_HIT_BY_TEAM_2_REPORT:
+					case CommandCode.COMMAND_CODE_PLAYER_HIT_BY_TEAM_3_REPORT:
+		                return ProcessPlayerHitByTeamReport();
                 }
-                
+
                 return false;
             }
             default:
@@ -1244,29 +1242,22 @@ namespace LazerTagHostLibrary
             string countdown;
 
             if (state_change_timeout < now || paused) {
-
-                countdown = "Waiting";
-
-                switch (hosting_state) {
-                case HostingState.HOSTING_STATE_ADDING:
-                    int needed = (MINIMUM_PLAYER_COUNT_START - players.Count);
-                    if (needed > 0) {
-                        countdown = "Waiting for " + needed + " more players";
-                    } else {
-                        countdown = "Ready to start";
-                    }
-                    break;
-                case HostingState.HOSTING_STATE_SUMMARY:
-                    countdown += " for all players to check in";
-                    break;
-                case HostingState.HOSTING_STATE_GAME_OVER:
-                    countdown = "All players may now receive scores";
-                    break;
-                default:
-                    break;
+                switch (hosting_state)
+				{
+					case HostingState.HOSTING_STATE_ADDING:
+						int needed = (MINIMUM_PLAYER_COUNT_START - players.Count);
+						countdown = needed > 0 ? String.Format("Waiting for {0} more players", needed) : "Ready to start";
+						break;
+					case HostingState.HOSTING_STATE_SUMMARY:
+						countdown = "Waiting for all players to check in";
+						break;
+					case HostingState.HOSTING_STATE_GAME_OVER:
+						countdown = "All players may now receive scores";
+						break;
+					default:
+						countdown = "Waiting";
+		                break;
                 }
-
-
             } else {
                 countdown = ((int)((state_change_timeout - now).TotalSeconds)).ToString() + " seconds";
 
@@ -1536,39 +1527,12 @@ namespace LazerTagHostLibrary
 		                next_announce = now.AddMilliseconds(1000);
 	                }
                 }
-#region TestData
-                //TODO: Won't get called if next announce is not advanced
-				try
-				{
-					if (Console.KeyAvailable)
-					{
-						char input = (char)Console.Read();
-
-						if (input >= '0' && input <= '7')
-						{
-							int player_number = input - '0';
-
-							int damage = 0;
-							Shoot(host_shot_team_number, player_number, damage, true);
-						}
-						else
-						{
-							host_shot_team_number = (host_shot_team_number % 3) + 1;
-							HostDebugWriteLine("Host gun set to shoot for team: " + host_shot_team_number);
-						}
-					}
-				}
-				catch (InvalidOperationException)
-				{
-					// Console input not available. Ignore.
-				}
-#endregion
                 break;
             }
             case HostingState.HOSTING_STATE_SUMMARY:
             {
-                if (now > next_announce) {
-
+                if (now > next_announce)
+				{
                     Player next_debrief = null;
 
                     //pull players off the debrief list at random
@@ -1585,8 +1549,9 @@ namespace LazerTagHostLibrary
                         }
                     }
 
-                    if (next_debrief == null) {
-                        HostDebugWriteLine("All players briefed");
+                    if (next_debrief == null)
+					{
+                        HostDebugWriteLine("All players debriefed");
 
                         RankPlayers();
                         PrintScoreReport();
@@ -1595,38 +1560,38 @@ namespace LazerTagHostLibrary
                         break;
                     }
                     
-                    UInt16 player_index = (UInt16)((next_debrief.team_number & 0xf) << 4 | (next_debrief.player_number & 0xf));
-                    
-                    next_announce = now.AddSeconds(GAME_DEBRIEF_ADVERTISEMENT_INTERVAL_SECONDS);
-                    UInt16[] values = new UInt16[]{
+                    var player_index = (UInt16)((next_debrief.team_number & 0xf) << 4 | (next_debrief.player_number & 0xf));
+                    var values = new UInt16[]
+					{
                         (UInt16)CommandCode.COMMAND_CODE_SCORE_ANNOUNCEMENT,
-                        game_id,//Game ID
-                        player_index,//player index
-                        // [ 4 bits - team ] [ 4 bits - player number ]
-                        0x0F, //unknown
+                        game_id, // Game ID
+                        player_index, // player index [ 4 bits - team ] [ 4 bits - player number ]
+                        0x0F, // unknown
                     };
                     TransmitPacket2(ref values);
-                }
+
+					next_announce = now.AddSeconds(GAME_DEBRIEF_ADVERTISEMENT_INTERVAL_SECONDS);
+				}
                 break;
             }
             case HostingState.HOSTING_STATE_GAME_OVER:
             {
-                if (now > next_announce) {
-                    
+                if (now > next_announce)
+				{
                     next_announce = now.AddSeconds(GAME_OVER_ADVERTISEMENT_INTERVAL_SECONDS);
                     
-                    foreach (Player p in players) {
-                        
+                    foreach (Player p in players)
+					{
                         UInt16 player_index = (UInt16)((p.team_number & 0xf) << 4 | (p.player_number & 0xf));
                         
-                        UInt16[] values = new UInt16[]{
+                        UInt16[] values = new UInt16[]
+						{
                             (UInt16)CommandCode.COMMAND_CODE_GAME_OVER,
-                            game_id,//Game ID
-                            player_index,//player index
-                            // [ 4 bits - team ] [ 4 bits - player number ]
-                            (UInt16)p.individual_rank, //player rank (not decimal hex, 1-player_count)
-                            (UInt16)p.team_rank, //team rank?
-                            0x00,//unknown...
+                            game_id, // Game ID
+                            player_index, // player index [ 4 bits - team ] [ 4 bits - player number ]
+                            (UInt16)p.individual_rank, // player rank (not decimal hex, 1-player_count)
+                            (UInt16)p.team_rank, // team rank?
+                            0x00, // unknown...
                             0x00,
                             0x00,
                             0x00,
@@ -1634,15 +1599,11 @@ namespace LazerTagHostLibrary
                         };
                         TransmitPacket2(ref values);
                     }
-                    
                 }
                 break;
             }
-            default:
-                break;
             }
         }
-
 
         public void AddListener(HostChangedListener listener) {
             this.listener = listener;
