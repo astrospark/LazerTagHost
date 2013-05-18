@@ -9,7 +9,7 @@ namespace LazerTagHostLibrary
     public class LazerTagSerial
     {
         private SerialPort serial_port = null;
-        private const int INTER_PACKET_BYTE_DELAY_MILISECONDS = 100;
+        private const int INTER_PACKET_BYTE_DELAY_MILLISECONDS = 50;
         private Queue<byte[]> q = null;
 
         System.Threading.Thread worker_thread = null;
@@ -64,7 +64,7 @@ namespace LazerTagHostLibrary
                         serial_port.Write( packet, 0, 2 );
                         serial_port.BaseStream.Flush();
                     }
-                    System.Threading.Thread.Sleep(INTER_PACKET_BYTE_DELAY_MILISECONDS);
+                    System.Threading.Thread.Sleep(INTER_PACKET_BYTE_DELAY_MILLISECONDS);
                 }
             } catch (Exception ex) {
                 System.Console.WriteLine(ex.ToString());
