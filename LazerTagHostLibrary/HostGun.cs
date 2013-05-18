@@ -705,15 +705,14 @@ namespace LazerTagHostLibrary
                 if ((data & 0x100) != 0) {
                     //end sequence
                     if ((data & 0xff) == LazerTagSerial.ComputeChecksum(ref incoming_packet_queue)) {
-                        HostDebugWriteLine("Command: (" 
-                                                     + GetCommandCodeName((CommandCode)(incoming_packet_queue[0].data)) 
-                                                     + ") " 
-                                                     + SerializeCommandSequence(ref incoming_packet_queue));
+                        HostDebugWriteLine(String.Format("RX {0}: {1}",
+                                                     GetCommandCodeName((CommandCode)(incoming_packet_queue[0].data)), 
+                                                     SerializeCommandSequence(ref incoming_packet_queue)));
                         if (!ProcessCommandSequence()) {
                             HostDebugWriteLine("ProcessCommandSequence failed: " + SerializeCommandSequence(ref incoming_packet_queue));
                         }
                     } else {
-                        HostDebugWriteLine("Invalid Checksum SEQ: " + SerializeCommandSequence(ref incoming_packet_queue));
+                        HostDebugWriteLine("Invalid Checksum " + SerializeCommandSequence(ref incoming_packet_queue));
                     }
                     incoming_packet_queue.Clear();
                 } else {
@@ -780,11 +779,12 @@ namespace LazerTagHostLibrary
 
         static private string SerializeCommandSequence(ref List<IRPacket> packets)
         {
-            string command = "SEQ:";
-            foreach (IRPacket packet in packets) {
-                command += String.Format("{0:x},", packet.data);
+			var hexValues = new string[packets.Count];
+			for (int i = 0; i < packets.Count; i++)
+			{
+				hexValues[i] = string.Format("0x{0:X2}", packets[i].data);
             }
-            return command;
+			return string.Format("SEQ: {0}", string.Join(", ", hexValues));
         }
 
         static private byte DecimalToDecimalHex(byte d)
