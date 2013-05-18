@@ -1,7 +1,7 @@
 using System;
+using System.Linq;
 using Gtk;
 using LazerTagHostLibrary;
-using System.Collections.Generic;
 using LazerTagHostUI;
 
 public partial class MainWindow : Gtk.Window
@@ -12,30 +12,48 @@ public partial class MainWindow : Gtk.Window
 
     public MainWindow () : base(WindowType.Toplevel)
     {
-        Build ();
+        Build();
 
-        List<string> ports = LazerTagSerial.GetSerialPorts();
+        var ports = LazerTagSerial.GetSerialPorts();
+		foreach (var port in ports)
+		{
+			comboboxentryArduinoPorts.AppendText(port);
+		}
 
-        foreach (string port in ports) {
-            this.comboboxentryArduinoPorts.AppendText(port);
-        }
+		hg = new HostGun(null, null);
 
-        hg = new HostGun(null, null);
+		if (string.IsNullOrWhiteSpace(LazerTagHostUI.Properties.Settings.Default.SerialPortName))
+		{
+			foreach (string port in ports.Where(port => hg.SetDevice(port)))
+			{
+				comboboxentryArduinoPorts.Entry.Text = port;
+				buttonStartHost.Sensitive = true;
+				SetTranscieverStatusImage("gtk-apply");
+				break;
+			}
+		}
+		else
+		{
+			var model = comboboxentryArduinoPorts.Model;
+			TreeIter iter;
+			model.GetIterFirst(out iter);
+			do
+			{
+				var value = new GLib.Value();
+				model.GetValue(iter, 0, ref value);
+				var valueString = value.Val as string;
+				if (valueString != null && valueString.Equals(LazerTagHostUI.Properties.Settings.Default.SerialPortName))
+				{
+					comboboxentryArduinoPorts.SetActiveIter(iter);
+					break;
+				}
+			} while (model.IterNext(ref iter));
+		}
 
-        foreach (string port in ports) {
-            if (hg.SetDevice(port)) {
-                comboboxentryArduinoPorts.Entry.Text = port;
-                buttonStartHost.Sensitive = true;
-                SetTranscieverStatusImage("gtk-apply");
-                break;
-            }
-        }
+        ShowAll();
 
-        this.ShowAll();
-
-        hw = new HostWindow(hg);
-        hw.Modal = true;
-        hw.Hide();
+        hw = new HostWindow(hg) {Modal = true};
+	    hw.Hide();
 
         UpdateGameType();
     }
@@ -47,10 +65,18 @@ public partial class MainWindow : Gtk.Window
 
     protected virtual void TransceiverChanged (object sender, EventArgs e)
     {
-        if (hg.SetDevice(comboboxentryArduinoPorts.ActiveText)) {
+	    if (hg == null) return;
+
+	    var serialPortName = comboboxentryArduinoPorts.ActiveText;
+		if (hg.SetDevice(serialPortName))
+        {
             buttonStartHost.Sensitive = true;
             SetTranscieverStatusImage("gtk-apply");
-        } else {
+			LazerTagHostUI.Properties.Settings.Default.SerialPortName = serialPortName;
+			LazerTagHostUI.Properties.Settings.Default.Save();
+		}
+		else
+		{
             buttonStartHost.Sensitive = false;
             SetTranscieverStatusImage("gtk-dialog-error");
         }
