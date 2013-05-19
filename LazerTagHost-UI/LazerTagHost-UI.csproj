@@ -70,11 +70,17 @@
     <Reference Include="System" />
     <Reference Include="Mono.Posix" />
     <Reference Include="System.configuration" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="gtk-gui\gui.stetic">
       <LogicalName>gui.stetic</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ScoreReport.resx">
+      <DependentUpon>ScoreReport.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Title.png" />
   </ItemGroup>
@@ -84,6 +90,7 @@
     <Compile Include="gtk-gui\MainWindow.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="Ordinal.cs" />
     <Compile Include="PlayerSelector.cs" />
     <Compile Include="gtk-gui\LazerTagHostUI.PlayerSelector.cs" />
     <Compile Include="PlayerSelectionScreen.cs" />
@@ -96,6 +103,12 @@
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
     <Compile Include="RegistrySettingsProvider.cs" />
+    <Compile Include="ScoreReport.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ScoreReport.Designer.cs">
+      <DependentUpon>ScoreReport.cs</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\LazerTagHostLibrary\LazerTagHostLibrary.csproj">

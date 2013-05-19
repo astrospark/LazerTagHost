@@ -85,7 +85,24 @@ namespace LazerTagHostLibrary
 
             COMMAND_CODE_TEXT_MESSAGE = 0x80,
         };
-        
+
+		private readonly TeamCollection _teams = new TeamCollection();
+		public TeamCollection Teams
+	    {
+			get { return _teams; }
+	    }
+
+        private readonly LinkedList<Player> _players = new LinkedList<Player>();
+	    public LinkedList<Player> Players
+	    {
+		    get { return _players; }
+	    }
+
+	    public int TeamCount
+	    {
+			get { return game_state.number_of_teams; }
+	    }
+
         private byte game_id = 0x00;
         
         private LazerTagSerial ltz = null;
@@ -110,7 +127,6 @@ namespace LazerTagHostLibrary
         private ConfirmJoinState confirm_join_state;
 
         //loose change state
-        private LinkedList<Player> players = new LinkedList<Player>();
         private HostChangedListener listener = null;
         private DateTime state_change_timeout;
         private DateTime next_announce;
@@ -118,10 +134,6 @@ namespace LazerTagHostLibrary
 
 #region SerialProtocol
         private List<IRPacket> incoming_packet_queue = new List<IRPacket>();
-#endregion
-
-#region TestData
-        private int host_shot_team_number = 1;
 #endregion
         
         private void BaseGameSet(byte game_time_minutes, 
@@ -158,7 +170,7 @@ namespace LazerTagHostLibrary
             int team_assignment = 0;
             int player_assignment = 0;
 
-            if (players.Count >= MAX_PLAYER_COUNT) {
+            if (_players.Count >= MAX_PLAYER_COUNT) {
                 HostDebugWriteLine("Max player count hit");
                 return false;
             }
@@ -173,7 +185,7 @@ namespace LazerTagHostLibrary
                 for (int team_index = 0; team_index < 3; team_index++) {
                     for (int player_number = 0; player_number < 8; player_number++) {
                         bool found = false;
-                        foreach (Player p in players) {
+                        foreach (Player p in _players) {
 
                             if (p.team_index == team_index
                                 && p.player_number == player_number) {
@@ -213,7 +225,7 @@ namespace LazerTagHostLibrary
                     int max_player_count = 8;
                     for (i = 1; i <= game_state.number_of_teams; i++) {
                         int player_count = 0;
-                        foreach (Player p in players) {
+                        foreach (Player p in _players) {
                             if (p.team_number == i) player_count++;
                         }
                         if (player_count < max_player_count) {
@@ -242,7 +254,7 @@ namespace LazerTagHostLibrary
                 int i = 0;
                 for (i = 0; i < 8; i++) {
                     bool found = false;
-                    foreach (Player p in players) {
+                    foreach (Player p in _players) {
                         if (team_assignment != p.team_number) continue;
                         if (i == p.player_number) {
                             found = true;
@@ -326,7 +338,7 @@ namespace LazerTagHostLibrary
             int player_number = player_index & 0xf;
             bool found = false;
             
-            foreach (Player p in players) {
+            foreach (Player p in _players) {
                 if (p.team_number == team_number
                     && p.player_number == player_number)
                 {
@@ -428,7 +440,7 @@ namespace LazerTagHostLibrary
             }
 
             if (listener != null) {
-                listener.PlayerListChanged(new List<Player>(players));
+                listener.PlayerListChanged(new List<Player>(_players));
             }
             
             return true;
@@ -436,7 +448,7 @@ namespace LazerTagHostLibrary
         
         private void PrintScoreReport()
         {
-            foreach (Player p in players)
+            foreach (Player p in _players)
             {
                 string debug = String.Format("Player 0x{0:x} {1:d},{2:d}",
                                              p.player_id, p.team_number, p.player_number);
@@ -574,7 +586,7 @@ namespace LazerTagHostLibrary
                 }
                 
                 bool collision = false;
-                foreach (Player collision_check_player in players) {
+                foreach (Player collision_check_player in _players) {
                     if (collision_check_player.player_id == player_id &&
 						!collision_check_player.confirmed)
 					{
@@ -603,7 +615,7 @@ namespace LazerTagHostLibrary
                     return false;
                 }
                 
-                players.AddLast(p);
+                _players.AddLast(p);
                 
                 UInt16 team_response = (UInt16)((p.team_number << 3) | (p.player_number));
                 
@@ -666,7 +678,7 @@ namespace LazerTagHostLibrary
                 }
                 
                 bool found = false;
-                foreach(Player p in players) {
+                foreach(Player p in _players) {
                     if (p.player_id == confirmed_player_id) {
                         p.confirmed = true;
                         found = true;
@@ -680,14 +692,14 @@ namespace LazerTagHostLibrary
                     return false;
                 }
                 
-                if (players.Count >= MINIMUM_PLAYER_COUNT_START) {
+                if (_players.Count >= MINIMUM_PLAYER_COUNT_START) {
 
                     state_change_timeout = now.AddSeconds(WAIT_FOR_ADDITIONAL_PLAYERS_TIMEOUT_SECONDS);
                 }
                 ChangeState(now, HostingState.HOSTING_STATE_ADDING);
                 incoming_packet_queue.Clear();
                 if (listener != null) {
-                    listener.PlayerListChanged(new List<Player>(players));
+                    listener.PlayerListChanged(new List<Player>(_players));
                 }
                 
                 return true;
@@ -839,7 +851,7 @@ namespace LazerTagHostLibrary
                 //rank for each team
                 int[] team_rank = new int[3] { 0,0,0, };
 
-                foreach (Player p in players) {
+                foreach (Player p in _players) {
                     p.score = p.zone_time;
 
                     int score = p.zone_time;
@@ -877,10 +889,11 @@ namespace LazerTagHostLibrary
                         if (team_zone_time[i] >= team_zone_time[(i + 2) % 3]) {
                             team_rank[i]--;
                         }
+	                    Teams.TeamNumber(i + 1).TeamRank = team_rank[i];
                         HostDebugWriteLine("Team " + (i + 1) + " Rank " + team_rank[i]);
                     }
 
-                    foreach (Player p in players) {
+                    foreach (Player p in _players) {
                         p.team_rank = team_rank[p.team_index];
                     }
 
@@ -900,7 +913,7 @@ namespace LazerTagHostLibrary
 				and losing 1 point for every time you’re tagged by a another player
 				*/
 
-				foreach (Player player in players)
+				foreach (Player player in _players)
 				{
 					player.score = -player.damage;
 					for (int playerIndex = 0; playerIndex < 8; playerIndex++) // TODO: Fix this to work with up to 24 players
@@ -955,7 +968,7 @@ namespace LazerTagHostLibrary
                 could affect your team’s ranking.
                 */
 
-                foreach (Player p in players)
+                foreach (Player p in _players)
 				{
                     int score = - p.damage;
                     int team_index = 0;
@@ -1007,7 +1020,8 @@ namespace LazerTagHostLibrary
                     if (team_final_score[i] >= team_final_score[(i + 2) % 3]) {
                         team_rank[i]--;
                     }
-                    HostDebugWriteLine("Team " + (i + 1) + " Rank " + team_rank[i]);
+					Teams.TeamNumber(i + 1).TeamRank = team_rank[i];
+					HostDebugWriteLine("Team " + (i + 1) + " Rank " + team_rank[i]);
                 }
 
                 //Determine PlayerRanks
@@ -1083,7 +1097,7 @@ namespace LazerTagHostLibrary
 
             switch (state) {
             case HostingState.HOSTING_STATE_IDLE:
-                players.Clear();
+                _players.Clear();
                 break;
             case HostingState.HOSTING_STATE_COUNTDOWN:
                 if (hosting_state != HostGun.HostingState.HOSTING_STATE_ADDING) return false;
@@ -1202,7 +1216,7 @@ namespace LazerTagHostLibrary
 
         public Player LookupPlayer(int team_number, int player_number)
         {
-            foreach (Player p in players) {
+            foreach (Player p in _players) {
                 if (p.team_number == team_number
                     && p.player_number == player_number)
                 {
@@ -1292,7 +1306,7 @@ namespace LazerTagHostLibrary
                 switch (hosting_state)
 				{
 					case HostingState.HOSTING_STATE_ADDING:
-						int needed = (MINIMUM_PLAYER_COUNT_START - players.Count);
+						int needed = (MINIMUM_PLAYER_COUNT_START - _players.Count);
 						countdown = needed > 0 ? String.Format("Waiting for {0} more players", needed) : "Ready to start";
 						break;
 					case HostingState.HOSTING_STATE_SUMMARY:
@@ -1310,7 +1324,7 @@ namespace LazerTagHostLibrary
 
                 switch (hosting_state) {
                 case HostingState.HOSTING_STATE_ADDING:
-                    int needed = (MINIMUM_PLAYER_COUNT_START - players.Count);
+                    int needed = (MINIMUM_PLAYER_COUNT_START - _players.Count);
                     if (needed > 0) {
                         countdown = "Waiting for " + needed + " more players";
                     } else {
@@ -1354,9 +1368,9 @@ namespace LazerTagHostLibrary
                 return false;
             }
 
-            players.Remove(p);
+            _players.Remove(p);
             if (listener != null) {
-                listener.PlayerListChanged(new List<Player>(players));
+                listener.PlayerListChanged(new List<Player>(_players));
             }
 
             return false;
@@ -1370,9 +1384,9 @@ namespace LazerTagHostLibrary
             Player p1 = new Player(0x01);
             Player p2 = new Player(0x02);
             Player p3 = new Player(0x03);
-            players.AddLast(p1);
-            players.AddLast(p2);
-            players.AddLast(p3);
+            _players.AddLast(p1);
+            _players.AddLast(p2);
+            _players.AddLast(p3);
             
             p1.team_number = 1;
             p1.player_number = 0;
@@ -1424,8 +1438,21 @@ namespace LazerTagHostLibrary
             }
             case HostingState.HOSTING_STATE_ADDING:
             {
-                if (now.CompareTo(next_announce) > 0) {
-                    
+                if (now.CompareTo(next_announce) > 0)
+                {
+	                Teams.Clear();
+					if (IsTeamGame())
+					{
+						for (int teamNumber = 1; teamNumber < game_state.number_of_teams; teamNumber++)
+						{
+							Teams.Add(new Team(teamNumber));
+						}
+					}
+					else
+					{
+						Teams.Add(new Team(0));
+					}
+
                     incoming_packet_queue.Clear();
 
                     bool extended_tagging = false;
@@ -1498,7 +1525,7 @@ namespace LazerTagHostLibrary
                     TransmitPacket2(ref values);
                     
                     next_announce = now.AddSeconds(ADDING_ADVERTISEMENT_INTERVAL_SECONDS);
-                } else if (players.Count >= MINIMUM_PLAYER_COUNT_START
+                } else if (_players.Count >= MINIMUM_PLAYER_COUNT_START
                            && now > state_change_timeout
                            && !paused)
                 {
@@ -1583,7 +1610,7 @@ namespace LazerTagHostLibrary
                     Player next_debrief = null;
 
 					{
-                        var undebriefed = players.Where(p => !p.HasBeenDebriefed()).ToList();
+                        var undebriefed = _players.Where(p => !p.HasBeenDebriefed()).ToList();
 	                    if (undebriefed.Count > 0)
 	                    {
 							_debriefPlayerSequence = _debriefPlayerSequence < int.MaxValue ? _debriefPlayerSequence + 1 : 0;
@@ -1622,7 +1649,7 @@ namespace LazerTagHostLibrary
 				{
                     next_announce = now.AddSeconds(GAME_OVER_ADVERTISEMENT_INTERVAL_SECONDS);
                     
-                    foreach (Player p in players)
+                    foreach (Player p in _players)
 					{
                         UInt16 player_index = (UInt16)((p.team_number & 0xf) << 4 | (p.player_number & 0xf));
                         

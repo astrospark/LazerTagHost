@@ -72,24 +72,7 @@ namespace LazerTagHostUI
                 text += (found_player.HasBeenDebriefed() ? "Done" : "Waiting");
                 break;
             case HostGun.HostingState.HOSTING_STATE_GAME_OVER:
-                string postfix = "";
-                switch (found_player.individual_rank) {
-					case 0:
-		                break;
-                    case 1:
-                        postfix = "st";
-                        break;
-                    case 2:
-                        postfix = "nd";
-                        break;
-                    case 3:
-                        postfix = "rd";
-                        break;
-                    default:
-                        postfix = "th";
-                        break;
-                }
-                text += found_player.individual_rank + postfix;
+                text += Ordinal.FromCardinal(found_player.individual_rank);
 
                 if (relative_scoresheet) {
                     Player selected_player = GetSelectedPlayer();
@@ -221,7 +204,14 @@ namespace LazerTagHostUI
             RefreshPlayerList();
         }
 
-        void HostChangedListener.GameStateChanged(HostGun.HostingState state) {
+        void HostChangedListener.GameStateChanged(HostGun.HostingState state)
+		{
+			if (state == HostGun.HostingState.HOSTING_STATE_GAME_OVER)
+			{
+				var scoreReportForm = new ScoreReport(hg);
+				scoreReportForm.Show();
+			}
+
             //drop,rename,late,abort,next
             switch (state) {
             case HostGun.HostingState.HOSTING_STATE_ADDING:
