@@ -12,17 +12,15 @@ namespace LazerTagHostUI
 
         public PlayerSelectionScreen ()
         {
-            this.Build ();
+	        Build();
 
             playerselector.SetListener(SelectionChanged);
         }
 
-        void SelectionChanged(uint team_index, uint player_index) {
-            if (listener != null) {
-                listener.SelectionChanged(team_index, player_index);
-            }
+        void SelectionChanged(int playerNumber)
+		{
+			if (listener != null) listener.SelectionChanged(playerNumber);
         }
-
 
         public PlayerSelector GetPlayerSelector() {
             return playerselector;
@@ -49,13 +47,13 @@ namespace LazerTagHostUI
 
         public interface HostControlListener
         {
-            void DropPlayer(object sender, System.EventArgs e);
-            void RenamePlayer(object sender, System.EventArgs e);
-            void LateJoin(object sender, System.EventArgs e);
-            void Abort(object sender, System.EventArgs e);
-            void Pause(object sender, System.EventArgs e);
-            void Next(object sender, System.EventArgs e);
-            void SelectionChanged(uint team_index, uint player_index);
+            void DropPlayer(object sender, EventArgs e);
+            void RenamePlayer(object sender, EventArgs e);
+            void LateJoin(object sender, EventArgs e);
+            void Abort(object sender, EventArgs e);
+            void Pause(object sender, EventArgs e);
+            void Next(object sender, EventArgs e);
+            void SelectionChanged(int playerNumber);
             void RelativeScoresToggle(bool show_relative);
         }
 

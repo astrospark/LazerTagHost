@@ -9,12 +9,12 @@ namespace LazerTagHostUI
     public partial class PlayerSelector : Gtk.Bin
     {
 
-        private SelectionChanged listener = null;
-        private Gtk.RadioButton[,] radiobuttonPlayers = new Gtk.RadioButton[3,8];
+        private SelectionChanged _listener;
+        private readonly Gtk.RadioButton[,] _radioButtonPlayers = new Gtk.RadioButton[3,8];
 
         public PlayerSelector ()
         {
-            this.Build ();
+	        Build();
 
             Gtk.RadioButton first = null;
 
@@ -23,7 +23,7 @@ namespace LazerTagHostUI
                     string name = "radiobutton_" + team_index + "_" + player_index;
     
                     Gtk.RadioButton rb = new Gtk.RadioButton(first, name);
-                    radiobuttonPlayers[team_index,player_index] = rb;
+                    _radioButtonPlayers[team_index,player_index] = rb;
     
                     if (first == null) first = rb;
     
@@ -50,60 +50,51 @@ namespace LazerTagHostUI
             this.ShowAll();
         }
 
-        private void ListenSelectionChanges(object sender, System.EventArgs e) {
-            if (listener == null) return;
-
-            uint team_index = 0;
-            uint player_index = 0;
-            if (GetCurrentSelectedPlayer(ref team_index, ref player_index)) {
-
-                listener(team_index, player_index);
-
-            }
+        private void ListenSelectionChanges(object sender, EventArgs e)
+		{
+            if (_listener != null) _listener(GetCurrentSelectedPlayer());
         }
 
-        public void SetListener(SelectionChanged l) {
-            listener = l;
-
-            ListenSelectionChanges(null, null);
+        public void SetListener(SelectionChanged newListener)
+		{
+            _listener = newListener;
+            ListenSelectionChanges(this, new EventArgs());
         }
 
-        public delegate void SelectionChanged(uint team_index, uint player_index);
+        public delegate void SelectionChanged(int playerNumber);
 
+        public int GetCurrentSelectedPlayer()
+		{
+            for (var rowIndex = 0; rowIndex < 3; rowIndex++)
+			{
+                for (var columnIndex = 0; columnIndex < 8; columnIndex++)
+                {
+	                var radioButton = _radioButtonPlayers[rowIndex, columnIndex];
+                    if (!radioButton.Active) continue;
 
-        public bool GetCurrentSelectedPlayer(ref uint team_index_out, ref uint player_index_out) {
-            for (uint team_index = 0; team_index < 3; team_index++) {
-                for (uint player_index = 0; player_index < 8; player_index++) {
-                    Gtk.RadioButton rb = radiobuttonPlayers[team_index,player_index];
-                    if (!rb.Active) continue;
-    
-                    team_index_out = team_index;
-                    player_index_out = player_index;
-    
-                    return true;
+	                return (rowIndex*8) + columnIndex + 1;
                 }
             }
-            return false;
+            return 0;
         }
 
         public void SelectPlayer(uint team_index, uint player_index) {
             if (team_index > 2 || player_index > 7) return;
-            Gtk.RadioButton rb = radiobuttonPlayers[team_index,player_index];
+	        Gtk.RadioButton rb = _radioButtonPlayers[team_index, player_index];
             rb.Active = true;
         }
 
-        public delegate string GetPlayerName(uint team_index, uint player_index);
+        public delegate string GetPlayerNameDelegate(int teamNumber, int playerNumber);
 
-        public void RefreshPlayerNames(GetPlayerName namer) {
+        public void RefreshPlayerNames(GetPlayerNameDelegate getPlayerName)
+		{
+            if (getPlayerName == null) return;
 
-            if (namer == null) return;
-
-            for (uint team_index = 0; team_index < 3; team_index++) {
-                for (uint player_index = 0; player_index < 8; player_index++) {
-                    Gtk.RadioButton rb = radiobuttonPlayers[team_index,player_index];
-                    //if (!rb.Active) continue;
-
-                    rb.Label = namer(team_index, player_index);
+            for (var teamNumber = 1; teamNumber <= 3; teamNumber++) {
+                for (var playerNumber = 1; playerNumber <= 8; playerNumber++)
+                {
+	                var radioButton = _radioButtonPlayers[teamNumber - 1, playerNumber - 1];
+                    radioButton.Label = getPlayerName(teamNumber, playerNumber);
                 }
             }
         }

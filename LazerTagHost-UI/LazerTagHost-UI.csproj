@@ -58,6 +58,9 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>\Program Files (x86)\GtkSharp\2.12\lib\gtk-sharp-2.0\atk-sharp.dll</HintPath>
     </Reference>
+    <Reference Include="DotLiquid">
+      <HintPath>..\packages\DotLiquid.1.7.0\lib\NET40\DotLiquid.dll</HintPath>
+    </Reference>
     <Reference Include="gdk-sharp">
       <HintPath>\Program Files (x86)\GtkSharp\2.12\lib\gtk-sharp-2.0\gdk-sharp.dll</HintPath>
     </Reference>
@@ -135,10 +138,19 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
+    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="html\ScoreReport.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="html\ScoreReport.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -1,0 +1,28 @@
+﻿body
+{
+    font-family: sans-serif;
+}
+
+h1#title {
+    text-align: center;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+table,th,td {
+    border: 1px solid black;
+}
+
+th,td {
+    padding: 4px;
+}
+
+th {
+    background-color: lightblue
+}
+
+tr.even {
+    background-color: lightyellow;
+}

@@ -1,11 +1,19 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Windows.Forms;
+using DotLiquid;
 using LazerTagHostLibrary;
 
 namespace LazerTagHostUI
 {
 	public partial class ScoreReport : Form
 	{
+		public ScoreReport()
+		{
+			InitializeComponent();
+		}
+
 		public ScoreReport(HostGun hostGun)
 		{
 			InitializeComponent();
@@ -16,111 +24,108 @@ namespace LazerTagHostUI
 
 		private void ScoreReport_Load(object sender, EventArgs e)
 		{
-			if (_hostGun == null || _hostGun.GetGameState() != HostGun.HostingState.HOSTING_STATE_GAME_OVER) return;
+			string contentTemplate = File.ReadAllText(@"html\ScoreReport.html");
+			var template = Template.Parse(contentTemplate);
+			Template.RegisterFilter(typeof (OrdinalFilter));
+			Template.RegisterFilter(typeof (YesNoFilter));
+			Template.RegisterSafeType(typeof (Team), new[] {"TeamNumber", "TeamRank"});
+			Template.RegisterSafeType(typeof (Player), new[] {"TeamPlayerId", "PlayerName", "Rank", "Score", "Survived", "TaggedByPlayerCounts"});
+			Template.RegisterSafeType(typeof (TeamPlayerId), new[] {"PlayerNumber", "TeamNumber", "TeamPlayerNumber"});
 
-			Clear();
+			var executableDirectory = Path.GetDirectoryName(Application.ExecutablePath);
+			if (executableDirectory == null) throw new Exception("Could not determine the name of the directory in which this executable is located.");
+			var basePath = Path.Combine(executableDirectory, "html");
 
-			var line = string.Empty;
-
-			// Team Rankings
-			if (_hostGun.IsTeamGame())
-			{
-				WriteLine("Team Rankings");
-				WriteLine();
-
-				foreach (var team in _hostGun.Teams)
+			//const bool testIsTeamGame = true;
+			//var testTeams = new TeamCollection()
+			//    {
+			//        new Team(1)
+			//            {
+			//                TeamRank = 2,
+			//            },
+			//        new Team(2)
+			//            {
+			//                TeamRank = 1,
+			//            },
+			//        new Team(3)
+			//            {
+			//                TeamRank = 3,
+			//            },
+			//    };
+			//var testPlayers = new List<Player>
+			//    {
+			//        new Player(0)
+			//            {
+			//                TeamPlayerId = new TeamPlayerId(1,1),
+			//                PlayerName = "Alpha",
+			//                Rank = 4,
+			//                Score = 1,
+			//                Survived = true,
+			//                TaggedByPlayerCounts = new []{0,5,0,0,0,0,0,0,10,15,0,0,0,0,0,0,20,0,0,0,0,0,0,0},
+			//            },
+			//        new Player(1)
+			//            {
+			//                TeamPlayerId = new TeamPlayerId(1,2),
+			//                PlayerName = "Beta",
+			//                Rank = 1,
+			//                Score = 4,
+			//                Survived = true,
+			//                TaggedByPlayerCounts = new []{1,0,0,0,0,0,0,0,3,5,0,0,0,0,0,0,7,0,0,0,0,0,0,0},
+			//            },
+			//        new Player(2)
+			//            {
+			//                TeamPlayerId = new TeamPlayerId(2,1),
+			//                PlayerName = "Gamma",
+			//                Rank = 3,
+			//                Score = -10,
+			//                Survived = true,
+			//                TaggedByPlayerCounts = new []{2,4,0,0,0,0,0,0,0,6,0,0,0,0,0,0,8,0,0,0,0,0,0,0},
+			//            },
+			//        new Player(3)
+			//            {
+			//                TeamPlayerId = new TeamPlayerId(2,2),
+			//                //player_name = "Delta",
+			//                Rank = 5,
+			//                Score = 200,
+			//                Survived = false,
+			//                TaggedByPlayerCounts = new []{99,98,0,0,0,0,0,0,97,0,0,0,0,0,0,0,96,0,0,0,0,0,0,0},
+			//            },
+			//        new Player(4)
+			//            {
+			//                TeamPlayerId = new TeamPlayerId(3,1),
+			//                PlayerName = "",
+			//                Rank = 2,
+			//                Score = 100,
+			//                Survived = false,
+			//                TaggedByPlayerCounts = new []{1,2,0,0,0,0,0,0,40,50,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+			//            },
+			//    };
+			
+			var content = template.Render(Hash.FromAnonymousObject(new
 				{
-					line += string.Format("Team {0}\t", team.TeamNumber);
-					line += Ordinal.FromCardinal(team.TeamRank);
-				}
-				WriteLine(line);
-				WriteLine();
-				WriteLine();
-			}
-
-			line = string.Empty;
-			line += "Player\t";
-			line += "Rank\t";
-			line += "Score\t";
-			line += "Survived\t";
-			for (var teamNumber = 1; teamNumber <= 3; teamNumber++)
-			{
-				for (var playerNumber = 1; playerNumber <= 8; playerNumber++)
-				{
-					var player = _hostGun.LookupPlayer(teamNumber, playerNumber);
-					if (player == null || string.IsNullOrWhiteSpace(player.player_name))
-					{
-						line += string.Format("{0}:{1:d2}\t", teamNumber, playerNumber);
-					}
-					else
-					{
-						line += player.player_name + "\t";
-					}
-				}
-			}
-			WriteLine(line);
-
-			for (var teamNumber = 1; teamNumber <= 3; teamNumber++)
-			{
-				for (var playerNumber = 1; playerNumber <= 8; playerNumber++)
-				{
-					line = string.Empty;
-					var player = _hostGun.LookupPlayer(teamNumber, playerNumber);
-					if (player == null)
-					{
-						line += string.Format("{0}:{1:d2}\t", teamNumber, playerNumber);
-						line += "-\t"; // Rank
-						line += "-\t"; // Score
-						line += "-\t"; // Survived
-						for (int i = 0; i < 24; i++)
-						{
-							line += "-\t";
-						}
-					}
-					else
-					{
-						if (string.IsNullOrWhiteSpace(player.player_name))
-						{
-							line += string.Format("{0}:{1:d2}\t", teamNumber, playerNumber);
-						}
-						else
-						{
-							line += player.player_name + "\t";
-						}
-
-						line += Ordinal.FromCardinal(player.individual_rank) + "\t";
-						line += player.score + "\t";
-						line += player.alive + "\t";
-						for (var teamIndex = 0; teamIndex < 3; teamIndex++)
-						{
-							for (var playerIndex = 0; playerIndex < 8; playerIndex++)
-							{
-								if (teamIndex == player.team_index && playerIndex == player.player_id)
-								{
-									line += "-\t";
-								}
-								else
-								{
-									line += player.hit_team_player_count[teamIndex, playerIndex] + "\t";
-								}
-							}
-						}
-					}
-					WriteLine(line);
-				}
-			}
-
+					base_uri = basePath,
+					is_team_game = _hostGun.IsTeamGame(),
+					teams = _hostGun.Teams,
+					players = _hostGun.Players.Values,
+					//is_team_game = testIsTeamGame,
+					//teams = testTeams,
+					//players = testPlayers,
+				}));
+			webBrowser.DocumentText = content;
+			textBox.Text = content;
 		}
 
-		private void Clear()
+		private void ScoreReport_FormClosed(object sender, FormClosedEventArgs e)
 		{
-			textBox.Text = string.Empty;
+			//Environment.Exit(0);
 		}
 
-		private void WriteLine(string message = "")
+		public static class YesNoFilter 
 		{
-			textBox.Text += message + Environment.NewLine;
-			textBox.Select(0, 0);
+			public static string YesNo(bool value)
+			{
+				return value ? "Yes" : "No";
+			}
 		}
 	}
 }

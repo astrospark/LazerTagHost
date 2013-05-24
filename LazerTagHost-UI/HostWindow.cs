@@ -7,7 +7,7 @@ namespace LazerTagHostUI
 {
 
 
-    public partial class HostWindow : Gtk.Window, HostChangedListener, PlayerSelectionScreen.HostControlListener
+    public partial class HostWindow : Gtk.Window, IHostChangedListener, PlayerSelectionScreen.HostControlListener
     {
         private HostGun hg = null;
         private bool relative_scoresheet = false;
@@ -25,10 +25,13 @@ namespace LazerTagHostUI
 
             PlayerSelector ps = playerselectionscreenMain.GetPlayerSelector();
 
-            if (hg.IsTeamGame()) {
-                ps.SetColumnLabels("Team 1", "Team 2", "Team 3");
-            } else {
-                ps.SetColumnLabels("","","");
+            if (hg.IsTeamGame())
+            {
+	            ps.SetColumnLabels("Team 1", "Team 2", "Team 3");
+            }
+			else
+            {
+	            ps.SetColumnLabels("", "", "");
             }
             playerselectionscreenMain.SubscribeEvents(this);
 
@@ -45,100 +48,101 @@ namespace LazerTagHostUI
             return true;
         }
 
-        private Player GetSelectedPlayer() {
+        private Player GetSelectedPlayer()
+		{
+            var playerSelector = playerselectionscreenMain.GetPlayerSelector();
+            if (playerSelector == null) return null;
 
-            LazerTagHostUI.PlayerSelector ps = playerselectionscreenMain.GetPlayerSelector();
-            if (ps == null) return null;
+            var playerNumber = playerSelector.GetCurrentSelectedPlayer();
+            if (playerNumber == 0) return null;
 
-            uint team_index = 0;
-            uint player_index = 0;
-            bool found = ps.GetCurrentSelectedPlayer(ref team_index, ref player_index);
-            if (!found) return null;
-
-            Player found_player = hg.LookupPlayer((int)team_index + 1, (int)player_index);
-            return found_player;
+            return hg.LookupPlayer(new TeamPlayerId(playerNumber));
         }
 
-        private string GetPlayerName(uint team_index, uint player_index) {
+        private string GetPlayerName(int teamNumber, int playerNumber)
+        {
+	        var teamPlayerId = new TeamPlayerId(teamNumber, playerNumber);
+			var player = hg.LookupPlayer(teamPlayerId);
+			if (player == null) return "Open";
+
+			var text = String.Format("{0} ({1}) ", player.PlayerName, teamPlayerId);
     
-            Player found_player = hg.LookupPlayer((int)team_index + 1, (int)player_index);
-    
-            if (found_player == null) return "Open";
+            switch (hg.GetGameState())
+			{
+				case HostGun.HostingState.HOSTING_STATE_SUMMARY:
+					text += (player.HasBeenDebriefed() ? "Done" : "Waiting");
+					break;
+				case HostGun.HostingState.HOSTING_STATE_GAME_OVER:
+					text += Ordinal.FromCardinal(player.Rank);
 
-			string text = String.Format("{0} ({1}:{2:d2}) ", found_player.player_name, team_index + 1, player_index + 1);
-    
-            switch (hg.GetGameState()) {
-            case HostGun.HostingState.HOSTING_STATE_SUMMARY:
-                text += (found_player.HasBeenDebriefed() ? "Done" : "Waiting");
-                break;
-            case HostGun.HostingState.HOSTING_STATE_GAME_OVER:
-                text += Ordinal.FromCardinal(found_player.individual_rank);
+					if (relative_scoresheet)
+					{
+						var selectedPlayer = GetSelectedPlayer();
+						if (selectedPlayer == player) {
+							text += "\nYou";
+						} else if (selectedPlayer != null) {
 
-                if (relative_scoresheet) {
-                    Player selected_player = GetSelectedPlayer();
-                    if (selected_player == found_player) {
-                        text += "\nYou";
-                    } else if (selected_player != null) {
+							text += "\nYou Hit: ";
+							text += selectedPlayer.TaggedPlayerCounts[teamPlayerId.PlayerNumber - 1];
+							text += " Hit You: ";
+							text += selectedPlayer.TaggedByPlayerCounts[teamPlayerId.PlayerNumber - 1];
+						} else {
+							text += "\nUnknown";
+						}
+					}
+					else
+					{
+						if (hg.IsZoneGame())
+						{
+							text += string.Format("\nZone Time: {0}", player.ZoneTime.ToString("m:ss"));
+						}
+						else
+						{
+							text += String.Format("\nScore: {0} Dmg Recv: {1}", player.Score, player.TagsTaken);
+						}
+					}
 
-                        text += "\nYou Hit: ";
-                        text += selected_player.hit_by_team_player_count[team_index,player_index];
-                        text += " Hit You: ";
-                        text += selected_player.hit_team_player_count[team_index,player_index];
-                    } else {
-                        text += "\nUnknown";
-                    }
-                } else {
-                    if (hg.IsZoneGame()) {
-                        text += string.Format("\nZone Time: {0}:{1:d2}",found_player.zone_time / 60, found_player.zone_time % 60);
-                    } else {
-						text += String.Format("\nScore: {0} Dmg Recv: {1}",found_player.score, found_player.damage);
-                    }
-                }
-
-                break;
-            }
-            return text;
-        }
+					break;
+			}
+			return text;
+		}
     
         private void RefreshPlayerList()
         {
+            var playerSelector = playerselectionscreenMain.GetPlayerSelector();
+            if (playerSelector == null) return;
     
-
-    
-            LazerTagHostUI.PlayerSelector ps = playerselectionscreenMain.GetPlayerSelector();
-            if (ps == null) return;
-    
-            ps.RefreshPlayerNames(new LazerTagHostUI.PlayerSelector.GetPlayerName(GetPlayerName));
+            playerSelector.RefreshPlayerNames(GetPlayerName);
         }
 
 #region PlayerSelectionScreen.HostControlListener implmentation
 
-        void PlayerSelectionScreen.HostControlListener.LateJoin (object sender, System.EventArgs e)
+        void PlayerSelectionScreen.HostControlListener.LateJoin (object sender, EventArgs e)
         {
             Console.WriteLine("LateJoin");
         }
 
-        void PlayerSelectionScreen.HostControlListener.Next (object sender, System.EventArgs e)
+        void PlayerSelectionScreen.HostControlListener.Next (object sender, EventArgs e)
         {
             Console.WriteLine("Next");
 
             hg.Next();
         }
 
-        void PlayerSelectionScreen.HostControlListener.Pause(object sender, System.EventArgs e)
+        void PlayerSelectionScreen.HostControlListener.Pause(object sender, EventArgs e)
         {
             hg.Pause();
         }
 
-        void PlayerSelectionScreen.HostControlListener.Abort (object sender, System.EventArgs e)
+        void PlayerSelectionScreen.HostControlListener.Abort (object sender, EventArgs e)
         {
             Console.WriteLine("Abort");
             hg.EndGame();
 
-            this.Hide();
+            Hide();
         }
 
-        void PlayerSelectionScreen.HostControlListener.RenamePlayer (object sender, System.EventArgs e)
+        void PlayerSelectionScreen.HostControlListener.RenamePlayer (object sender, EventArgs e)
         {
             Console.WriteLine("Rename");
             Gtk.ComboBoxEntry entry = (Gtk.ComboBoxEntry)sender;
@@ -152,44 +156,34 @@ namespace LazerTagHostUI
             //TODO, append to all, check dups
             entry.AppendText(name);
 
-            LazerTagHostUI.PlayerSelector ps = playerselectionscreenMain.GetPlayerSelector();
-            if (ps == null) return;
+            var playerSelector = playerselectionscreenMain.GetPlayerSelector();
+            if (playerSelector == null) return;
 
-            uint team_index_out = 0;
-            uint player_index_out = 0;
-            bool found = ps.GetCurrentSelectedPlayer(ref team_index_out, ref player_index_out);
+			var playerNumber = playerSelector.GetCurrentSelectedPlayer();
+			if (playerNumber == 0) return;
 
-            if (!found) return;
-
-            found = hg.SetPlayerName((int)team_index_out, (int)player_index_out, name);
-
-            if (!found) return;
+            if (!hg.SetPlayerName(new TeamPlayerId(playerNumber), name)) return;
             RefreshPlayerList();
         }
 
-        void PlayerSelectionScreen.HostControlListener.DropPlayer (object sender, System.EventArgs e)
+        void PlayerSelectionScreen.HostControlListener.DropPlayer (object sender, EventArgs e)
         {
             Console.WriteLine("Drop");
-            
-    
-            LazerTagHostUI.PlayerSelector ps = playerselectionscreenMain.GetPlayerSelector();
-            if (ps == null) return;
-    
-            uint team_index_out = 0;
-            uint player_index_out = 0;
-            bool found = ps.GetCurrentSelectedPlayer(ref team_index_out, ref player_index_out);
-    
-            if (!found) return;
-    
-            hg.DropPlayer((int)team_index_out, (int)player_index_out);
+
+			var playerSelector = playerselectionscreenMain.GetPlayerSelector();
+			if (playerSelector == null) return;
+
+			var playerNumber = playerSelector.GetCurrentSelectedPlayer();
+			if (playerNumber == 0) return;
+
+			hg.DropPlayer(new TeamPlayerId(playerNumber));
 
             RefreshPlayerList();
         }
 
-        void PlayerSelectionScreen.HostControlListener.SelectionChanged(uint team_index, uint player_index) {
-            if (relative_scoresheet) {
-                RefreshPlayerList();
-            }
+        void PlayerSelectionScreen.HostControlListener.SelectionChanged(int playerNumber)
+		{
+            if (relative_scoresheet) RefreshPlayerList();
         }
 
         void PlayerSelectionScreen.HostControlListener.RelativeScoresToggle(bool show_relative) {
@@ -200,11 +194,12 @@ namespace LazerTagHostUI
 #endregion
     
 #region HostChangedListener implementation
-        void HostChangedListener.PlayerListChanged(List<Player> players) {
+        void IHostChangedListener.PlayerListChanged(List<Player> players)
+		{
             RefreshPlayerList();
         }
 
-        void HostChangedListener.GameStateChanged(HostGun.HostingState state)
+        void IHostChangedListener.GameStateChanged(HostGun.HostingState state)
 		{
 			if (state == HostGun.HostingState.HOSTING_STATE_GAME_OVER)
 			{
@@ -213,34 +208,32 @@ namespace LazerTagHostUI
 			}
 
             //drop,rename,late,abort,next
-            switch (state) {
-            case HostGun.HostingState.HOSTING_STATE_ADDING:
-            case HostGun.HostingState.HOSTING_STATE_CONFIRM_JOIN:
-                //Disable Late Join
-                playerselectionscreenMain.SetControlOptions(true,true,false,true,true,true);
-                break;
-            case HostGun.HostingState.HOSTING_STATE_PLAYING:
-                playerselectionscreenMain.SetControlOptions(true,true,true,true,true,false);
-                //disable pause, next
-                break;
-            case HostGun.HostingState.HOSTING_STATE_GAME_OVER:
-            case HostGun.HostingState.HOSTING_STATE_SUMMARY:
-                playerselectionscreenMain.SetControlOptions(false,true,false,true,true,false);
-                //disable pause, late join, drop
-                break;
-
-            case HostGun.HostingState.HOSTING_STATE_COUNTDOWN:
-                playerselectionscreenMain.SetControlOptions(true,true,false,true,false,false);
-                //disable next, LateJoin, pause
-
-                break;
-            default:
-                playerselectionscreenMain.SetControlOptions(false,false,false,true,true,false);
-                break;
+            switch (state)
+			{
+				case HostGun.HostingState.HOSTING_STATE_ADDING:
+				case HostGun.HostingState.HOSTING_STATE_CONFIRM_JOIN:
+					// disable late join
+					playerselectionscreenMain.SetControlOptions(true, true, false, true, true, true);
+					break;
+				case HostGun.HostingState.HOSTING_STATE_PLAYING:
+					// disable pause
+					playerselectionscreenMain.SetControlOptions(true, true, true, true, true, false);
+					break;
+				case HostGun.HostingState.HOSTING_STATE_GAME_OVER:
+				case HostGun.HostingState.HOSTING_STATE_SUMMARY:
+					// disable pause, late join, next, drop
+					playerselectionscreenMain.SetControlOptions(false, true, false, true, false, false);
+					break;
+				case HostGun.HostingState.HOSTING_STATE_COUNTDOWN:
+					// disable next, LateJoin, pause
+					playerselectionscreenMain.SetControlOptions(true, true, false, true, false, false);
+					break;
+				default:
+					playerselectionscreenMain.SetControlOptions(false, false, false, true, true, false);
+					break;
             }
             RefreshPlayerList();
         }
-
 #endregion
     }
 }

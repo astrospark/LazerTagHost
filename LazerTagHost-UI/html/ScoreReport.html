@@ -1,0 +1,76 @@
+﻿<!DOCTYPE html>
+<html>
+    <head>
+        <title>Score Report</title>
+        <link rel="stylesheet" type="text/css" href="{{ base_uri }}\ScoreReport.css"/>
+    </head>
+
+    <body>
+        <h1 id="title">Score Report</h1>
+        
+        {% if is_team_game -%}
+            <table>
+                <tr>
+                    <th>Team</th>
+                    <th>Rank</th>
+                </tr>
+                {% for team in teams -%}
+                    <tr class="{% cycle 'team': 'odd', 'even' -%}">
+                        <td>Team {{ team.team_number }}</td>
+                        <td>{{ team.team_rank | to_ordinal }}</td>
+                    </tr>
+                {% endfor -%}
+            </table>
+            <br/>
+        {% endif -%}
+        
+        <table id="players_table">
+            <tr>
+                <th>Player</th>
+                <th>Rank</th>
+                <th>Score</th>
+                <th>Survived</th>
+                {% for player in players -%}
+                    <th>
+                        {% if player.player_name != empty -%}
+                            {{ player.player_name }}
+                        {% else -%}
+                            {% if is_team_game -%}
+                                Team {{ player.team_player_id.team_number }} Player {{ player.team_player_id.team_player_number }}
+                            {% else -%}
+                                Player {{ player.team_player_id.player_number }}
+                            {% endif -%}
+                        {% endif -%}
+                    </th>
+                {% endfor -%}
+            </tr>
+            {% for player in players -%}
+                <tr class="{% cycle 'player': 'odd', 'even' -%}">
+                    <td>
+                        {% if player.player_name != empty -%}
+                            {{ player.player_name }}
+                        {% else -%}
+                            {% if is_team_game -%}
+                                Team {{ player.team_player_id.team_number }} Player {{ player.team_player_id.team_player_number }}
+                            {% else -%}
+                                Player {{ player.team_player_id.player_number }}
+                            {% endif -%}
+                        {% endif -%}
+                    </td>
+                    <td>{{ player.rank | to_ordinal }}</td>
+                    <td>{{ player.score }}</td>
+                    <td>{{ player.survived | yes_no }}</td>
+                    {% for tagged_player in players -%}
+                        <td>
+                            {% for tagged_by_player_count in tagged_player.tagged_by_player_counts -%}
+                                {% if forloop.index == player.team_player_id.player_number -%}
+                                    {{ tagged_by_player_count }}
+                                {% endif %}
+                            {% endfor -%}
+                        </td>
+                    {% endfor -%}
+                </tr>
+            {% endfor -%}
+        </table>
+    </body>
+</html>

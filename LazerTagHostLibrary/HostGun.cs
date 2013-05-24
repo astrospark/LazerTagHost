@@ -9,7 +9,7 @@ using System.Text;
 
 namespace LazerTagHostLibrary
 {
-    public interface HostChangedListener
+    public interface IHostChangedListener
     {
         void PlayerListChanged(List<Player> players);
         void GameStateChanged(HostGun.HostingState state);
@@ -17,10 +17,25 @@ namespace LazerTagHostLibrary
 
     public class HostGun
     {
-        static private void HostDebugWriteLine(string line)
+        static private void HostDebugWriteLine(string message)
         {
-            Console.WriteLine("{0}: {1}", DateTime.Now, line);
+			Console.WriteLine("{0}: {1}", DateTime.Now, message);
         }
+
+		private static void HostDebugWriteLine(string format, object argument)
+		{
+			HostDebugWriteLine(string.Format(format, argument));
+		}
+
+		private static void HostDebugWriteLine(string format, object argument1, object argument2)
+		{
+			HostDebugWriteLine(string.Format(format, argument1, argument2));
+		}
+
+		private static void HostDebugWriteLine(string format, object[] arguments)
+	    {
+			HostDebugWriteLine(string.Format(format, arguments));
+	    }
 
         private struct GameState {
             public CommandCode game_type;
@@ -92,8 +107,8 @@ namespace LazerTagHostLibrary
 			get { return _teams; }
 	    }
 
-        private readonly LinkedList<Player> _players = new LinkedList<Player>();
-	    public LinkedList<Player> Players
+		private readonly Dictionary<TeamPlayerId, Player> _players = new Dictionary<TeamPlayerId, Player>();
+		public Dictionary<TeamPlayerId, Player> Players
 	    {
 		    get { return _players; }
 	    }
@@ -127,7 +142,7 @@ namespace LazerTagHostLibrary
         private ConfirmJoinState confirm_join_state;
 
         //loose change state
-        private HostChangedListener listener = null;
+        private IHostChangedListener listener = null;
         private DateTime state_change_timeout;
         private DateTime next_announce;
 	    private int _debriefPlayerSequence = 0;
@@ -164,124 +179,100 @@ namespace LazerTagHostLibrary
             return c.ToString();
         }
 
-        private bool AssignTeamAndPlayer(int team_request, 
-                                         Player dest_player)
+        private bool AssignTeamAndPlayer(int requestedTeam, Player newPlayer)
         {
-            int team_assignment = 0;
-            int player_assignment = 0;
+            var assignedTeamNumber = 0;
+            var assignedPlayerNumber = 0;
 
             if (_players.Count >= MAX_PLAYER_COUNT) {
-                HostDebugWriteLine("Max player count hit");
+                HostDebugWriteLine("Cannot add player. The game is full.");
                 return false;
             }
 
-            switch (game_state.game_type) {
-            //Solo Games
-            case CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
-                /**
-                 * Cycle through all spots until we find an open one
-                 */
-                for (int team_index = 0; team_index < 3; team_index++) {
-                    for (int player_number = 0; player_number < 8; player_number++) {
-                        bool found = false;
-                        foreach (Player p in _players) {
+            switch (game_state.game_type)
+			{
+				// Solo Games
+				case CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST:
+				case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
+					// Assign player to the first open player number
+					for (var playerNumber = 1; playerNumber <= 24; playerNumber++)
+					{
+						if (_players.ContainsKey(new TeamPlayerId(playerNumber))) continue;
 
-                            if (p.team_index == team_index
-                                && p.player_number == player_number) {
-                                found = true;
-                                break;
-                            }
-                        }
-                        if (!found) {
-                            dest_player.team_index = team_index;
-                            dest_player.team_number = team_index + 1;
-                            dest_player.player_number = player_number;
-                            return true;
-                        }
+						assignedPlayerNumber = playerNumber;
+						break;
+					}
+					break;
+				// Team Games
+				case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
+				case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
+				case CommandCode.COMMAND_CODE_HIDE_AND_SEEK_GAME_MODE_HOST:
+				case CommandCode.COMMAND_CODE_HUNT_THE_PREY_GAME_MODE_HOST:
+				case CommandCode.COMMAND_CODE_2_KINGS_GAME_MODE_HOST:
+				case CommandCode.COMMAND_CODE_3_KINGS_GAME_MODE_HOST:
+				case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+				case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+					// Count the players on each team and find the smallest team
+					var teamPlayerCounts = new int[game_state.number_of_teams];
+					var smallestTeamNumber = 0;
+					var smallestTeamPlayerCount = 8;
+					for (var i = 0; i < game_state.number_of_teams; i++)
+					{
+						var teamPlayerCount = 0;
+						foreach (var player in _players.Values)
+						{
+							if (player.TeamPlayerId.TeamNumber == i + 1) teamPlayerCount++;
+						}
+						if (teamPlayerCount < smallestTeamPlayerCount)
+						{
+							smallestTeamNumber = i + 1;
+							smallestTeamPlayerCount = teamPlayerCount;
+						}
+						teamPlayerCounts[i] = teamPlayerCount;
+					}
 
-                    }
-                }
-                return false;
-            //Team Games
-            case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_HIDE_AND_SEEK_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_HUNT_THE_PREY_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_2_KINGS_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_3_KINGS_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-                /**
-                 * We first locate the smallest team, then assign an unused player slot
-                 */
-                if (team_request > 0 && team_request <= game_state.number_of_teams) {
-                    team_assignment = team_request;
-                } else {
-                    //team request is any or invalid
-                    
-                    int i = 0;
-                    int lowest_team_player_count = 0;
-                    int max_player_count = 8;
-                    for (i = 1; i <= game_state.number_of_teams; i++) {
-                        int player_count = 0;
-                        foreach (Player p in _players) {
-                            if (p.team_number == i) player_count++;
-                        }
-                        if (player_count < max_player_count) {
-                            lowest_team_player_count = i;
-                            max_player_count = player_count;
-                        }
-                    }
-                    if (lowest_team_player_count != 0) {
-                        team_assignment = lowest_team_player_count;
-                    } else {
-                        HostDebugWriteLine("Unable to assign team");
-                        return false;
-                    }
-                }
-                break;
-            default:
-                HostDebugWriteLine("Unable to assign team");
-                return false;
-            }
-            
-            /*switch (game_state.game_type) {
-            case CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:*/
-            {
-                int i = 0;
-                for (i = 0; i < 8; i++) {
-                    bool found = false;
-                    foreach (Player p in _players) {
-                        if (team_assignment != p.team_number) continue;
-                        if (i == p.player_number) {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
-                        player_assignment = i;
-                        break;
-                    }
-                }
-                if (i == 8) {
-                    HostDebugWriteLine("Failed to assign player number");
-                    return false;
-                }
-                //break;
-            }
-            /*default:
-                return false;
-            }*/
+					if (smallestTeamNumber == 0) break;
 
-            dest_player.team_number = team_assignment;
-            dest_player.team_index = team_assignment - 1;
-            dest_player.player_number = player_assignment;
-            
-            HostDebugWriteLine("Assigned player to team " + team_assignment + " and player " + player_assignment);
-            
+					if (requestedTeam > 0 &&
+						requestedTeam <= game_state.number_of_teams &&
+						teamPlayerCounts[requestedTeam - 1] < 8)
+					{
+						assignedTeamNumber = requestedTeam;
+					}
+					else
+					{
+						assignedTeamNumber = smallestTeamNumber;
+					}
+
+					for (var playerNumber = 1; playerNumber <= 8; playerNumber++)
+					{
+						if (!_players.ContainsKey(new TeamPlayerId(assignedTeamNumber, playerNumber)))
+						{
+							assignedPlayerNumber = playerNumber;
+							break;
+						}
+					}
+					break;
+			}
+
+			if (assignedPlayerNumber == 0)
+			{
+				HostDebugWriteLine("Unable to assign a player number.");
+				return false;
+			}
+
+			if(IsTeamGame())
+			{
+				newPlayer.TeamPlayerId = new TeamPlayerId(assignedTeamNumber, assignedPlayerNumber);
+		        HostDebugWriteLine(string.Format("Assigned player to team {0} player {1}.", assignedTeamNumber,
+		                                         assignedPlayerNumber));
+	        }
+	        else
+	        {
+				newPlayer.TeamPlayerId = new TeamPlayerId(assignedPlayerNumber);
+				HostDebugWriteLine(string.Format("Assigned player to player {0}.", assignedPlayerNumber));
+	        }
+
             return true;
         }
 
@@ -322,7 +313,7 @@ namespace LazerTagHostLibrary
             AssertUnknownBits("team_hit_report",team_hit_report,0xf9);
             
             UInt16 confirmed_game_id = game_id_packet.data;
-            UInt16 player_index = player_index_packet.data;
+	        var teamPlayerId = TeamPlayerId.FromPacked44(player_index_packet.data);
             
             if ((CommandCode)command_packet.data != CommandCode.COMMAND_CODE_PLAYER_REPORT_SCORE) {
                 HostDebugWriteLine("Wrong command");
@@ -333,173 +324,127 @@ namespace LazerTagHostLibrary
                 HostDebugWriteLine("Wrong game id");
                 return false;
             }
-            
-            int team_number = (player_index >> 4) & 0xf;
-            int player_number = player_index & 0xf;
-            bool found = false;
-            
-            foreach (Player p in _players) {
-                if (p.team_number == team_number
-                    && p.player_number == player_number)
-                {
-                    found = true;
-                    p.debriefed = true;
+
+			if (_players.ContainsKey(teamPlayerId))
+			{
+				var player = _players[teamPlayerId];
+
+                player.Debriefed = true;
                     
-                    p.alive = ((still_alive_packet.data & 0x01) == 0x01);
-                    p.damage = DecimalHexToDecimal(damage_recv_packet.data);
-                    p.has_score_report_for_team[0] = (team_hit_report.data & 0x2) != 0;
-                    p.has_score_report_for_team[1] = (team_hit_report.data & 0x4) != 0;
-                    p.has_score_report_for_team[2] = (team_hit_report.data & 0x8) != 0;
-                    p.zone_time = DecimalHexToDecimal(zone_time_minutes_packet.data) * 60
-                        + DecimalHexToDecimal(zone_time_seconds_packet.data);
-                    
-                    break;
-                }
+                player.Survived = ((still_alive_packet.data & 0x01) == 0x01);
+                player.TagsTaken = HexCodedDecimal.ToDecimal(damage_recv_packet.data);
+                player.ScoreReportTeamsWaiting[0] = (team_hit_report.data & 0x2) != 0;
+                player.ScoreReportTeamsWaiting[1] = (team_hit_report.data & 0x4) != 0;
+                player.ScoreReportTeamsWaiting[2] = (team_hit_report.data & 0x8) != 0;
+				player.ZoneTime = new TimeSpan(0, 0, HexCodedDecimal.ToDecimal(zone_time_minutes_packet.data), HexCodedDecimal.ToDecimal(zone_time_seconds_packet.data));
+
+				HostDebugWriteLine(string.Format("Debriefed player {0}", player.TeamPlayerId.ToString()));
             }
-            
-            if (!found) {
+			else
+			{
                 HostDebugWriteLine("Unable to find player for score report");
                 return false;
             }
             
-            string debug = String.Format("Debriefed team {0:d} player {1:d}", team_number, player_number);
-            HostDebugWriteLine(debug);
-            
             return true;
-        }
-
-        private void PlayerTeamNumberSplit(int team_player_id, ref int player_number, ref int team_number)
-        {
-            player_number = team_player_id & 0xf;
-            team_number = (team_player_id >> 4) & 0xf;
         }
 
         private bool ProcessPlayerHitByTeamReport()
         {
-            if (incoming_packet_queue.Count <= 4) {
-                return false;
-            }
+			if (incoming_packet_queue.Count <= 4) return false;
             
-            IRPacket command_packet = incoming_packet_queue[0];
-            IRPacket game_id_packet = incoming_packet_queue[1];
-            IRPacket player_id_packet = incoming_packet_queue[2];
-            IRPacket score_bitmask_packet = incoming_packet_queue[3];
-            /*AssertUnknownBits("incoming_packet_queue[4]",incoming_packet_queue[4],0xff);
-            AssertUnknownBits("incoming_packet_queue[5]",incoming_packet_queue[5],0xff);
-            AssertUnknownBits("incoming_packet_queue[6]",incoming_packet_queue[6],0xff);
-            AssertUnknownBits("incoming_packet_queue[7]",incoming_packet_queue[7],0xff);
-            AssertUnknownBits("incoming_packet_queue[8]",incoming_packet_queue[8],0xff);
-            AssertUnknownBits("incoming_packet_queue[9]",incoming_packet_queue[9],0xff);*/
+            var commandPacket = incoming_packet_queue[0];
+            var gameIdPacket = incoming_packet_queue[1];
+            var taggerId = incoming_packet_queue[2];
+            var scoreBitmaskPacket = incoming_packet_queue[3];
             
-            //what team do the scores relate to hits from
-            int team_index = ((int)command_packet.data - (int)CommandCode.COMMAND_CODE_PLAYER_HIT_BY_TEAM_1_REPORT);
-            int player_number = 0;
-            int team_number = 0;
-            PlayerTeamNumberSplit(player_id_packet.data, ref player_number, ref team_number);
+            // what team do the scores relate to hits from
+            var reportTeamNumber = (int)(commandPacket.data - CommandCode.COMMAND_CODE_PLAYER_HIT_BY_TEAM_1_REPORT + 1);
+	        var teamPlayerId = TeamPlayerId.FromPacked44(taggerId.data);
 
-            if (game_id != game_id_packet.data) {
-                HostDebugWriteLine("Wrong game id");
+            if (gameIdPacket.data != game_id)
+			{
+                HostDebugWriteLine("Wrong game ID.");
                 return false;
             }
 
-            Player p = LookupPlayer(team_number, player_number);
-            if (p == null) {
+			var player = LookupPlayer(teamPlayerId);
+            if (player == null) return false;
+            
+            if (!player.ScoreReportTeamsWaiting[reportTeamNumber - 1])
+			{
+                HostDebugWriteLine("Score report already received from this player.");
                 return false;
             }
+            player.ScoreReportTeamsWaiting[reportTeamNumber - 1] = false;
             
-            if (!p.has_score_report_for_team[team_index]) {
-                HostDebugWriteLine("Score report already reported");
-                return false;
-            }
-            p.has_score_report_for_team[team_index] = false;
-            
-            int i = 0;
-            int score_index = 4;
-            byte mask = (byte)score_bitmask_packet.data;
-            for (i = 0; i < 8; i++) {
-                bool score_present = ((mask >> i) & 0x1) != 0;
-                if (!score_present) continue;
+            var packetIndex = 4;
+            var mask = (byte)scoreBitmaskPacket.data;
+            for (var reportPlayerNumber = 1; reportPlayerNumber <= 8; reportPlayerNumber++)
+            {
+	            var reportTeamPlayerId = new TeamPlayerId(reportTeamNumber, reportPlayerNumber);
+                var hasScore = ((mask >> (reportPlayerNumber - 1)) & 0x1) != 0;
+                if (!hasScore) continue;
                 
-                if (incoming_packet_queue.Count <= score_index) {
+                if (incoming_packet_queue.Count <= packetIndex)
+				{
                     HostDebugWriteLine("Ran off end of score report");
                     return false;
                 }
                 
-                IRPacket score_packet = incoming_packet_queue[score_index];
-                
-                p.hit_by_team_player_count[team_index,i] = DecimalHexToDecimal(score_packet.data);
-                Player shooter = LookupPlayer(team_index + 1,i);
-                if (shooter == null) {
-                    continue;
-                }
-                string debug = String.Format("Hit: {0:d},{1:d}", p.team_number - 1, p.player_number);
-                HostDebugWriteLine(debug);
-                shooter.hit_team_player_count[p.team_index, p.player_number] = DecimalHexToDecimal(score_packet.data);
-                
-                score_index++;
+                var scorePacket = incoming_packet_queue[packetIndex];
+
+				player.TaggedByPlayerCounts[reportTeamPlayerId.PlayerNumber - 1] = HexCodedDecimal.ToDecimal(scorePacket.data);
+				var taggedByPlayer = LookupPlayer(reportTeamPlayerId);
+                if (taggedByPlayer == null)  continue;
+
+	            if (IsTeamGame())
+	            {
+					HostDebugWriteLine(String.Format("Tagged by player {0}", taggedByPlayer.TeamPlayerId));
+					taggedByPlayer.TaggedPlayerCounts[player.TeamPlayerId.PlayerNumber - 1] = HexCodedDecimal.ToDecimal(scorePacket.data);
+	            }
+	            else
+	            {
+					HostDebugWriteLine(String.Format("Tagged by player {0}", taggedByPlayer.TeamPlayerId.ToString()));
+	            }
+                packetIndex++;
             }
 
-            if (listener != null) {
-                listener.PlayerListChanged(new List<Player>(_players));
-            }
+            if (listener != null) listener.PlayerListChanged(_players.Values.ToList());
             
             return true;
         }
         
         private void PrintScoreReport()
         {
-            foreach (Player p in _players)
+            foreach (var player in _players.Values)
             {
-                string debug = String.Format("Player 0x{0:x} {1:d},{2:d}",
-                                             p.player_id, p.team_number, p.player_number);
-                HostDebugWriteLine(debug);
-                debug = String.Format("\tRank: {0:d} Team Rank: {1:d} Score: {2:d}", p.individual_rank, p.team_rank, p.score);
-                HostDebugWriteLine(debug);
-                int i = 0;
-                for (i = 0; i < 3; i++) {
-                    bool hits_by_team = (p.hit_by_team_player_count[i,0] +
-                                          p.hit_by_team_player_count[i,1] +
-                                          p.hit_by_team_player_count[i,2] +
-                                          p.hit_by_team_player_count[i,3] +
-                                          p.hit_by_team_player_count[i,4] +
-                                          p.hit_by_team_player_count[i,5] +
-                                          p.hit_by_team_player_count[i,6] +
-                                          p.hit_by_team_player_count[i,7]) > 0;
-                    if (hits_by_team) {
-                        debug = String.Format("\tHits By Team {8:d} Player: {0:d},{1:d},{2:d},{3:d},{4:d},{5:d},{6:d},{7:d}",
-                                              p.hit_by_team_player_count[i,0],
-                                              p.hit_by_team_player_count[i,1],
-                                              p.hit_by_team_player_count[i,2],
-                                              p.hit_by_team_player_count[i,3],
-                                              p.hit_by_team_player_count[i,4],
-                                              p.hit_by_team_player_count[i,5],
-                                              p.hit_by_team_player_count[i,6],
-                                              p.hit_by_team_player_count[i,7],
-                                              i + 1);
-                        HostDebugWriteLine(debug);
-                    }
-                    bool hits_to_team = (p.hit_by_team_player_count[i,0] +
-                                          p.hit_team_player_count[i,1] +
-                                          p.hit_team_player_count[i,2] +
-                                          p.hit_team_player_count[i,3] +
-                                          p.hit_team_player_count[i,4] +
-                                          p.hit_team_player_count[i,5] +
-                                          p.hit_team_player_count[i,6] +
-                                          p.hit_team_player_count[i,7]) > 0;
-                    if (hits_to_team) {
-                        debug = String.Format("\tHits To Team {8:d} Player: {0:d},{1:d},{2:d},{3:d},{4:d},{5:d},{6:d},{7:d}",
-                                              p.hit_team_player_count[i,0],
-                                              p.hit_team_player_count[i,1],
-                                              p.hit_team_player_count[i,2],
-                                              p.hit_team_player_count[i,3],
-                                              p.hit_team_player_count[i,4],
-                                              p.hit_team_player_count[i,5],
-                                              p.hit_team_player_count[i,6],
-                                              p.hit_team_player_count[i,7],
-                                              i + 1);
-                        HostDebugWriteLine(debug);
-                    }
-                }
+				HostDebugWriteLine(String.Format("Player {0} (0x{1:2X})", player.TeamPlayerId, player.GameSessionTaggerId));
+				if (IsTeamGame())
+				{
+					HostDebugWriteLine(String.Format("\tPlayer Rank: {0}, Team Rank: {1}, Score: {2}", player.Rank, player.TeamRank, player.Score));
+					for (var teamNumber = 1; teamNumber <= 3; teamNumber++)
+					{
+						var taggedByPlayerCounts = new int[8];
+						for (var playerNumber = 1; playerNumber <= 8; playerNumber++)
+						{
+							var teamPlayerId = new TeamPlayerId(teamNumber, playerNumber);
+							taggedByPlayerCounts[playerNumber - 1] = player.TaggedByPlayerCounts[teamPlayerId.PlayerNumber - 1];
+						}
+						HostDebugWriteLine(string.Format("\tTags taken from team {0}: {1}", teamNumber,string.Join(", ", taggedByPlayerCounts)));
+					}
+				}
+				else
+				{
+					HostDebugWriteLine(String.Format("\tPlayer Rank: {0}, Score: {1}", player.Rank, player.Score));
+					var taggedByPlayerCounts = new int[24];
+					for (var playerNumber = 1; playerNumber <= 24; playerNumber++)
+					{
+						var teamPlayerId = new TeamPlayerId(playerNumber);
+						taggedByPlayerCounts[playerNumber - 1] = player.TaggedByPlayerCounts[teamPlayerId.PlayerNumber - 1];
+					}
+					HostDebugWriteLine(string.Format("\tTags taken from players: {0}", string.Join(", ", taggedByPlayerCounts)));
+				}
             }
         }
 
@@ -563,68 +508,62 @@ namespace LazerTagHostLibrary
                 return true;
             }
             case HostingState.HOSTING_STATE_ADDING:
-            {
+		    {
+			    if (incoming_packet_queue.Count != 4)
+			    {
+				    return false;
+			    }
 
-                if (incoming_packet_queue.Count != 4) {
-                    return false;
-                }
-                    
-                IRPacket command_packet = incoming_packet_queue[0];
-                IRPacket game_id_packet = incoming_packet_queue[1];
-                IRPacket player_id_packet = incoming_packet_queue[2];
-                IRPacket player_team_request_packet = incoming_packet_queue[3];
-                UInt16 player_id = player_id_packet.data;
-                
-                if ((CommandCode)command_packet.data != CommandCode.COMMAND_CODE_PLAYER_JOIN_GAME_REQUEST) {
-                    HostDebugWriteLine("Wrong command");
-                    return false;
-                }
-                
-                if (game_id != game_id_packet.data) {
-                    HostDebugWriteLine("Wrong game id");
-                    return false;
-                }
-                
-                bool collision = false;
-                foreach (Player collision_check_player in _players) {
-                    if (collision_check_player.player_id == player_id &&
-						!collision_check_player.confirmed)
-					{
-                        collision = true;
-                        break;
-                    }
-                }
-                if (collision) {
-                    HostDebugWriteLine("Player id collision");
-                    return false;
-                }
-                
-                confirm_join_state.player_id = (byte)player_id;
+			    IRPacket command_packet = incoming_packet_queue[0];
+			    IRPacket game_id_packet = incoming_packet_queue[1];
+			    IRPacket gameSessionTaggerIdPacket = incoming_packet_queue[2];
+			    IRPacket player_team_request_packet = incoming_packet_queue[3];
+			    UInt16 gameSessionTaggerId = gameSessionTaggerIdPacket.data;
+
+			    if ((CommandCode) command_packet.data != CommandCode.COMMAND_CODE_PLAYER_JOIN_GAME_REQUEST)
+			    {
+				    HostDebugWriteLine("Wrong command");
+				    return false;
+			    }
+
+			    if (game_id != game_id_packet.data)
+			    {
+				    HostDebugWriteLine("Wrong game id");
+				    return false;
+			    }
+
+			    foreach (var collisionCheckPlayer in _players.Values)
+			    {
+				    if (collisionCheckPlayer.GameSessionTaggerId == gameSessionTaggerId && !collisionCheckPlayer.Confirmed)
+				    {
+					    HostDebugWriteLine("Game session tagger ID collision.");
+					    return false;
+				    }
+			    }
+
+		        confirm_join_state.player_id = (byte)gameSessionTaggerId;
                 
                 /* 
                  * 0 = any
                  * 1-3 = team 1-3
                  */
-                UInt16 team_request = (UInt16)(player_team_request_packet.data & 0x03);
+                var requestedTeam = (UInt16)(player_team_request_packet.data & 0x03);
 
-                Player p = new Player((byte)player_id);
+                var player = new Player((byte)gameSessionTaggerId);
 
-                if (!AssignTeamAndPlayer(team_request,
-                                    p))
+                if (!AssignTeamAndPlayer(requestedTeam, player))
                 {
                     return false;
                 }
+
+	            _players[player.TeamPlayerId] = player;
                 
-                _players.AddLast(p);
-                
-                UInt16 team_response = (UInt16)((p.team_number << 3) | (p.player_number));
-                
-                
-                UInt16[] values = new UInt16[]{
+                var values = new []
+				{
                     (UInt16)CommandCode.COMMAND_CODE_ACK_PLAYER_JOIN_RESPONSE,
                     game_id,//Game ID
-                    player_id,//Player ID
-                    team_response, //player #
+                    gameSessionTaggerId,//Player ID
+                    player.TeamPlayerId.Packed23, //player #
                     // [3 bits - zero - unknown][2 bits - team assignment][3 bits - player assignment]
                 };
                 
@@ -633,7 +572,7 @@ namespace LazerTagHostLibrary
                     return false;
                 }
                 
-                string debug = String.Format("Player {0:x} found, joining", new object[] { player_id });
+                string debug = String.Format("Player {0:x} found, joining", new object[] { gameSessionTaggerId });
                 HostDebugWriteLine(debug);
                 
                 TransmitPacket2(ref values);
@@ -677,10 +616,12 @@ namespace LazerTagHostLibrary
                     break;
                 }
                 
-                bool found = false;
-                foreach(Player p in _players) {
-                    if (p.player_id == confirmed_player_id) {
-                        p.confirmed = true;
+                var found = false;
+                foreach(var player in _players.Values)
+				{
+                    if (player.GameSessionTaggerId == confirmed_player_id)
+					{
+                        player.Confirmed = true;
                         found = true;
                         break;
                     }
@@ -698,9 +639,7 @@ namespace LazerTagHostLibrary
                 }
                 ChangeState(now, HostingState.HOSTING_STATE_ADDING);
                 incoming_packet_queue.Clear();
-                if (listener != null) {
-                    listener.PlayerListChanged(new List<Player>(_players));
-                }
+                if (listener != null) listener.PlayerListChanged(_players.Values.ToList());
                 
                 return true;
             }
@@ -818,21 +757,19 @@ namespace LazerTagHostLibrary
 			return string.Format("SEQ: {0}", string.Join(", ", hexValues));
         }
 
-        static private byte DecimalToDecimalHex(byte d)
-        {
-            //Unlimited
-            if (d == 0xff) return d;
-            //Otherwise
-            byte result = (byte)(((d / 10) << 4) | (d % 10));
-            return result;
-        }
-        
-        static private int DecimalHexToDecimal(int d)
-        {
-            int ret = d & 0x0f;
-            ret += ((d >> 4) & 0xf) * 10;
-            return ret;
-        }
+		public class HexCodedDecimal
+		{
+			public static int ToDecimal(int hexCodedDecimal)
+			{
+				return (((hexCodedDecimal >> 4) & 0xf) * 10) + (hexCodedDecimal & 0xf);
+			}
+
+			public static byte FromDecimal(byte dec)
+			{
+				if (dec == 0xff) return dec;
+				return (byte)(((dec / 10) << 4) | (dec % 10));
+			}
+		}
 
 #endregion
 
@@ -840,217 +777,212 @@ namespace LazerTagHostLibrary
         {
             switch (game_state.game_type)
 			{
-            case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-            {
-                SortedList<int, Player> rankings =
-                    new SortedList<int, Player>();
-                //for team score
-                int[] team_zone_time = new int[3] { 0,0,0, };
-                //rank for each team
-                int[] team_rank = new int[3] { 0,0,0, };
-
-                foreach (Player p in _players) {
-                    p.score = p.zone_time;
-
-                    int score = p.zone_time;
-                    score = (int.MaxValue - score) << 8 | p.player_id;
-                    rankings.Add(score, p);
-
-                    team_zone_time[p.team_index] += p.zone_time;
-                }
-
-                //Determine PlayerRanks
-                //TODO: Check if this sort order needs reversing
-                int rank = 0;
-                int last_score = 99;
-                foreach(KeyValuePair<int, Player> e in rankings) {
-
-                    Player p = e.Value;
-                    if (p.score != last_score) {
-                        rank++;
-                        last_score = p.score;
-                    }
-                    p.individual_rank = rank;
-                    p.team_rank = 0;
-                }
-
-                //Team rank only for team games
-                switch (game_state.game_type) {
-                case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-                case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-                {
-                    for (int i = 0; i < 3; i++) {
-                        team_rank[i] = 3;
-                        if (team_zone_time[i] >= team_zone_time[(i + 1) % 3]) {
-                            team_rank[i]--;
-                        }
-                        if (team_zone_time[i] >= team_zone_time[(i + 2) % 3]) {
-                            team_rank[i]--;
-                        }
-	                    Teams.TeamNumber(i + 1).TeamRank = team_rank[i];
-                        HostDebugWriteLine("Team " + (i + 1) + " Rank " + team_rank[i]);
-                    }
-
-                    foreach (Player p in _players) {
-                        p.team_rank = team_rank[p.team_index];
-                    }
-
-                    break;
-                }
-                default:
-                    break;
-                }
-
-                break;
-            }
-			case CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST:
-			{
-				var rankings = new SortedList<int, Player>();
-				/*
-				- Ranks are based on receiving 2 points per tag landed on players
-				and losing 1 point for every time you’re tagged by a another player
-				*/
-
-				foreach (Player player in _players)
+				case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
+				case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+				case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
 				{
-					player.score = -player.damage;
-					for (int playerIndex = 0; playerIndex < 8; playerIndex++) // TODO: Fix this to work with up to 24 players
+					var rankings = new SortedList<int, Player>();
+					var teamZoneTime = new[] { 0, 0, 0 };
+
+					foreach (var player in _players.Values)
 					{
-						player.score += 2 * player.hit_team_player_count[0, playerIndex];
+						var playerZoneTimeSeconds = Convert.ToInt32(player.ZoneTime.TotalSeconds);
+						player.Score = playerZoneTimeSeconds;
+
+						var score = playerZoneTimeSeconds;
+						score = (int.MaxValue - score) << 8 | player.GameSessionTaggerId;
+						rankings.Add(score, player);
+
+						teamZoneTime[player.TeamPlayerId.TeamNumber - 1] += playerZoneTimeSeconds;
 					}
 
-					//we want high rankings out first
-					rankings.Add(-player.score << 8 | player.player_id, player);
-				}
-
-				//Determine PlayerRanks
-				int rank = 0;
-				int lastScore = 99;
-				foreach (KeyValuePair<int, Player> ranking in rankings)
-				{
-					Player player = ranking.Value;
-					if (player.score != lastScore)
+					//Determine PlayerRanks
+					//TODO: Check if this sort order needs reversing
+					var rank = 0;
+					var lastScore = 99;
+					foreach(var e in rankings)
 					{
-						rank++;
-						lastScore = player.score;
-					}
-					player.individual_rank = rank;
-				}
-				break;
-			}
-			case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_HUNT_THE_PREY_GAME_MODE_HOST: //Untested
-            case CommandCode.COMMAND_CODE_HIDE_AND_SEEK_GAME_MODE_HOST: //Untested
-            {
-                var rankings = new SortedList<int, Player>();
-                //for team score
-	            var players_alive_per_team = new int[] {0, 0, 0,};
-                //for tie breaking team scores
-	            var team_alive_score = new int[3] {0, 0, 0,};
-	            var team_final_score = new int[3] {0, 0, 0,};
-                //rank for each team
-	            var team_rank = new int[3] {0, 0, 0,};
-                /*
-                - Individual ranks are based on receiving 2 points per tag landed on players
-                from other teams, and losing 1 point for every time you’re tagged by a player
-                from another team. Tagging your own teammate (Team Tags) costs you 2
-                points. Being tagged by your own teammates does not hurt your score.
-                - Team ranks are based on which team has the most players not tagged out
-                when the game ends (this gives an advantage to larger teams, so less-skilled
-                players can be grouped together on a larger team to even things out). In the
-                event of a tie, the TAG MASTER will attempt to break the tie based on the
-                individual scores of the players on each team who did not get tagged out –
-                this rewards the team with the more aggressive players that land more tags.
-                Just hiding or trying to not get tagged may cost your team valuable points that
-                could affect your team’s ranking.
-                */
-
-                foreach (Player p in _players)
-				{
-                    int score = - p.damage;
-                    int team_index = 0;
-                    int player_index = 0;
-                    //TODO: test to make sure scoring works accurately
-                    for (team_index = 0; team_index < 3; team_index++)
-					{
-                        for (player_index = 0; player_index < 8; player_index++)
+						var p = e.Value;
+						if (p.Score != lastScore)
 						{
-                            if (p.team_index == team_index)
+							rank++;
+							lastScore = p.Score;
+						}
+						p.Rank = rank;
+						p.TeamRank = 0;
+					}
+
+					//Team rank only for team games
+					var teamRank = new[] { 0, 0, 0 };
+					switch (game_state.game_type)
+					{
+						case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+						case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+						{
+							for (var i = 0; i < game_state.number_of_teams; i++)
 							{
-                                //Friendly fire
-                                score -= 2 * p.hit_team_player_count[team_index, player_index];
-                            }
-							else
+								teamRank[i] = game_state.number_of_teams;
+								if (teamZoneTime[i] >= teamZoneTime[(i + 1) % 3]) teamRank[i]--;
+								if (teamZoneTime[i] >= teamZoneTime[(i + 2) % 3]) teamRank[i]--;
+								Teams.Team(i + 1).TeamRank = teamRank[i];
+								HostDebugWriteLine("Team {0} Rank {1}", (i + 1), teamRank[i]);
+							}
+
+							foreach (var player in _players.Values)
 							{
-                                score += 2 * p.hit_team_player_count[team_index, player_index];
-                            }
-                        }
-                    }
-                    
-                    p.score = score;
-                    if (p.alive)
-                    {
-	                    players_alive_per_team[p.team_index]++;
-	                    team_alive_score[p.team_index] += score;
-                    }
-                    //prevent duplicates
-					score = score << 8 | p.player_id;
-                    //we want high rankings out first
-					rankings.Add(-score, p);
+								player.TeamRank = teamRank[player.TeamPlayerId.TeamNumber - 1];
+							}
+
+							break;
+						}
+					}
+
+					break;
 				}
-                
-                //Determine Team Ranks
-                for (int i = 0; i < 3; i++)
+				case CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST:
 				{
-                    HostDebugWriteLine("Team " + (i + 1) + " Had " + players_alive_per_team[i] + " Players alive");
-                    HostDebugWriteLine("Combined Score: " + team_alive_score[i]);
-                    team_final_score[i] = (players_alive_per_team[i] << 10)
-                                        + (team_alive_score[i] << 2);
-                    HostDebugWriteLine("Final: Team " + (i + 1) + " Score " + team_final_score[i]);
-                }
-                for (int i = 0; i < 3; i++)
-				{
-                    team_rank[i] = 3;
-                    if (team_final_score[i] >= team_final_score[(i + 1) % 3]) {
-                        team_rank[i]--;
-                    }
-                    if (team_final_score[i] >= team_final_score[(i + 2) % 3]) {
-                        team_rank[i]--;
-                    }
-					Teams.TeamNumber(i + 1).TeamRank = team_rank[i];
-					HostDebugWriteLine("Team " + (i + 1) + " Rank " + team_rank[i]);
-                }
+					var rankings = new SortedList<int, Player>();
+					/*
+					- Ranks are based on receiving 2 points per tag landed on players
+					and losing 1 point for every time you’re tagged by a another player
+					*/
 
-                //Determine PlayerRanks
-                int rank = 0;
-                int last_score = 99;
-                foreach(KeyValuePair<int, Player> e in rankings)
-				{
-                    Player p = e.Value;
-                    if (p.score != last_score) {
-                        rank++;
-                        last_score = p.score;
-                    }
-                    p.individual_rank = rank;
-                    p.team_rank = team_rank[p.team_index];
-                }
-                
-                break;
-            }
-            case CommandCode.COMMAND_CODE_2_KINGS_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_3_KINGS_GAME_MODE_HOST:
-            {
-                //TODO: Write kings score
-                break;
-            }
-            default:
-                HostDebugWriteLine("Unable to score match");
-                break;
-            }
+					foreach (var player in _players.Values)
+					{
+						player.Score = -player.TagsTaken;
+						for (int playerIndex = 0; playerIndex < 8; playerIndex++) // TODO: Fix this to work with up to 24 players
+						{
+							player.Score += 2 * player.TaggedByPlayerCounts[player.TeamPlayerId.PlayerNumber - 1];
+						}
 
+						//we want high rankings out first
+						rankings.Add(-player.Score << 8 | player.GameSessionTaggerId, player);
+					}
+
+					//Determine PlayerRanks
+					int rank = 0;
+					int lastScore = 99;
+					foreach (KeyValuePair<int, Player> ranking in rankings)
+					{
+						Player player = ranking.Value;
+						if (player.Score != lastScore)
+						{
+							rank++;
+							lastScore = player.Score;
+						}
+						player.Rank = rank;
+					}
+					break;
+				}
+				case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
+				case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
+				case CommandCode.COMMAND_CODE_HUNT_THE_PREY_GAME_MODE_HOST: //Untested
+				case CommandCode.COMMAND_CODE_HIDE_AND_SEEK_GAME_MODE_HOST: //Untested
+				{
+					var rankings = new SortedList<int, Player>();
+					//for team score
+					var players_alive_per_team = new int[] {0, 0, 0,};
+					//for tie breaking team scores
+					var team_alive_score = new int[3] {0, 0, 0,};
+					var team_final_score = new int[3] {0, 0, 0,};
+					//rank for each team
+					var team_rank = new int[3] {0, 0, 0,};
+					/*
+					- Individual ranks are based on receiving 2 points per tag landed on players
+					from other teams, and losing 1 point for every time you’re tagged by a player
+					from another team. Tagging your own teammate (Team Tags) costs you 2
+					points. Being tagged by your own teammates does not hurt your score.
+					- Team ranks are based on which team has the most players not tagged out
+					when the game ends (this gives an advantage to larger teams, so less-skilled
+					players can be grouped together on a larger team to even things out). In the
+					event of a tie, the TAG MASTER will attempt to break the tie based on the
+					individual scores of the players on each team who did not get tagged out –
+					this rewards the team with the more aggressive players that land more tags.
+					Just hiding or trying to not get tagged may cost your team valuable points that
+					could affect your team’s ranking.
+					*/
+
+					foreach (var player in _players.Values)
+					{
+						var score = -player.TagsTaken;
+						//TODO: test to make sure scoring works accurately
+						for (var teamNumber = 1; teamNumber <= 3; teamNumber++)
+						{
+							for (var playerNumber = 1; playerNumber <= 8; playerNumber++)
+							{
+								var teamPlayerId = new TeamPlayerId(teamNumber, playerNumber);
+								if (player.TeamPlayerId.TeamNumber == teamNumber)
+								{
+									//Friendly fire
+									score -= 2 * player.TaggedByPlayerCounts[teamPlayerId.PlayerNumber - 1];
+								}
+								else
+								{
+									score += 2 * player.TaggedByPlayerCounts[teamPlayerId.PlayerNumber - 1];
+								}
+							}
+						}
+                    
+						player.Score = score;
+						if (player.Survived)
+						{
+							players_alive_per_team[player.TeamPlayerId.TeamNumber - 1]++;
+							team_alive_score[player.TeamPlayerId.TeamNumber - 1] += score;
+						}
+						//prevent duplicates
+						score = score << 8 | player.GameSessionTaggerId;
+						//we want high rankings out first
+						rankings.Add(-score, player);
+					}
+                
+					//Determine Team Ranks
+					for (int i = 0; i < 3; i++)
+					{
+						HostDebugWriteLine("Team " + (i + 1) + " Had " + players_alive_per_team[i] + " Players alive");
+						HostDebugWriteLine("Combined Score: " + team_alive_score[i]);
+						team_final_score[i] = (players_alive_per_team[i] << 10)
+											+ (team_alive_score[i] << 2);
+						HostDebugWriteLine("Final: Team " + (i + 1) + " Score " + team_final_score[i]);
+					}
+					for (int i = 0; i < 3; i++)
+					{
+						team_rank[i] = 3;
+						if (team_final_score[i] >= team_final_score[(i + 1) % 3]) {
+							team_rank[i]--;
+						}
+						if (team_final_score[i] >= team_final_score[(i + 2) % 3]) {
+							team_rank[i]--;
+						}
+						Teams.Team(i + 1).TeamRank = team_rank[i];
+						HostDebugWriteLine("Team " + (i + 1) + " Rank " + team_rank[i]);
+					}
+
+					//Determine PlayerRanks
+					int rank = 0;
+					int last_score = 99;
+					foreach(KeyValuePair<int, Player> e in rankings)
+					{
+						Player p = e.Value;
+						if (p.Score != last_score) {
+							rank++;
+							last_score = p.Score;
+						}
+						p.Rank = rank;
+						p.TeamRank = team_rank[p.TeamPlayerId.TeamNumber - 1];
+					}
+                
+					break;
+				}
+				case CommandCode.COMMAND_CODE_2_KINGS_GAME_MODE_HOST:
+				case CommandCode.COMMAND_CODE_3_KINGS_GAME_MODE_HOST:
+				{
+					//TODO: Write kings score
+					break;
+				}
+				default:
+					HostDebugWriteLine("Unable to score match");
+					break;
+			}
         }
 
 #region TestData
@@ -1213,20 +1145,10 @@ namespace LazerTagHostLibrary
             game_state.number_of_teams = 1;
         }
 
-
-        public Player LookupPlayer(int team_number, int player_number)
-        {
-            foreach (Player p in _players) {
-                if (p.team_number == team_number
-                    && p.player_number == player_number)
-                {
-                    return p;
-                }
-            }
-            //HostDebugWriteLine("Unable to lookup player " + team_number + "," + player_number);
-            return null;
-        }
-
+		public Player LookupPlayer(TeamPlayerId teamPlayerId)
+		{
+			return _players.ContainsKey(teamPlayerId) ? _players[teamPlayerId] : null;
+		}
 
         public void StartServer() {
             if (hosting_state != HostGun.HostingState.HOSTING_STATE_IDLE) return;
@@ -1345,66 +1267,35 @@ namespace LazerTagHostLibrary
             return countdown;
         }
 
-        public bool SetPlayerName(int team_index, int player_index, string name)
+        public bool SetPlayerName(TeamPlayerId teamPlayerId, string name)
         {
-            Player p = LookupPlayer(team_index + 1, player_index);
+			var player = LookupPlayer(teamPlayerId);
 
-            if (p == null) {
-                HostDebugWriteLine("Player not found");
+            if (player == null)
+			{
+                HostDebugWriteLine("Player not found.");
                 return false;
             }
 
-            p.player_name = name;
+            player.PlayerName = name;
 
             return true;
         }
 
-        public bool DropPlayer(int team_index, int player_index)
+        public bool DropPlayer(TeamPlayerId teamPlayerId)
         {
-            Player p = LookupPlayer(team_index + 1, player_index);
+			var player = LookupPlayer(teamPlayerId);
 
-            if (p == null) {
-                HostDebugWriteLine("Player not found");
+            if (player == null)
+			{
+                HostDebugWriteLine("Player not found.");
                 return false;
             }
 
-            _players.Remove(p);
-            if (listener != null) {
-                listener.PlayerListChanged(new List<Player>(_players));
-            }
+	        _players.Remove(player.TeamPlayerId);
+			if (listener != null) listener.PlayerListChanged(_players.Values.ToList());
 
             return false;
-        }
-
-        public void RunRankTests()
-        {
-            game_state.game_type = CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST;
-            hosting_state = HostingState.HOSTING_STATE_GAME_OVER;
-            
-            Player p1 = new Player(0x01);
-            Player p2 = new Player(0x02);
-            Player p3 = new Player(0x03);
-            _players.AddLast(p1);
-            _players.AddLast(p2);
-            _players.AddLast(p3);
-            
-            p1.team_number = 1;
-            p1.player_number = 0;
-            p1.alive = true;
-            p2.team_number = 2;
-            p2.player_number = 1;
-            p2.alive = true;
-            p3.team_number = 3;
-            p3.player_number = 3;
-            p3.alive = false;
-
-            p1.hit_by_team_player_count[1,1] = 6;
-            p2.hit_team_player_count[2,0] = 6;
-
-            p1.hit_team_player_count[0,5] = 6;
-
-            RankPlayers();
-            PrintScoreReport();
         }
 
         public void Update() {
@@ -1443,7 +1334,7 @@ namespace LazerTagHostLibrary
 	                Teams.Clear();
 					if (IsTeamGame())
 					{
-						for (int teamNumber = 1; teamNumber < game_state.number_of_teams; teamNumber++)
+						for (var teamNumber = 1; teamNumber <= game_state.number_of_teams; teamNumber++)
 						{
 							Teams.Add(new Team(teamNumber));
 						}
@@ -1558,7 +1449,7 @@ namespace LazerTagHostLibrary
                     UInt16[] values = new UInt16[]{
                         (UInt16)CommandCode.COMMAND_CODE_COUNTDOWN_TO_GAME_START,
                         game_id,//Game ID
-                        DecimalToDecimalHex((byte)seconds_left),
+                        HexCodedDecimal.FromDecimal((byte)seconds_left),
                         0x08, //players on team 1
                         0x08, //players on team 2
                         0x08, //players on team 3
@@ -1570,19 +1461,20 @@ namespace LazerTagHostLibrary
             }
             case HostingState.HOSTING_STATE_PLAYING:
             {
-                if (now > state_change_timeout) {
+                if (now > state_change_timeout)
+				{
                     ChangeState(now, HostingState.HOSTING_STATE_SUMMARY);
-                } else if (now >= next_announce) {
-
-                    switch (game_state.game_type) {
-                    case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
-                    case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-                    case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-                        TransmitLTTOBytes(0x02,5);
-                        next_announce = now.AddMilliseconds(500);
-                        break;
-                    default:
-                        break;
+                }
+				else if (now >= next_announce)
+				{
+                    switch (game_state.game_type)
+					{
+						case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
+						case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+						case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+							TransmitLTTOBytes(0x02, 5);
+							next_announce = now.AddMilliseconds(500);
+							break;
                     }
 
 					// Keep sending out a countdown for taggers that may have missed it
@@ -1590,7 +1482,7 @@ namespace LazerTagHostLibrary
 						{
 							(UInt16) CommandCode.COMMAND_CODE_COUNTDOWN_TO_GAME_START,
 							game_id, //Game ID
-							DecimalToDecimalHex((byte)(((state_change_timeout - now).Seconds % 5) + 1)),
+							HexCodedDecimal.FromDecimal((byte)(((state_change_timeout - now).Seconds % 5) + 1)),
 							0x08, //players on team 1
 							0x08, //players on team 2
 							0x08, //players on team 3
@@ -1607,18 +1499,20 @@ namespace LazerTagHostLibrary
             {
                 if (now > next_announce)
 				{
-                    Player next_debrief = null;
-
+					var undebriefed = new List<Player>();
+					foreach (var player in _players.Values)
 					{
-                        var undebriefed = _players.Where(p => !p.HasBeenDebriefed()).ToList();
-	                    if (undebriefed.Count > 0)
-	                    {
-							_debriefPlayerSequence = _debriefPlayerSequence < int.MaxValue ? _debriefPlayerSequence + 1 : 0;
-							next_debrief = undebriefed[_debriefPlayerSequence % undebriefed.Count];
-                        }
+						if (!player.HasBeenDebriefed()) undebriefed.Add(player);
+					}
+
+					Player nextDebriefPlayer = null;
+					if (undebriefed.Count > 0)
+	                {
+						_debriefPlayerSequence = _debriefPlayerSequence < int.MaxValue ? _debriefPlayerSequence + 1 : 0;
+						nextDebriefPlayer = undebriefed[_debriefPlayerSequence % undebriefed.Count];
                     }
 
-                    if (next_debrief == null)
+                    if (nextDebriefPlayer == null)
 					{
                         HostDebugWriteLine("All players debriefed");
 
@@ -1629,12 +1523,11 @@ namespace LazerTagHostLibrary
                         break;
                     }
                     
-                    var player_index = (UInt16)((next_debrief.team_number & 0xf) << 4 | (next_debrief.player_number & 0xf));
                     var values = new UInt16[]
 					{
                         (UInt16)CommandCode.COMMAND_CODE_SCORE_ANNOUNCEMENT,
                         game_id, // Game ID
-                        player_index, // player index [ 4 bits - team ] [ 4 bits - player number ]
+                        nextDebriefPlayer.TeamPlayerId.Packed44, // player index [ 4 bits - team ] [ 4 bits - player number ]
                         0x0F, // unknown
                     };
                     TransmitPacket2(ref values);
@@ -1649,17 +1542,15 @@ namespace LazerTagHostLibrary
 				{
                     next_announce = now.AddSeconds(GAME_OVER_ADVERTISEMENT_INTERVAL_SECONDS);
                     
-                    foreach (Player p in _players)
+                    foreach (var player in _players.Values)
 					{
-                        UInt16 player_index = (UInt16)((p.team_number & 0xf) << 4 | (p.player_number & 0xf));
-                        
-                        UInt16[] values = new UInt16[]
+                        var values = new UInt16[]
 						{
                             (UInt16)CommandCode.COMMAND_CODE_GAME_OVER,
                             game_id, // Game ID
-                            player_index, // player index [ 4 bits - team ] [ 4 bits - player number ]
-                            (UInt16)p.individual_rank, // player rank (not decimal hex, 1-player_count)
-                            (UInt16)p.team_rank, // team rank?
+                            player.TeamPlayerId.Packed44, // player index [ 4 bits - team ] [ 4 bits - player number ]
+                            (UInt16)player.Rank, // player rank (not decimal hex, 1-player_count)
+                            (UInt16)player.TeamRank, // team rank?
                             0x00, // unknown...
                             0x00,
                             0x00,
@@ -1674,11 +1565,11 @@ namespace LazerTagHostLibrary
             }
         }
 
-        public void AddListener(HostChangedListener listener) {
+        public void AddListener(IHostChangedListener listener) {
             this.listener = listener;
         }
 
-        public HostGun(string device, HostChangedListener l) {
+        public HostGun(string device, IHostChangedListener l) {
             ltz = new LazerTagSerial(device);
             this.listener = l;
         }
@@ -1704,22 +1595,23 @@ namespace LazerTagHostLibrary
         }
 
         public bool IsTeamGame() {
-            switch (game_state.game_type) {
-            case CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
-                return false;
-            case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_HIDE_AND_SEEK_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_HUNT_THE_PREY_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_2_KINGS_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_3_KINGS_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-                return true;
-            default:
-                HostDebugWriteLine("Unknown game type");
-                return false;
+            switch (game_state.game_type)
+			{
+				case CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST:
+				case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
+					return false;
+				case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
+				case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
+				case CommandCode.COMMAND_CODE_HIDE_AND_SEEK_GAME_MODE_HOST:
+				case CommandCode.COMMAND_CODE_HUNT_THE_PREY_GAME_MODE_HOST:
+				case CommandCode.COMMAND_CODE_2_KINGS_GAME_MODE_HOST:
+				case CommandCode.COMMAND_CODE_3_KINGS_GAME_MODE_HOST:
+				case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+				case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+					return true;
+				default:
+					HostDebugWriteLine("Unknown game type ({0}).", (int)game_state.game_type);
+					return false;
             }
         }
 

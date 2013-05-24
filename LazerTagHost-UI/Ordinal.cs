@@ -36,4 +36,12 @@
 			return string.Format(formatString, cardinal);
 		}
 	}
+
+	public static class OrdinalFilter
+	{
+		public static string ToOrdinal(int cardinal)
+		{
+			return Ordinal.FromCardinal(cardinal);
+		}
+	}
 }

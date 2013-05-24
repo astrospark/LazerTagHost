@@ -19,7 +19,7 @@ namespace LazerTagHostLibrary
 	{
 		private readonly List<Team> _teams = new List<Team>();
  
-		public Team TeamNumber(int teamNumber)
+		public Team Team(int teamNumber)
 		{
 			return _teams.FirstOrDefault(team => team.TeamNumber == teamNumber);
 		}
