@@ -71,6 +71,7 @@ namespace LazerTagHostLibrary
             COMMAND_CODE_GAME_OVER = 0x32,
 
             COMMAND_CODE_TEXT_MESSAGE = 0x80,
+			COMMAND_CODE_SPECIAL_ATTACK = 0x90,
         };
 
 		public enum ZoneType
@@ -420,19 +421,46 @@ namespace LazerTagHostLibrary
 
 	        {
 		        var commandPacket = _incomingPacketQueue[0];
-				if (commandPacket.Data == (UInt16)CommandCode.COMMAND_CODE_TEXT_MESSAGE)
+				switch ((CommandCode) commandPacket.Data)
 				{
-					var message = new StringBuilder();
-					var i = 1;
-					while (i < _incomingPacketQueue.Count &&
-                           _incomingPacketQueue[i].Data >= 0x20 &&
-						   _incomingPacketQueue[i].Data <= 0x7e &&
-						   _incomingPacketQueue[i].BitCount == 8)
-					{
-						message.Append(Convert.ToChar(_incomingPacketQueue[i].Data));
-						i++;
-					}
-					Console.WriteLine("Received Text Message: {0}", message);
+					case CommandCode.COMMAND_CODE_TEXT_MESSAGE:
+						{
+							var message = new StringBuilder();
+							var i = 1;
+							while (i < _incomingPacketQueue.Count &&
+								   _incomingPacketQueue[i].Data >= 0x20 &&
+								   _incomingPacketQueue[i].Data <= 0x7e &&
+								   _incomingPacketQueue[i].BitCount == 8)
+							{
+								message.Append(Convert.ToChar(_incomingPacketQueue[i].Data));
+								i++;
+							}
+							Console.WriteLine("Received Text Message: {0}", message); 
+							break;
+						}
+					case CommandCode.COMMAND_CODE_SPECIAL_ATTACK:
+						{
+							var type = "Unknown Type";
+							if (_incomingPacketQueue.Count == 6)
+							{
+								switch (_incomingPacketQueue[3].Data)
+								{
+									case 0x77:
+										type = "EM Peacemaker";
+										break;
+									case 0xb1:
+										type = "Talus Airstrike";
+										break;
+								}
+							}
+							Console.WriteLine("Special Attack: {0} - {1}", type, SerializeCommandSequence(_incomingPacketQueue.GetRange(0, 6)));
+							AssertUnknownBits("Special Attack Byte 2", _incomingPacketQueue[1], 0xff);
+							AssertUnknownBits("Special Attack Byte 3", _incomingPacketQueue[2], 0xff);
+							AssertUnknownBits("Special Attack Byte 4", _incomingPacketQueue[3], 0xff);
+							AssertUnknownBits("Special Attack Byte 5", _incomingPacketQueue[4], 0xff);
+
+							break;
+						}
 				}
 	        }
 
@@ -597,54 +625,128 @@ namespace LazerTagHostLibrary
 	        return false;
         }
 
-        private void ProcessPacket(IrPacket.PacketTypes type, UInt16 data, UInt16 bitCount)
-        {
-            if (type != IrPacket.PacketTypes.Data) return;
-            
-            if (bitCount == 9)
-            {
-                if ((data & 0x100) == 0) // command
-				{
-					//start sequence
-					_incomingPacketQueue.Add(new IrPacket(type, data, bitCount));
-				}
-				else // checksum
-				{
-					if ((data & 0xff) == LazerTagSerial.ComputeChecksum(_incomingPacketQueue))
+	    private static void ProcessBeaconPacket(UInt16 data, UInt16 bitCount)
+		{
+			switch (bitCount)
+			{
+				case 5:
 					{
-						HostDebugWriteLine(String.Format("RX {0}: {1}",
-														 GetCommandCodeName((CommandCode)(_incomingPacketQueue[0].Data)),
-														 SerializeCommandSequence(_incomingPacketQueue)));
-						if (!ProcessCommandSequence())
+						var teamNumber = (data >> 3) & 0x3;
+						var tagReceived = ((data >> 2) & 0x1) != 0;
+						var flags = data & 0x3;
+
+						var teamText = teamNumber != 0 ? "solo" : string.Format("team {0}", teamNumber);
+
+						string typeText;
+						var tagsReceivedText = "";
+						if (!tagReceived && flags != 0)
 						{
-							HostDebugWriteLine("ProcessCommandSequence() failed: {0}", SerializeCommandSequence(_incomingPacketQueue));
+							var zoneType = (ZoneType)flags;
+							typeText = string.Format("zone beacon ({0})", zoneType);
 						}
+						else if (tagReceived)
+						{
+							typeText = "hit beacon";
+							tagsReceivedText = string.Format(" Player received {0} tags.", flags);
+						}
+						else
+						{
+							typeText = "beacon";
+						}
+
+						HostDebugWriteLine("Received {0} {1}.{2}", teamText, typeText, tagsReceivedText);
+						break;
 					}
-					else
+				case 9:
 					{
-						HostDebugWriteLine("Invalid Checksum " + SerializeCommandSequence(_incomingPacketQueue));
+						var tagReceived = ((data >> 8) & 0x1) != 0;
+						var shieldActive = ((data >> 7) & 0x1) != 0;
+						var tagsRemaining = (data >> 5) & 0x3;
+						//var flags = (data >> 2) & 0x7;
+						var teamNumber = data  & 0x3;
+
+						var teamText = teamNumber != 0 ? "solo" : string.Format("team {0}", teamNumber);
+						var typeText = tagReceived ? "hit beacon" : "beacon";
+						var shieldText = shieldActive ? " Shield active." : "";
+
+						string tagsText;
+						switch (tagsRemaining)
+						{
+							
+							case 0x3:
+								{
+									tagsText = "50-100%";
+									break;
+								}
+							case 0x2:
+								{
+									tagsText = "25-50%";
+									break;
+								}
+							case 0x1:
+								{
+									tagsText = "1-25%";
+									break;
+								}
+							default:
+								{
+									tagsText = "0";
+									break;
+								}
+						}
+
+						HostDebugWriteLine("Recieved {0} {1}. {3} tags remaining.{4}", teamText, typeText, tagsText, shieldText);
+						break;
 					}
-					_incomingPacketQueue.Clear();
-				}
-            }
-			else if (bitCount == 8 && _incomingPacketQueue.Count > 0)
-            {
-                //mid sequence
-                _incomingPacketQueue.Add(new IrPacket(type, data, bitCount));
-            }
-			else if (bitCount == 8)
-			{
-                //junk
-                HostDebugWriteLine("Unknown packet, clearing queue.");
-                _incomingPacketQueue.Clear();
-            }
-			else
-			{
-				HostDebugWriteLine("{0} 0x{1:X2}, 0x{2:d}", type, data, bitCount);
 			}
-        }
-        
-        private void ProcessMessage(string command, IList<string> parameters)
+		}
+
+	    private void ProcessDataPacket(UInt16 data, UInt16 bitCount)
+	    {
+		    if (bitCount == 9)
+		    {
+			    if ((data & 0x100) == 0) // command
+			    {
+				    // start sequence
+				    _incomingPacketQueue.Add(new IrPacket(IrPacket.PacketTypes.Data, data, bitCount));
+			    }
+			    else // checksum
+			    {
+				    if ((data & 0xff) == LazerTagSerial.ComputeChecksum(_incomingPacketQueue))
+				    {
+					    HostDebugWriteLine(String.Format("RX {0}: {1}",
+					                                     GetCommandCodeName((CommandCode) (_incomingPacketQueue[0].Data)),
+					                                     SerializeCommandSequence(_incomingPacketQueue)));
+					    if (!ProcessCommandSequence())
+					    {
+						    HostDebugWriteLine("ProcessCommandSequence() failed: {0}", SerializeCommandSequence(_incomingPacketQueue));
+					    }
+				    }
+				    else
+				    {
+					    HostDebugWriteLine("Invalid Checksum " + SerializeCommandSequence(_incomingPacketQueue));
+				    }
+				    _incomingPacketQueue.Clear();
+			    }
+		    }
+		    else if (bitCount == 8 && _incomingPacketQueue.Count > 0)
+		    {
+			    // mid sequence
+				_incomingPacketQueue.Add(new IrPacket(IrPacket.PacketTypes.Data, data, bitCount));
+		    }
+		    else if (bitCount == 8)
+		    {
+			    // junk
+			    HostDebugWriteLine("Unknown packet, clearing queue.");
+			    _incomingPacketQueue.Clear();
+		    }
+		    else
+		    {
+				HostDebugWriteLine("Data: 0x{1:X2}, 0x{2:d}", data, bitCount);
+		    }
+	    }
+
+	    private void ProcessMessage(string command, IList<string> parameters)
         {
 	        if (parameters.Count != 2) return;
 
@@ -653,12 +755,15 @@ namespace LazerTagHostLibrary
 
             switch (command)
 			{
-				case "LTX": // Data Packet
-					ProcessPacket(IrPacket.PacketTypes.Data, data, bitCount);
-					return;
-				case "LTTO": // Beacon Packet
+				case "LTTO":
+					ProcessBeaconPacket(data, bitCount);
 					break;
-            }
+				case "LTX":
+					ProcessDataPacket(data, bitCount);
+					break;
+				default:
+					return;
+			}
         }
 
 #region SerialProtocol
@@ -998,7 +1103,6 @@ namespace LazerTagHostLibrary
                                     bool medicMode,
                                     byte teamCount)
         {
-            _gameDefinition.GameType = gameType;
             BaseGameSet(gameTimeMinutes,
                         tags,
                         reloads,
@@ -1006,7 +1110,8 @@ namespace LazerTagHostLibrary
                         mega,
                         teamTags,
                         medicMode);
-            _gameDefinition.TeamCount = teamCount;
+			_gameDefinition.GameType = gameType;
+			_gameDefinition.TeamCount = teamCount;
         }
 
         public void Init2TeamHostMode(byte gameTimeMinutes,
@@ -1017,7 +1122,6 @@ namespace LazerTagHostLibrary
                                       bool teamTags,
                                       bool medicMode)
         {
-            _gameDefinition.GameType = CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST;
             BaseGameSet(gameTimeMinutes,
                         tags,
                         reloads,
@@ -1025,7 +1129,8 @@ namespace LazerTagHostLibrary
                         mega,
                         teamTags,
                         medicMode);
-            _gameDefinition.TeamCount = 2;
+			_gameDefinition.GameType = CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST;
+			_gameDefinition.TeamCount = 2;
         }
 
         public void Init3TeamHostMode(byte gameTimeMinutes,
@@ -1036,7 +1141,6 @@ namespace LazerTagHostLibrary
                                       bool teamTags,
                                       bool medicMode)
         {
-            _gameDefinition.GameType = CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST;
             BaseGameSet(gameTimeMinutes,
                         tags,
                         reloads,
@@ -1044,7 +1148,8 @@ namespace LazerTagHostLibrary
                         mega,
                         teamTags,
                         medicMode);
-            _gameDefinition.TeamCount = 3;
+			_gameDefinition.GameType = CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST;
+			_gameDefinition.TeamCount = 3;
         }
         
         public void InitCustomHostMode(byte gameTimeMinutes, 
@@ -1055,7 +1160,6 @@ namespace LazerTagHostLibrary
                                       bool teamTags,
                                       bool medicMode)
         {
-            _gameDefinition.GameType = CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST;
             BaseGameSet(gameTimeMinutes,
                         tags,
                         reloads,
@@ -1063,7 +1167,8 @@ namespace LazerTagHostLibrary
                         mega,
                         teamTags,
                         medicMode);
-            _gameDefinition.TeamCount = 1;
+			_gameDefinition.GameType = CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST;
+			_gameDefinition.TeamCount = 1;
         }
 
 		public Player LookupPlayer(TeamPlayerId teamPlayerId)
@@ -1236,8 +1341,12 @@ namespace LazerTagHostLibrary
 	                var parts = input.Split(new[] {':'}, 2, StringSplitOptions.RemoveEmptyEntries);
 	                if (parts.Count() == 2)
 					{
-		                var command = parts[0];
+		                var command = parts[0].Trim();
 						var parameters = parts[1].Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries);
+						for (var i = 0; i < parameters.Count(); i++)
+						{
+							parameters[i] = parameters[i].Trim();
+						}
 						ProcessMessage(command, parameters);
                     }
                 }
