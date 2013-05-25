@@ -9,29 +9,29 @@ namespace LazerTagHostUI
 
     public partial class HostWindow : Gtk.Window, IHostChangedListener, PlayerSelectionScreen.HostControlListener
     {
-        private HostGun hg = null;
-        private bool relative_scoresheet = false;
+        private HostGun _hostGun;
+        private bool relativeScoresheet;
 
-        public HostWindow (HostGun hg) : base(Gtk.WindowType.Toplevel)
+        public HostWindow (HostGun hostGun) : base(Gtk.WindowType.Toplevel)
         {
             this.Build ();
 
-            GLib.TimeoutHandler th = new GLib.TimeoutHandler(HostUpdate);
-            GLib.Timeout.Add(100,th);
+            GLib.TimeoutHandler timeoutHandler = HostUpdate;
+            GLib.Timeout.Add(100,timeoutHandler);
 
-            this.hg = hg;
+            _hostGun = hostGun;
 
-            hg.AddListener(this);
+            hostGun.AddListener(this);
 
-            PlayerSelector ps = playerselectionscreenMain.GetPlayerSelector();
+            var playerSelector = playerselectionscreenMain.GetPlayerSelector();
 
-            if (hg.IsTeamGame())
+            if (hostGun.IsTeamGame())
             {
-	            ps.SetColumnLabels("Team 1", "Team 2", "Team 3");
+	            playerSelector.SetColumnLabels("Team 1", "Team 2", "Team 3");
             }
 			else
             {
-	            ps.SetColumnLabels("", "", "");
+	            playerSelector.SetColumnLabels("", "", "");
             }
             playerselectionscreenMain.SubscribeEvents(this);
 
@@ -40,9 +40,9 @@ namespace LazerTagHostUI
 
         private bool HostUpdate()
         {
-            hg.Update();
+            _hostGun.Update();
 
-            string title = hg.GetGameStateText() + "\n" + hg.GetCountdown();
+            string title = _hostGun.GetGameStateText() + "\n" + _hostGun.GetCountdown();
             playerselectionscreenMain.SetTitle(title);
     
             return true;
@@ -56,18 +56,18 @@ namespace LazerTagHostUI
             var playerNumber = playerSelector.GetCurrentSelectedPlayer();
             if (playerNumber == 0) return null;
 
-            return hg.LookupPlayer(new TeamPlayerId(playerNumber));
+            return _hostGun.LookupPlayer(new TeamPlayerId(playerNumber));
         }
 
         private string GetPlayerName(int teamNumber, int playerNumber)
         {
 	        var teamPlayerId = new TeamPlayerId(teamNumber, playerNumber);
-			var player = hg.LookupPlayer(teamPlayerId);
+			var player = _hostGun.LookupPlayer(teamPlayerId);
 			if (player == null) return "Open";
 
 			var text = String.Format("{0} ({1}) ", player.PlayerName, teamPlayerId);
     
-            switch (hg.GetGameState())
+            switch (_hostGun.GetGameState())
 			{
 				case HostGun.HostingState.Summary:
 					text += (player.HasBeenDebriefed() ? "Done" : "Waiting");
@@ -75,7 +75,7 @@ namespace LazerTagHostUI
 				case HostGun.HostingState.GameOver:
 					text += Ordinal.FromCardinal(player.Rank);
 
-					if (relative_scoresheet)
+					if (relativeScoresheet)
 					{
 						var selectedPlayer = GetSelectedPlayer();
 						if (selectedPlayer == player) {
@@ -92,7 +92,7 @@ namespace LazerTagHostUI
 					}
 					else
 					{
-						if (hg.IsZoneGame())
+						if (_hostGun.IsZoneGame())
 						{
 							text += string.Format("\nZone Time: {0}", player.ZoneTime.ToString("m:ss"));
 						}
@@ -126,18 +126,18 @@ namespace LazerTagHostUI
         {
             Console.WriteLine("Next");
 
-            hg.Next();
+            _hostGun.Next();
         }
 
         void PlayerSelectionScreen.HostControlListener.Pause(object sender, EventArgs e)
         {
-            hg.Pause();
+            _hostGun.Pause();
         }
 
         void PlayerSelectionScreen.HostControlListener.Abort (object sender, EventArgs e)
         {
             Console.WriteLine("Abort");
-            hg.EndGame();
+            _hostGun.EndGame();
 
             Hide();
         }
@@ -162,7 +162,7 @@ namespace LazerTagHostUI
 			var playerNumber = playerSelector.GetCurrentSelectedPlayer();
 			if (playerNumber == 0) return;
 
-            if (!hg.SetPlayerName(new TeamPlayerId(playerNumber), name)) return;
+            if (!_hostGun.SetPlayerName(new TeamPlayerId(playerNumber), name)) return;
             RefreshPlayerList();
         }
 
@@ -176,18 +176,18 @@ namespace LazerTagHostUI
 			var playerNumber = playerSelector.GetCurrentSelectedPlayer();
 			if (playerNumber == 0) return;
 
-			hg.DropPlayer(new TeamPlayerId(playerNumber));
+			_hostGun.DropPlayer(new TeamPlayerId(playerNumber));
 
             RefreshPlayerList();
         }
 
         void PlayerSelectionScreen.HostControlListener.SelectionChanged(int playerNumber)
 		{
-            if (relative_scoresheet) RefreshPlayerList();
+            if (relativeScoresheet) RefreshPlayerList();
         }
 
         void PlayerSelectionScreen.HostControlListener.RelativeScoresToggle(bool show_relative) {
-            relative_scoresheet = show_relative;
+            relativeScoresheet = show_relative;
             RefreshPlayerList();
         }
 
@@ -203,7 +203,7 @@ namespace LazerTagHostUI
 		{
 			if (state == HostGun.HostingState.GameOver)
 			{
-				var scoreReportForm = new ScoreReport(hg);
+				var scoreReportForm = new ScoreReport(_hostGun);
 				scoreReportForm.Show();
 			}
 

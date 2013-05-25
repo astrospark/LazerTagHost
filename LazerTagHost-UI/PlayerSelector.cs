@@ -18,26 +18,28 @@ namespace LazerTagHostUI
 
             Gtk.RadioButton first = null;
 
-            for (uint team_index = 0; team_index < 3; team_index++) {
-                for (uint player_index = 0; player_index < 8; player_index++) {
-                    string name = "radiobutton_" + team_index + "_" + player_index;
+            for (uint team_index = 0; team_index < 3; team_index++)
+			{
+                for (uint player_index = 0; player_index < 8; player_index++)
+				{
+                    var name = "radiobutton_" + team_index + "_" + player_index;
     
-                    Gtk.RadioButton rb = new Gtk.RadioButton(first, name);
-                    _radioButtonPlayers[team_index,player_index] = rb;
+                    var radioButton = new Gtk.RadioButton(first, name);
+                    _radioButtonPlayers[team_index,player_index] = radioButton;
     
-                    if (first == null) first = rb;
+                    if (first == null) first = radioButton;
     
-                    rb.CanFocus = true;
-                    rb.Name = name;
-                    rb.DrawIndicator = false;
-                    rb.UseUnderline = true;
-                    rb.Active = (team_index == 0 && player_index == 0);
-                    rb.Label = "";
-                    rb.Clicked += new System.EventHandler(ListenSelectionChanges);
+                    radioButton.CanFocus = true;
+                    radioButton.Name = name;
+                    radioButton.DrawIndicator = false;
+                    radioButton.UseUnderline = true;
+                    radioButton.Active = (team_index == 0 && player_index == 0);
+                    radioButton.Label = "";
+                    radioButton.Clicked += ListenSelectionChanges;
                     //TODO: Store index in rb.data
     
-                    tablePlayerSelector.Add(rb);
-                    Gtk.Table.TableChild tc = ((Gtk.Table.TableChild)(tablePlayerSelector[rb]));
+                    tablePlayerSelector.Add(radioButton);
+                    Gtk.Table.TableChild tc = ((Gtk.Table.TableChild)(tablePlayerSelector[radioButton]));
                     uint top_offset = 1;
                     tc.TopAttach = player_index + top_offset + 0;
                     tc.BottomAttach = player_index + top_offset + 1;
@@ -47,7 +49,7 @@ namespace LazerTagHostUI
                 }
             }
 
-            this.ShowAll();
+            ShowAll();
         }
 
         private void ListenSelectionChanges(object sender, EventArgs e)

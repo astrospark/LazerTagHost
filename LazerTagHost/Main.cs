@@ -18,12 +18,12 @@ namespace LazerTagHost
                 return;
             }
             
-            HostGun hg = new HostGun(args[0], null);
+            var hostGun = new HostGun(args[0], null);
             //hg.StartGameNow();
             
             while (true) {
                 
-                hg.Update();
+                hostGun.Update();
                 
             }
         }

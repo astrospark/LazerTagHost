@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace LazerTagHostLibrary
+﻿namespace LazerTagHostLibrary
 {
 	public struct GameDefinition
 	{

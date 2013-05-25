@@ -1,6 +1,5 @@
 ﻿using LazerTagHostLibrary;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
 
 namespace LazerTagHost_Test
 {

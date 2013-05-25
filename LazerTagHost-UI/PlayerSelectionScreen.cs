@@ -8,7 +8,7 @@ namespace LazerTagHostUI
     [System.ComponentModel.ToolboxItem(true)]
     public partial class PlayerSelectionScreen : Gtk.Bin
     {
-        HostControlListener listener = null;
+        HostControlListener _listener;
 
         public PlayerSelectionScreen ()
         {
@@ -19,7 +19,7 @@ namespace LazerTagHostUI
 
         void SelectionChanged(int playerNumber)
 		{
-			if (listener != null) listener.SelectionChanged(playerNumber);
+			if (_listener != null) _listener.SelectionChanged(playerNumber);
         }
 
         public PlayerSelector GetPlayerSelector() {
@@ -59,21 +59,21 @@ namespace LazerTagHostUI
 
         public void SubscribeEvents(HostControlListener listener)
         {
-            this.listener = listener;
-            buttonDropPlayer.Clicked += new System.EventHandler(listener.DropPlayer);
-            comboboxentryRenamePlayer.Changed += new System.EventHandler(listener.RenamePlayer);
-            buttonLateJoin.Clicked += new System.EventHandler(listener.LateJoin);
-            buttonAbortHost.Clicked += new System.EventHandler(listener.Abort);
-            buttonPause.Clicked += new System.EventHandler(listener.Pause);
-            buttonNext.Clicked += new System.EventHandler(listener.Next);
+            _listener = listener;
+            buttonDropPlayer.Clicked += listener.DropPlayer;
+            comboboxentryRenamePlayer.Changed += listener.RenamePlayer;
+            buttonLateJoin.Clicked += listener.LateJoin;
+            buttonAbortHost.Clicked += listener.Abort;
+            buttonPause.Clicked += listener.Pause;
+            buttonNext.Clicked += listener.Next;
 
         }
 
-        protected virtual void RelativeScoresToggled (object sender, System.EventArgs e)
+        protected virtual void RelativeScoresToggled (object sender, EventArgs e)
         {
-            if (listener == null) return;
+            if (_listener == null) return;
 
-            listener.RelativeScoresToggle(togglebuttonRelativeScores.Active);
+            _listener.RelativeScoresToggle(togglebuttonRelativeScores.Active);
         }
         
         
