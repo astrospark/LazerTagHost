@@ -1,6 +1,4 @@
 using System;
-using System.ComponentModel;
-using System.Globalization;
 
 namespace LazerTagHostLibrary
 {
@@ -11,12 +9,10 @@ namespace LazerTagHostLibrary
 		public bool Debriefed = false;
 		public TeamPlayerId TeamPlayerId { get; set; }
 
-		//damage taken during match
 		public int TagsTaken = 0;
-		//still alive at end of match
 		public bool Survived { get; set; }
-		//true if the debriefing stated a report was coming but one not received yet
 		public bool[] ScoreReportTeamsWaiting = new[] {false, false, false};
+
 		private int[] _taggedPlayerCounts = new int[TeamPlayerId.MaximumPlayerNumber];
 		public int[] TaggedPlayerCounts
 		{
@@ -33,12 +29,11 @@ namespace LazerTagHostLibrary
 
 		public TimeSpan ZoneTime;
 
-		//final score for given game mode
 		public int Score { get; set; }
-		public int Rank { get; set; } //1-24
-		public int TeamRank = 0; //1-3
+		public int Rank { get; set; } // 1-24
+		public int TeamRank = 0; // 1-3
 
-		private string _playerName = "Unnamed Player";
+		private string _playerName = "Player";
 
 		public string PlayerName
 		{
@@ -66,7 +61,6 @@ namespace LazerTagHostLibrary
 	public struct TeamPlayerId
 		: IEquatable<TeamPlayerId>
 	{
-		#region Constructors
 		public TeamPlayerId(int playerNumber)
 			: this()
 		{
@@ -79,13 +73,9 @@ namespace LazerTagHostLibrary
 			TeamNumber = teamNumber;
 			TeamPlayerNumber = playerNumber;
 		}
-		#endregion
 
-		#region Public Constants
 		public const int MaximumPlayerNumber = 24;
-		#endregion
-
-		#region Public Properties
+	
 		public int PlayerNumber { get; set; }
 
 		public int TeamNumber
@@ -119,9 +109,7 @@ namespace LazerTagHostLibrary
 				TeamPlayerNumber = (value & 0xf) + 1;
 			}
 		}
-		#endregion
 
-		#region Public Methods
 		public static TeamPlayerId FromPacked23(UInt16 value)
 		{
 			return new TeamPlayerId {Packed23 = value};
@@ -162,6 +150,5 @@ namespace LazerTagHostLibrary
 		{
 			return string.Format("{0} ({1}:{2})", PlayerNumber, TeamNumber, TeamPlayerNumber);
 		}
-		#endregion
 	}
 }

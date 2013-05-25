@@ -4,151 +4,159 @@ using System.Collections.Generic;
 
 namespace LazerTagHostLibrary
 {
-
-
     public class LazerTagSerial
     {
-        private SerialPort serial_port = null;
-        private const int INTER_PACKET_BYTE_DELAY_MILLISECONDS = 50;
-        private Queue<byte[]> q = null;
+        private SerialPort _serialPort;
+        private const int InterPacketDelay = 50; // milliseconds
+        private readonly Queue<byte[]> _queue;
 
-        System.Threading.Thread worker_thread = null;
-        private Boolean run = false;
+        private readonly System.Threading.Thread _workerThread;
+        private Boolean _enableWrite;
 
         public LazerTagSerial (string device)
         {
             if (device != null) {
-                serial_port = new SerialPort(device, 115200);
-                serial_port.Parity = Parity.None;
-                serial_port.StopBits = StopBits.One;
-                serial_port.Open();
+                _serialPort = new SerialPort(device, 115200) {Parity = Parity.None, StopBits = StopBits.One};
+	            _serialPort.Open();
             }
 
-            q = new Queue<byte[]>();
+            _queue = new Queue<byte[]>();
 
-            run = true;
-            worker_thread = new System.Threading.Thread(WriteThread);
-            worker_thread.IsBackground = true;
-            worker_thread.Start();
+            _enableWrite = true;
+            _workerThread = new System.Threading.Thread(WriteThread) {IsBackground = true};
+	        _workerThread.Start();
         }
 
         public void Stop()
         {
-            run = false;
-            worker_thread.Join();
-            if (serial_port != null && serial_port.IsOpen) {
-                serial_port.Close();
-                serial_port = null;
+            _enableWrite = false;
+            _workerThread.Join();
+            if (_serialPort != null && _serialPort.IsOpen)
+			{
+                _serialPort.Close();
+                _serialPort = null;
             }
         }
 
         public string TryReadCommand()
         {
-            if (serial_port == null || !serial_port.IsOpen) {
-                return null;
-            } else if (serial_port.BytesToRead > 0) {
-                string input = serial_port.ReadLine();
-                Console.Write("RX: {0}", input);
-                return input;
-            }
-            return null;
+			if (_serialPort == null || !_serialPort.IsOpen || _serialPort.BytesToRead < 1) return null;
+
+            var input = _serialPort.ReadLine();
+            Console.Write("RX: {0}", input);
+            return input;
         }
 
         private void WriteThread()
         {
-            try {
-                while (run) {
-                    if (q.Count > 0 && serial_port != null) {
-                        byte[] packet = q.Dequeue();
+            try
+			{
+                while (_enableWrite)
+				{
+                    if (_queue.Count > 0 && _serialPort != null)
+					{
+                        var packet = _queue.Dequeue();
     
-                        serial_port.Write( packet, 0, 2 );
-                        serial_port.BaseStream.Flush();
+                        _serialPort.Write( packet, 0, 2 );
+                        _serialPort.BaseStream.Flush();
                     }
-                    System.Threading.Thread.Sleep(INTER_PACKET_BYTE_DELAY_MILLISECONDS);
+                    System.Threading.Thread.Sleep(InterPacketDelay);
                 }
-            } catch (Exception ex) {
-                System.Console.WriteLine(ex.ToString());
+            }
+			catch (Exception ex)
+			{
+                Console.WriteLine(ex.ToString());
             }
         }
 
-        public void EnqueueLTTO(UInt16 data, UInt16 number_of_bits)
+        public void EnqueueBeacon(UInt16 data, UInt16 bitCount)
         {
-            byte[] packet = new byte[2] {
-                (byte)((0x01 << 5) | ((number_of_bits & 0xf) << 1) | ((data >> 8) & 0x1)),
-                (byte)(data & 0xff),
-            };
-            q.Enqueue(packet);
+	        var packet = new[]
+		        {
+			        (byte) ((0x01 << 5) | ((bitCount & 0xf) << 1) | ((data >> 8) & 0x1)),
+			        (byte) (data & 0xff)
+		        };
+            _queue.Enqueue(packet);
         }
 
-        public void EnqueueLTX(UInt16 data, UInt16 number_of_bits)
+        public void EnqueueData(UInt16 data, UInt16 bitCount)
         {
-             byte[] packet = new byte[2] {
-                (byte)((0x00 << 5) | (number_of_bits << 1) | ((data >> 8) & 0x1)),
-                (byte)(data & 0xff),
-            };
-            q.Enqueue(packet);
+	        var packet = new[]
+		        {
+			        (byte) ((0x00 << 5) | ((bitCount & 0xf) << 1) | ((data >> 8) & 0x1)),
+			        (byte) (data & 0xff)
+		        };
+            _queue.Enqueue(packet);
         }
 
-        public void TransmitPacket(ref UInt16[] values)
+        public void TransmitPacket(UInt16[] values)
         {
 			var hexValues = new string[values.Length];
-			for (int i = 0; i < values.Length; i++)
+			for (var i = 0; i < values.Length; i++)
 			{
-				EnqueueLTX(values[i], (UInt16) (i == 0 ? 9 : 8));
+				EnqueueData(values[i], (UInt16) (i == 0 ? 9 : 8));
 				hexValues[i] = string.Format("0x{0:X2}", values[i]);
 			}
-            UInt16 checksum = ComputeChecksum2(ref values);
-            checksum |= 0x100;
-            EnqueueLTX(checksum,9);
-	        Console.WriteLine("TX: {0}, 0x{1:X3}", string.Join(", ", hexValues),checksum);
+	        UInt16 checksum = ComputeChecksum(values);
+	        checksum |= 0x100;
+	        EnqueueData(checksum, 9);
+	        Console.WriteLine("TX: {0}, 0x{1:X3}", string.Join(", ", hexValues), checksum);
         }
 
-        static public byte ComputeChecksum2(ref UInt16[]values)
+        static public byte ComputeChecksum(UInt16[] values)
         {
-            int i = 0;
-            byte sum = 0;
-            for (i = 0; i < values.Length; i++) {
-                sum += (byte)values[i];
-            }
-            return sum;
+            byte checksum = 0;
+			foreach (var value in values)
+			{
+				checksum += (byte) value;
+			}
+            return checksum;
         }
 
-        static public byte ComputeChecksum(ref List<IRPacket> values)
+        static public byte ComputeChecksum(List<IrPacket> values)
         {
-            byte sum = 0;
-            foreach (IRPacket packet in values) {
-                //don't add the checksum value in
-                if ((packet.data & 0x100) == 0) {
-                    sum += (byte)packet.data;
-                }
+            byte checksum = 0;
+            foreach (var value in values)
+			{
+				// don't add the checksum value in
+				if ((value.Data & 0x100) == 0) checksum += (byte)value.Data;
             }
-            return sum;
+            return checksum;
         }
 
         static public List<string> GetSerialPorts()
         {
-            List<string> result = new List<string>();
-            try {
-                System.IO.DirectoryInfo di = new System.IO.DirectoryInfo("/dev");
-                System.IO.FileInfo[] fi = di.GetFiles("ttyUSB*");
+            var serialPorts = new List<string>();
+
+            try
+			{
+                var directoryInfo = new System.IO.DirectoryInfo("/dev");
+                var deviceNodes = directoryInfo.GetFiles("ttyUSB*");
     
-                foreach (System.IO.FileInfo f in fi) {
-                    result.Add(f.FullName);
+                foreach (var deviceNode in deviceNodes)
+				{
+                    serialPorts.Add(deviceNode.FullName);
                 }
-            } catch (Exception) {
-                //eh
             }
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message);
+			}
 
-            try {
-                String[] ports = SerialPort.GetPortNames();
-                foreach (String p in ports) {
-                    result.Add(p);
+            try
+			{
+                var ports = SerialPort.GetPortNames();
+                foreach (var port in ports)
+				{
+                    serialPorts.Add(port);
                 }
-            } catch (Exception) {
-                //eh
             }
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message);
+			}
 
-            return result;
+            return serialPorts;
         }
     }
 }

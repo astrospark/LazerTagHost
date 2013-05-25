@@ -57,8 +57,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="GameDefinition.cs" />
+    <Compile Include="HexCodedDecimal.cs" />
     <Compile Include="Player.cs" />
-    <Compile Include="IRPacket.cs" />
+    <Compile Include="IrPacket.cs" />
     <Compile Include="HostGun.cs" />
     <Compile Include="LazerTagSerial.cs" />
     <Compile Include="PacketPacker.cs" />

@@ -69,10 +69,10 @@ namespace LazerTagHostUI
     
             switch (hg.GetGameState())
 			{
-				case HostGun.HostingState.HOSTING_STATE_SUMMARY:
+				case HostGun.HostingState.Summary:
 					text += (player.HasBeenDebriefed() ? "Done" : "Waiting");
 					break;
-				case HostGun.HostingState.HOSTING_STATE_GAME_OVER:
+				case HostGun.HostingState.GameOver:
 					text += Ordinal.FromCardinal(player.Rank);
 
 					if (relative_scoresheet)
@@ -201,7 +201,7 @@ namespace LazerTagHostUI
 
         void IHostChangedListener.GameStateChanged(HostGun.HostingState state)
 		{
-			if (state == HostGun.HostingState.HOSTING_STATE_GAME_OVER)
+			if (state == HostGun.HostingState.GameOver)
 			{
 				var scoreReportForm = new ScoreReport(hg);
 				scoreReportForm.Show();
@@ -210,21 +210,21 @@ namespace LazerTagHostUI
             //drop,rename,late,abort,next
             switch (state)
 			{
-				case HostGun.HostingState.HOSTING_STATE_ADDING:
-				case HostGun.HostingState.HOSTING_STATE_CONFIRM_JOIN:
+				case HostGun.HostingState.Adding:
+				case HostGun.HostingState.ConfirmJoin:
 					// disable late join
 					playerselectionscreenMain.SetControlOptions(true, true, false, true, true, true);
 					break;
-				case HostGun.HostingState.HOSTING_STATE_PLAYING:
+				case HostGun.HostingState.Playing:
 					// disable pause
 					playerselectionscreenMain.SetControlOptions(true, true, true, true, true, false);
 					break;
-				case HostGun.HostingState.HOSTING_STATE_GAME_OVER:
-				case HostGun.HostingState.HOSTING_STATE_SUMMARY:
+				case HostGun.HostingState.GameOver:
+				case HostGun.HostingState.Summary:
 					// disable pause, late join, next, drop
 					playerselectionscreenMain.SetControlOptions(false, true, false, true, false, false);
 					break;
-				case HostGun.HostingState.HOSTING_STATE_COUNTDOWN:
+				case HostGun.HostingState.Countdown:
 					// disable next, LateJoin, pause
 					playerselectionscreenMain.SetControlOptions(true, true, false, true, false, false);
 					break;
