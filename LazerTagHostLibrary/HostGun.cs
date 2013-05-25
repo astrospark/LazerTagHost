@@ -307,8 +307,8 @@ namespace LazerTagHostLibrary
 
 				player.TagSummaryReceived = true;
 
-				HostDebugWriteLine(String.Format("Received tag summary from player {0}.", player.TeamPlayerId));
-            }
+				HostDebugWriteLine("Received tag summary from {0}.", player.DisplayName);
+			}
 			else
 			{
                 HostDebugWriteLine("Unable to find player for score report.");
@@ -373,14 +373,10 @@ namespace LazerTagHostLibrary
 				var taggedByPlayer = LookupPlayer(reportTeamPlayerId);
                 if (taggedByPlayer == null)  continue;
 
-	            if (IsTeamGame())
+	            HostDebugWriteLine(String.Format("Tagged by {0}", player.DisplayName));
+				if (IsTeamGame())
 	            {
-					HostDebugWriteLine(String.Format("Tagged by player {0}", taggedByPlayer.TeamPlayerId));
 					taggedByPlayer.TaggedPlayerCounts[player.TeamPlayerId.PlayerNumber - 1] = HexCodedDecimal.ToDecimal(scorePacket.Data);
-	            }
-	            else
-	            {
-					HostDebugWriteLine(String.Format("Tagged by player {0}", taggedByPlayer.TeamPlayerId.ToString()));
 	            }
                 packetIndex++;
             }
@@ -394,7 +390,7 @@ namespace LazerTagHostLibrary
         {
             foreach (var player in _players.Values)
             {
-				HostDebugWriteLine(String.Format("Player {0} (0x{1:X2})", player.TeamPlayerId, player.GameSessionTaggerId));
+	            HostDebugWriteLine(String.Format("{0} (0x{1:X2})", player.DisplayName, player.GameSessionTaggerId));
 				if (IsTeamGame())
 				{
 					HostDebugWriteLine(String.Format("\tPlayer Rank: {0}, Team Rank: {1}, Score: {2}", player.Rank, player.TeamRank, player.Score));
@@ -531,7 +527,7 @@ namespace LazerTagHostLibrary
 						 */
 				        var requestedTeam = (UInt16) (playerTeamRequestPacket.Data & 0x03);
 
-				        var player = new Player((byte) taggerId);
+				        var player = new Player(this, (byte) taggerId);
 
 				        if (!AssignTeamAndPlayer(requestedTeam, player))
 				        {
@@ -1332,7 +1328,7 @@ namespace LazerTagHostLibrary
                 return false;
             }
 
-            player.PlayerName = name;
+            player.Name = name;
 
             return true;
         }

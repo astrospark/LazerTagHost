@@ -1,9 +1,11 @@
 using System;
+using System.Globalization;
 
 namespace LazerTagHostLibrary
 {
 	public class Player
 	{
+		private HostGun _hostGun;
 		public byte GameSessionTaggerId { get; set; }
 		public bool Confirmed = false;
 		public bool TagSummaryReceived = false;
@@ -34,18 +36,23 @@ namespace LazerTagHostLibrary
 		public int Rank { get; set; } // 1-24
 		public int TeamRank = 0; // 1-3
 
-		private string _playerName = "Player";
+		public string Name { get; set; }
 
-		public string PlayerName
+		public string DisplayName
 		{
-			get { return _playerName; }
-			set { _playerName = value; }
+			get
+			{
+				var name = string.IsNullOrWhiteSpace(Name) ? "Player" : Name;
+				var playerId = _hostGun.IsTeamGame() ? TeamPlayerId.ToStringTeam() : TeamPlayerId.ToString();
+				return string.Format("{0} ({1})", name, playerId);
+			}
 		}
 
-		public Player(byte gameSessionTaggerId)
+		public Player(HostGun hostGun, byte gameSessionTaggerId)
 		{
-			Survived = false;
+			_hostGun = hostGun;
 			GameSessionTaggerId = gameSessionTaggerId;
+			Survived = false;
 		}
 
 		public bool AllTagReportsReceived()
@@ -166,7 +173,12 @@ namespace LazerTagHostLibrary
 
 		public override string ToString()
 		{
-			return string.Format("{0} ({1}:{2})", PlayerNumber, TeamNumber, TeamPlayerNumber);
+			return PlayerNumber.ToString(CultureInfo.InvariantCulture);
+		}
+
+		public string ToStringTeam()
+		{
+			return string.Format("{0}:{1}", TeamNumber, TeamPlayerNumber);
 		}
 	}
 }

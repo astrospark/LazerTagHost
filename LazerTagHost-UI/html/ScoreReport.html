@@ -31,32 +31,12 @@
                 <th>Score</th>
                 <th>Survived</th>
                 {% for player in players -%}
-                    <th>
-                        {% if player.player_name != empty -%}
-                            {{ player.player_name }}
-                        {% else -%}
-                            {% if is_team_game -%}
-                                Team {{ player.team_player_id.team_number }} Player {{ player.team_player_id.team_player_number }}
-                            {% else -%}
-                                Player {{ player.team_player_id.player_number }}
-                            {% endif -%}
-                        {% endif -%}
-                    </th>
+                <th>{{ player.display_name }}</th>
                 {% endfor -%}
             </tr>
             {% for player in players -%}
                 <tr class="{% cycle 'player': 'odd', 'even' -%}">
-                    <td>
-                        {% if player.player_name != empty -%}
-                            {{ player.player_name }}
-                        {% else -%}
-                            {% if is_team_game -%}
-                                Team {{ player.team_player_id.team_number }} Player {{ player.team_player_id.team_player_number }}
-                            {% else -%}
-                                Player {{ player.team_player_id.player_number }}
-                            {% endif -%}
-                        {% endif -%}
-                    </td>
+                    <td>{{ player.display_name }}</td>
                     <td>{{ player.rank | to_ordinal }}</td>
                     <td>{{ player.score }}</td>
                     <td>{{ player.survived | yes_no }}</td>

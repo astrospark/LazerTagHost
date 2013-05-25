@@ -13,3 +13,4 @@ UpgradeLog.XML
 *.vsmdi
 *.testsettings
 packages/
+TestResults/

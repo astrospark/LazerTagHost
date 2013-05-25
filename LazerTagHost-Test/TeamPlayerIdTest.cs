@@ -274,22 +274,47 @@ namespace LazerTagHost_Test
 		public void ToStringTest()
 		{
 			var target = new TeamPlayerId(1);
-			Assert.AreEqual(target.ToString(), "1 (1:1)");
+			Assert.AreEqual(target.ToString(), "1");
 
 			target = new TeamPlayerId(8);
-			Assert.AreEqual(target.ToString(), "8 (1:8)");
+			Assert.AreEqual(target.ToString(), "8");
 
 			target = new TeamPlayerId(9);
-			Assert.AreEqual(target.ToString(), "9 (2:1)");
+			Assert.AreEqual(target.ToString(), "9");
 
 			target = new TeamPlayerId(16);
-			Assert.AreEqual(target.ToString(), "16 (2:8)");
+			Assert.AreEqual(target.ToString(), "16");
 
 			target = new TeamPlayerId(17);
-			Assert.AreEqual(target.ToString(), "17 (3:1)");
+			Assert.AreEqual(target.ToString(), "17");
 
 			target = new TeamPlayerId(24);
-			Assert.AreEqual(target.ToString(), "24 (3:8)");
+			Assert.AreEqual(target.ToString(), "24");
+		}
+
+		/// <summary>
+		///A test for ToString
+		///</summary>
+		[TestMethod()]
+		public void ToStringTeamTest()
+		{
+			var target = new TeamPlayerId(1);
+			Assert.AreEqual(target.ToStringTeam(), "1:1");
+
+			target = new TeamPlayerId(8);
+			Assert.AreEqual(target.ToStringTeam(), "1:8");
+
+			target = new TeamPlayerId(9);
+			Assert.AreEqual(target.ToStringTeam(), "2:1");
+
+			target = new TeamPlayerId(16);
+			Assert.AreEqual(target.ToStringTeam(), "2:8");
+
+			target = new TeamPlayerId(17);
+			Assert.AreEqual(target.ToStringTeam(), "3:1");
+
+			target = new TeamPlayerId(24);
+			Assert.AreEqual(target.ToStringTeam(), "3:8");
 		}
 
 		/// <summary>

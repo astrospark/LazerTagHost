@@ -65,7 +65,7 @@ namespace LazerTagHostUI
 			var player = _hostGun.LookupPlayer(teamPlayerId);
 			if (player == null) return "Open";
 
-			var text = String.Format("{0} ({1}) ", player.PlayerName, teamPlayerId);
+	        var text = player.DisplayName + " ";
     
             switch (_hostGun.GetGameState())
 			{

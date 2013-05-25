@@ -24,19 +24,23 @@ namespace LazerTagHostUI
 
 		private void ScoreReport_Load(object sender, EventArgs e)
 		{
-			string contentTemplate = File.ReadAllText(@"html\ScoreReport.html");
+			var contentTemplate = File.ReadAllText(@"html\ScoreReport.html");
 			var template = Template.Parse(contentTemplate);
 			Template.RegisterFilter(typeof (OrdinalFilter));
 			Template.RegisterFilter(typeof (YesNoFilter));
 			Template.RegisterSafeType(typeof (Team), new[] {"TeamNumber", "TeamRank"});
-			Template.RegisterSafeType(typeof (Player), new[] {"TeamPlayerId", "PlayerName", "Rank", "Score", "Survived", "TaggedByPlayerCounts"});
+			Template.RegisterSafeType(typeof (Player), new[] {"TeamPlayerId", "DisplayName", "Rank", "Score", "Survived", "TaggedByPlayerCounts"});
 			Template.RegisterSafeType(typeof (TeamPlayerId), new[] {"PlayerNumber", "TeamNumber", "TeamPlayerNumber"});
 
 			var executableDirectory = Path.GetDirectoryName(Application.ExecutablePath);
 			if (executableDirectory == null) throw new Exception("Could not determine the name of the directory in which this executable is located.");
 			var basePath = Path.Combine(executableDirectory, "html");
 
-			//const bool testIsTeamGame = true;
+			//var hostGun = new HostGun("COM1", null);
+			////hostGun.Init3TeamHostMode(0, 0, 0, 0, 0, false, false);
+			////const bool testIsTeamGame = true;
+			//hostGun.InitCustomHostMode(0, 0, 0, 0, 0, false, false);
+			//const bool testIsTeamGame = false;
 			//var testTeams = new TeamCollection()
 			//    {
 			//        new Team(1)
@@ -54,34 +58,34 @@ namespace LazerTagHostUI
 			//    };
 			//var testPlayers = new List<Player>
 			//    {
-			//        new Player(0)
+			//        new Player(hostGun, 0)
 			//            {
 			//                TeamPlayerId = new TeamPlayerId(1,1),
-			//                PlayerName = "Alpha",
+			//                Name = "Alpha",
 			//                Rank = 4,
 			//                Score = 1,
 			//                Survived = true,
 			//                TaggedByPlayerCounts = new []{0,5,0,0,0,0,0,0,10,15,0,0,0,0,0,0,20,0,0,0,0,0,0,0},
 			//            },
-			//        new Player(1)
+			//        new Player(hostGun, 1)
 			//            {
 			//                TeamPlayerId = new TeamPlayerId(1,2),
-			//                PlayerName = "Beta",
+			//                Name = "Beta",
 			//                Rank = 1,
 			//                Score = 4,
 			//                Survived = true,
 			//                TaggedByPlayerCounts = new []{1,0,0,0,0,0,0,0,3,5,0,0,0,0,0,0,7,0,0,0,0,0,0,0},
 			//            },
-			//        new Player(2)
+			//        new Player(hostGun, 2)
 			//            {
 			//                TeamPlayerId = new TeamPlayerId(2,1),
-			//                PlayerName = "Gamma",
+			//                Name = "Gamma",
 			//                Rank = 3,
 			//                Score = -10,
 			//                Survived = true,
 			//                TaggedByPlayerCounts = new []{2,4,0,0,0,0,0,0,0,6,0,0,0,0,0,0,8,0,0,0,0,0,0,0},
 			//            },
-			//        new Player(3)
+			//        new Player(hostGun, 3)
 			//            {
 			//                TeamPlayerId = new TeamPlayerId(2,2),
 			//                //player_name = "Delta",
@@ -90,10 +94,10 @@ namespace LazerTagHostUI
 			//                Survived = false,
 			//                TaggedByPlayerCounts = new []{99,98,0,0,0,0,0,0,97,0,0,0,0,0,0,0,96,0,0,0,0,0,0,0},
 			//            },
-			//        new Player(4)
+			//        new Player(hostGun, 4)
 			//            {
 			//                TeamPlayerId = new TeamPlayerId(3,1),
-			//                PlayerName = "",
+			//                Name = "",
 			//                Rank = 2,
 			//                Score = 100,
 			//                Survived = false,
