@@ -91,6 +91,12 @@
 			get { return _name; }
 			set
 			{
+				if (value == null)
+				{
+					_name = null;
+					return;
+				}
+
 				_name = new char[4];
 				for (var i = 0; i < 4; i++)
 				{
