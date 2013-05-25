@@ -20,20 +20,6 @@ namespace LazerTagHostLibrary
 			Console.WriteLine("{0}: {1}", DateTime.Now, String.Format(format, arguments));
 		}
 
-		//private struct GameState
-		//{
-		//    public CommandCode game_type;
-		//    public byte game_time_minutes;
-		//    public int game_start_countdown_seconds;
-		//    public byte tags;
-		//    public byte reloads;
-		//    public byte shield;
-		//    public byte mega;
-		//    public bool team_tag;
-		//    public bool medic_mode;
-		//    public byte number_of_teams;
-		//};
-
 	    private struct ConfirmJoinState {
             public byte TaggerId;
         };
