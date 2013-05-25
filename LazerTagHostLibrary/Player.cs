@@ -6,12 +6,13 @@ namespace LazerTagHostLibrary
 	{
 		public byte GameSessionTaggerId { get; set; }
 		public bool Confirmed = false;
-		public bool Debriefed = false;
+		public bool TagSummaryReceived = false;
 		public TeamPlayerId TeamPlayerId { get; set; }
 
 		public int TagsTaken = 0;
 		public bool Survived { get; set; }
-		public bool[] ScoreReportTeamsWaiting = new[] {false, false, false};
+		public bool[] TeamTagReportsExpected = new[] {false, false, false};
+		public bool[] TeamTagReportsReceived = new[] {false, false, false};
 
 		private int[] _taggedPlayerCounts = new int[TeamPlayerId.MaximumPlayerNumber];
 		public int[] TaggedPlayerCounts
@@ -47,13 +48,15 @@ namespace LazerTagHostLibrary
 			GameSessionTaggerId = gameSessionTaggerId;
 		}
 
-		public bool HasBeenDebriefed()
+		public bool AllTagReportsReceived()
 		{
-			if (!Debriefed) return false;
-			foreach (var scoreReportTeamAvailable in ScoreReportTeamsWaiting)
+			if (!TagSummaryReceived) return false;
+
+			for (var i = 0; i < 3; i++)
 			{
-				if (scoreReportTeamAvailable) return false;
+				if (TeamTagReportsExpected[i] && !TeamTagReportsReceived[i]) return false;
 			}
+
 			return true;
 		}
 	}
@@ -100,6 +103,16 @@ namespace LazerTagHostLibrary
 			}
 		}
 
+		public UInt16 Packed34
+		{
+			get { return (UInt16) (Packed44 & 0x7f); }
+			set
+			{
+				TeamNumber = (value >> 4) & 0x7;
+				TeamPlayerNumber = (value & 0xf) + 1;
+			}
+		}
+
 		public UInt16 Packed44
 		{
 			get { return (byte) (((TeamNumber & 0xf) << 4) | ((TeamPlayerNumber - 1) & 0xf)); }
@@ -113,6 +126,11 @@ namespace LazerTagHostLibrary
 		public static TeamPlayerId FromPacked23(UInt16 value)
 		{
 			return new TeamPlayerId {Packed23 = value};
+		}
+
+		public static TeamPlayerId FromPacked34(UInt16 value)
+		{
+			return new TeamPlayerId { Packed34 = value };
 		}
 
 		public static TeamPlayerId FromPacked44(UInt16 value)

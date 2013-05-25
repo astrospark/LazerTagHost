@@ -70,7 +70,7 @@ namespace LazerTagHostUI
             switch (_hostGun.GetGameState())
 			{
 				case HostGun.HostingState.Summary:
-					text += (player.HasBeenDebriefed() ? "Done" : "Waiting");
+					text += (player.AllTagReportsReceived() ? "Done" : "Waiting");
 					break;
 				case HostGun.HostingState.GameOver:
 					text += Ordinal.FromCardinal(player.Rank);

@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -21,7 +22,14 @@ namespace LazerTagHostLibrary
  
 		public Team Team(int teamNumber)
 		{
-			return _teams.FirstOrDefault(team => team.TeamNumber == teamNumber);
+			try
+			{
+				return _teams.First(team => team.TeamNumber == teamNumber);
+			}
+			catch (InvalidOperationException)
+			{
+				return null;
+			}
 		}
 
 		public IEnumerator<Team> GetEnumerator()

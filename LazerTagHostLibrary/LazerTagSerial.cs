@@ -43,7 +43,7 @@ namespace LazerTagHostLibrary
 			if (_serialPort == null || !_serialPort.IsOpen || _serialPort.BytesToRead < 1) return null;
 
             var input = _serialPort.ReadLine();
-            Console.Write("RX: {0}", input);
+            // Console.Write("RX: {0}", input);
             return input;
         }
 
@@ -95,7 +95,7 @@ namespace LazerTagHostLibrary
 			for (var i = 0; i < values.Length; i++)
 			{
 				EnqueueData(values[i], (UInt16) (i == 0 ? 9 : 8));
-				hexValues[i] = string.Format("0x{0:X2}", values[i]);
+				hexValues[i] = string.Format(i == 0 ? "0x{0:X3}" : "0x{0:X2}", values[i]);
 			}
 	        UInt16 checksum = ComputeChecksum(values);
 	        checksum |= 0x100;
