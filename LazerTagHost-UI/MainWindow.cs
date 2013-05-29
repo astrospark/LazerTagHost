@@ -7,8 +7,8 @@ using LazerTagHostUI;
 public partial class MainWindow : Window
 {
     private readonly HostGun _hostGun;
-    private readonly HostWindow _hostWindow;
-    private HostGun.CommandCode _gameType = HostGun.CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST;
+	private HostWindow _hostWindow = null;
+	private readonly GameDefinition _gameDefinition = new GameDefinition();
 
     public MainWindow () : base(WindowType.Toplevel)
     {
@@ -52,7 +52,7 @@ public partial class MainWindow : Window
 
         ShowAll();
 
-        _hostWindow = new HostWindow(_hostGun) {Modal = true};
+	    _hostWindow = new HostWindow(_hostGun) {Modal = true};
 	    _hostWindow.Hide();
 
         UpdateGameType();
@@ -96,108 +96,84 @@ public partial class MainWindow : Window
 
     protected void StartGameType (object sender, EventArgs e)
     {
-        _hostGun.DynamicHostMode(_gameType,
-                        ConvertGameValue(spinbuttonGameTime.ValueAsInt),
-                        ConvertGameValue(spinbuttonTags.ValueAsInt),
-                        ConvertGameValue(spinbuttonReloads.ValueAsInt),
-                        ConvertGameValue(spinbuttonShield.ValueAsInt),
-                        ConvertGameValue(spinbuttonMega.ValueAsInt),
-                        checkbuttonFriendlyFire.Active,
-                        checkbuttonMedicMode.Active,
-                        ConvertGameValue(spinbuttonNumberOfTeams.ValueAsInt));
+	    _gameDefinition.GameTimeMinutes = ConvertGameValue(spinbuttonGameTime.ValueAsInt);
+	    _gameDefinition.Tags = ConvertGameValue(spinbuttonTags.ValueAsInt);
+	    _gameDefinition.Reloads = ConvertGameValue(spinbuttonReloads.ValueAsInt);
+	    _gameDefinition.Shields = ConvertGameValue(spinbuttonShield.ValueAsInt);
+	    _gameDefinition.Mega = ConvertGameValue(spinbuttonMega.ValueAsInt);
+	    _gameDefinition.TeamTags = checkbuttonFriendlyFire.Active;
+	    _gameDefinition.MedicMode = checkbuttonMedicMode.Active;
+	    _gameDefinition.CountdownTimeSeconds = spinbuttonCountdownTime.ValueAsInt;
 
-        _hostGun.SetGameStartCountdownTime(spinbuttonCountdownTime.ValueAsInt);
-        _hostGun.StartServer();
+        _hostGun.StartServer(_gameDefinition);
+
         _hostWindow.Show();
     }
 
-    private void SetGameDefaults(int time, int reloads, int mega, int shields, int tags, bool ff, bool medic, int teams, bool medicEnabled, int timeStep)
-    {
-        spinbuttonGameTime.Value = time;
-        if (timeStep == 2) {
-            spinbuttonGameTime.Adjustment.Upper = 98;
-            spinbuttonGameTime.Adjustment.Lower = 2;
-        } else if (timeStep == 1) {
-            spinbuttonGameTime.Adjustment.Upper = 99;
-            spinbuttonGameTime.Adjustment.Lower = 1;
-        }
-        spinbuttonGameTime.ClimbRate = timeStep;
-        spinbuttonGameTime.Adjustment.StepIncrement = timeStep;
-        spinbuttonReloads.Value = reloads;
-        spinbuttonMega.Value = mega;
-        spinbuttonShield.Value = shields;
-        spinbuttonTags.Value = tags;
-        checkbuttonFriendlyFire.Active = ff;
-        if (teams <= 1) {
-            checkbuttonFriendlyFire.Sensitive = false;
-            checkbuttonFriendlyFire.Active = false;
-        } else {
-            checkbuttonFriendlyFire.Sensitive = true;
-        }
-        checkbuttonMedicMode.Active = medic;
-        if (teams <= 1 || !medicEnabled) {
-            checkbuttonMedicMode.Sensitive = false;
-            checkbuttonMedicMode.Active = false;
-        } else {
-            checkbuttonMedicMode.Sensitive = true;
-        }
-        spinbuttonNumberOfTeams.Value = teams;
-    }
+	private void SetGameDefaults(GameType gameType)
+	{
+		_gameDefinition.GameType = gameType;
+		var info = GameTypes.GetInfo(gameType);
+
+		spinbuttonGameTime.Value = info.DefaultGameTimeMinutes;
+
+		spinbuttonGameTime.Adjustment.Upper = 100 - info.GameTimeStepMinutes;
+		spinbuttonGameTime.Adjustment.Lower = info.GameTimeStepMinutes;
+		spinbuttonGameTime.ClimbRate = info.GameTimeStepMinutes;
+		spinbuttonGameTime.Adjustment.StepIncrement = info.GameTimeStepMinutes;
+
+		spinbuttonReloads.Value = info.DefaultReloads;
+		spinbuttonMega.Value = info.DefaultMega;
+		spinbuttonShield.Value = info.DefaultShields;
+		spinbuttonTags.Value = info.DefaultTags;
+
+		checkbuttonFriendlyFire.Sensitive = info.TeamCount > 1;
+		checkbuttonFriendlyFire.Active = info.DefaultTeamTags;
+
+		checkbuttonMedicMode.Sensitive = info.TeamCount > 1;
+		checkbuttonMedicMode.Active = info.DefaultMedicMode;
+
+		spinbuttonNumberOfTeams.Value = info.TeamCount;
+	}
 
     private void UpdateGameType()
     {
-        switch (comboboxGameType.Active) {
-        case 0:
-            //Custom Laser Tag (Solo)
-            _gameType = HostGun.CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST;
-            SetGameDefaults(10,100,10,15,10,false,false,1,true,1);
-            break;
-        case 1:
-            //Own The Zone (Solo)
-            _gameType = HostGun.CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST;
-            SetGameDefaults(10,15,0,45,10,false,false,1,false,1);
-            break;
-        case 2:
-            //2-Team Customized Lazer Tag
-            _gameType = HostGun.CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST;
-            SetGameDefaults(15,100,10,15,20,true,true,2,true,1);
-            break;
-        case 3:
-            //3-Team Customized Lazer Tag
-            _gameType = HostGun.CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST;
-            SetGameDefaults(15,100,10,15,20,true,true,3,true,1);
-            break;
-        case 4:
-            //Hide And Seek
-            _gameType = HostGun.CommandCode.COMMAND_CODE_HIDE_AND_SEEK_GAME_MODE_HOST;
-            SetGameDefaults(10,5,15,30,25,true,true,2,true,2);
-            break;
-        case 5:
-            //Hunt The Prey
-            _gameType = HostGun.CommandCode.COMMAND_CODE_HUNT_THE_PREY_GAME_MODE_HOST;
-            SetGameDefaults(10,5,15,30,25,true,true,3,true,1);
-            break;
-        case 6:
-            //2-Team Kings
-            _gameType = HostGun.CommandCode.COMMAND_CODE_2_KINGS_GAME_MODE_HOST;
-            SetGameDefaults(15,20,0,30,15,true,true,2,true,1);
-            break;
-        case 7:
-            //3-Team Kings
-            _gameType = HostGun.CommandCode.COMMAND_CODE_3_KINGS_GAME_MODE_HOST;
-            SetGameDefaults(30,20,0,30,15,true,true,3,true,1);
-            break;
-        case 8:
-            //2-Team Own The Zone
-            _gameType = HostGun.CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST;
-            SetGameDefaults(15,15,0,45,10,true,false,2,false,1);
-            break;
-        case 9:
-            //3-Team Own The Zone
-            _gameType = HostGun.CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST;
-            SetGameDefaults(20,15,0,45,10,true,false,3,false,1);
-            break;
-        }
+	    switch (comboboxGameType.Active)
+	    {
+		    case 0: // Custom Laser Tag (Solo)
+				SetGameDefaults(GameType.CustomLazerTag);
+			    break;
+		    case 1: // Own The Zone (Solo)
+				SetGameDefaults(GameType.OwnTheZone);
+			    break;
+			case 2: // Respawn (Solo)
+				SetGameDefaults(GameType.Respawn);
+				break;
+			case 3: // 2-Team Customized Lazer Tag
+				SetGameDefaults(GameType.CustomLazerTagTwoTeams);
+			    break;
+		    case 4: // 3-Team Customized Lazer Tag
+				SetGameDefaults(GameType.CustomLazerTagThreeTeams);
+			    break;
+		    case 5: // Hide And Seek
+				SetGameDefaults(GameType.HideAndSeek);
+			    break;
+		    case 6: // Hunt The Prey
+				SetGameDefaults(GameType.HuntThePrey);
+			    break;
+		    case 7: // 2-Team Kings
+				SetGameDefaults(GameType.KingsTwoTeams);
+			    break;
+			case 8: // 3-Team Kings
+				SetGameDefaults(GameType.KingsThreeTeams);
+			    break;
+		    case 9: // 2-Team Own The Zone
+				SetGameDefaults(GameType.OwnTheZoneTwoTeams);
+			    break;
+		    case 10: // 3-Team Own The Zone
+				SetGameDefaults(GameType.OwnTheZoneThreeTeams);
+			    break;
+	    }
     }
 
     protected virtual void GameTypeChanged (object sender, EventArgs e)

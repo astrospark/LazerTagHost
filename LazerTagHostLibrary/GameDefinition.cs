@@ -1,8 +1,19 @@
 ﻿namespace LazerTagHostLibrary
 {
-	public struct GameDefinition
+	public class GameDefinition
 	{
-		public HostGun.CommandCode GameType { get; set; }
+		public GameType GameType
+		{
+			get { return _gameTypeInfo.Type; }
+			set { _gameTypeInfo = GameTypes.GetInfo(value); }
+		}
+
+		private GameTypeInfo _gameTypeInfo;
+		public GameTypeInfo GameTypeInfo
+		{
+			get { return _gameTypeInfo; }
+		}
+
 		public byte GameId { get; set; }
 		public int GameTimeMinutes { get; set; }
 		public int Tags { get; set; }
@@ -75,20 +86,34 @@
 		public bool TeamTags { get; set; }
 		public bool MedicMode { get; set; }
 		public bool RapidTags { get; set; }
-		public bool Hunt { get; set; }
 		public bool HuntDirection { get; set; }
-		public bool Zones { get; set; }
-		public bool TeamZones { get; set; }
-		public bool NeutralizeTaggedPlayers { get; set; }
-		public bool ZonesRevivePlayers { get; set; }
-		public bool HospitalZones { get; set; }
-		public bool ZonesTagPlayers { get; set; }
-		public int TeamCount { get; set; }
+
+		public bool IsZoneGame
+		{
+			get { return GameTypeInfo.Zones || GameTypeInfo.TeamZones || GameTypeInfo.ZonesRevivePlayers || GameTypeInfo.HospitalZones || GameTypeInfo.ZonesTagPlayers; }
+		}
+
+		public int TeamCount
+		{
+			get { return GameTypeInfo.TeamCount; }
+		}
+
+		public bool IsTeamGame
+		{
+			get { return (TeamCount > 1); }
+		}
 
 		private char[] _name;
 		public char[] Name
 		{
-			get { return _name; }
+			get
+			{
+				if (_name == null & GameTypeInfo.CommandCode == HostGun.CommandCode.AnnounceGameSpecial)
+				{
+					return Tools.GetCharArrayExactLength(GameTypeInfo.Name, 4);
+				}
+				return _name;
+			}
 			set
 			{
 				if (value == null)
@@ -96,12 +121,7 @@
 					_name = null;
 					return;
 				}
-
-				_name = new char[4];
-				for (var i = 0; i < 4; i++)
-				{
-					_name[i] = (value.Length > i) ? value[i] : ' ';
-				}
+				_name = Tools.GetCharArrayExactLength(value, 4);
 			}
 		}
 

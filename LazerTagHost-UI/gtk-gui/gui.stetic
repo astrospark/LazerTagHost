@@ -110,6 +110,7 @@
                 <property name="IsTextCombo">True</property>
                 <property name="Items" translatable="yes">Custom Laser Tag (Solo)
 Own The Zone (Solo)
+Respawn (Solo)
 2-Team Customized Lazer Tag
 3-Team Customized Lazer Tag
 Hide And Seek

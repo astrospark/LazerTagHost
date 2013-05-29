@@ -108,7 +108,7 @@ namespace LazerTagHostUI
 			var content = template.Render(Hash.FromAnonymousObject(new
 				{
 					base_uri = basePath,
-					is_team_game = _hostGun.IsTeamGame(),
+					is_team_game = _hostGun.GameDefinition.IsTeamGame,
 					teams = _hostGun.Teams,
 					players = _hostGun.Players.Values,
 					//is_team_game = testIsTeamGame,

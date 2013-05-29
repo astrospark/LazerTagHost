@@ -54,10 +54,13 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.Xml" />
+    <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="GameDefinition.cs" />
+    <Compile Include="GameTypes.cs" />
     <Compile Include="HexCodedDecimal.cs" />
     <Compile Include="Player.cs" />
     <Compile Include="IrPacket.cs" />
@@ -65,6 +68,7 @@
     <Compile Include="LazerTagSerial.cs" />
     <Compile Include="PacketPacker.cs" />
     <Compile Include="Team.cs" />
+    <Compile Include="Tools.cs" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
@@ -82,6 +86,11 @@
       <ProductName>Windows Installer 3.1</ProductName>
       <Install>true</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="GameTypes.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

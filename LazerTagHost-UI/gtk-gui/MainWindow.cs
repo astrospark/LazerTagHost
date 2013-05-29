@@ -139,6 +139,7 @@ public partial class MainWindow
 		this.comboboxGameType = global::Gtk.ComboBox.NewText ();
 		this.comboboxGameType.AppendText (global::Mono.Unix.Catalog.GetString ("Custom Laser Tag (Solo)"));
 		this.comboboxGameType.AppendText (global::Mono.Unix.Catalog.GetString ("Own The Zone (Solo)"));
+		this.comboboxGameType.AppendText (global::Mono.Unix.Catalog.GetString ("Respawn (Solo)"));
 		this.comboboxGameType.AppendText (global::Mono.Unix.Catalog.GetString ("2-Team Customized Lazer Tag"));
 		this.comboboxGameType.AppendText (global::Mono.Unix.Catalog.GetString ("3-Team Customized Lazer Tag"));
 		this.comboboxGameType.AppendText (global::Mono.Unix.Catalog.GetString ("Hide And Seek"));

@@ -34,46 +34,43 @@ namespace LazerTagHostLibrary
             GameOver,
         };
 
-        // TODO: Export only game types
-        public enum CommandCode
-		{
-            //Game Types
-            COMMAND_CODE_CUSTOM_GAME_MODE_HOST = 0x02, //Solo
-            COMMAND_CODE_2TMS_GAME_MODE_HOST = 0x03,
-            COMMAND_CODE_3TMS_GAME_MODE_HOST = 0x04,
-            COMMAND_CODE_HIDE_AND_SEEK_GAME_MODE_HOST = 0x05,
-            COMMAND_CODE_HUNT_THE_PREY_GAME_MODE_HOST = 0x06,
-            COMMAND_CODE_2_KINGS_GAME_MODE_HOST = 0x07,
-            COMMAND_CODE_3_KINGS_GAME_MODE_HOST = 0x08,
-            COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST = 0x09, //Solo
-            COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST = 0x0A,
-            COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST = 0x0B,
-            COMMAND_CODE_SPECIAL_GAME_DEFINITION = 0x0C,
+	    public enum CommandCode
+	    {
+		    AnnounceGameCustomLazerTag = 0x02,
+		    AnnounceGameCustomLazerTagTwoTeams = 0x03,
+		    AnnounceGameCustomLazerTagThreeTeams = 0x04,
+		    AnnounceGameHideAndSeek = 0x05,
+		    AnnounceGameHuntThePrey = 0x06,
+		    AnnounceGameKingsTwoTeams = 0x07,
+		    AnnounceGameKingsThreeTeams = 0x08,
+		    AnnounceGameOwnTheZone = 0x09,
+		    AnnounceGameOwnTheZoneTwoTeams = 0x0A,
+		    AnnounceGameOwnTheZoneThreeTeams = 0x0B,
+		    AnnounceGameSpecial = 0x0C,
 
-            COMMAND_CODE_PLAYER_JOIN_GAME_REQUEST = 0x10,
-            COMMAND_CODE_ACK_PLAYER_JOIN_RESPONSE = 0x01,
-            COMMAND_CODE_CONFIRM_PLAY_JOIN_GAME = 0x11,
+		    RequestJoinGame = 0x10,
+		    AssignPlayer = 0x01,
+		    AcknowledgePlayerAssignment = 0x11,
 
-            // TODO: COMMAND_CODE_RESEND_JOIN_CONFIRMATION
-            // Host: (10/10/2010 1:56:43 AM) Command: (15) SEQ:f,79,be,
-            COMMAND_CODE_RESEND_JOIN_CONFIRMATION = 0x0f,
+			// TODO: ResendAcknowledgePlayerAssignment
+		    // SEQ: 0x00f, 0x79, 0xbe
+			ResendAcknowledgePlayerAssignment = 0x0f,
 
-            COMMAND_CODE_COUNTDOWN_TO_GAME_START = 0x00,
+		    AnnounceCountdown = 0x00,
 
-            COMMAND_CODE_SCORE_ANNOUNCEMENT = 0x31,
+		    RequestTagReport = 0x31,
 
-            //Score Reports
-            COMMAND_CODE_PLAYER_REPORT_SCORE = 0x40,
-            COMMAND_CODE_PLAYER_HIT_BY_TEAM_1_REPORT = 0x41,
-            COMMAND_CODE_PLAYER_HIT_BY_TEAM_2_REPORT = 0x42,
-            COMMAND_CODE_PLAYER_HIT_BY_TEAM_3_REPORT = 0x43,
+		    TagSummary = 0x40,
+		    TeamOneTagReport = 0x41,
+		    TeamTwoTagReport = 0x42,
+		    TeamThreeTagReport = 0x43,
 
-            COMMAND_CODE_GAME_OVER = 0x32,
+		    AnnounceTeamPlayerRanks = 0x32,
 
-			COMMAND_CODE_TAG_COUNT = 0x48,
-            COMMAND_CODE_TEXT_MESSAGE = 0x80,
-			COMMAND_CODE_SPECIAL_ATTACK = 0x90,
-        };
+		    SingleTagReport = 0x48,
+		    TextMessage = 0x80,
+		    SpecialAttack = 0x90,
+	    };
 
 		public enum ZoneType
 		{
@@ -100,8 +97,6 @@ namespace LazerTagHostLibrary
 			get { return _gameDefinition.TeamCount; }
 	    }
 
-        private byte _gameId;
-        
         private LazerTagSerial _serial;
 
         private const int GameAnnouncementFrequencySeconds = 3;
@@ -111,7 +106,12 @@ namespace LazerTagHostLibrary
         private const int GameOverAnnouncementFrequencySeconds = 3;
         
         private GameDefinition _gameDefinition;
-        private HostingState _hostingState = HostingState.Idle;
+	    public GameDefinition GameDefinition
+	    {
+		    get { return _gameDefinition; }
+	    }
+
+	    private HostingState _hostingState = HostingState.Idle;
         private bool _paused;
 
         private ConfirmJoinState _confirmJoinState;
@@ -124,21 +124,21 @@ namespace LazerTagHostLibrary
 
         private readonly List<IrPacket> _incomingPacketQueue = new List<IrPacket>();
 
-	    private void BaseGameSet(byte gameTimeMinutes, byte tags, byte reloads, byte shields, byte mega, bool teamTags, bool medicMode)
-	    {
-		    _gameId = (byte) (new Random().Next());
-		    _gameDefinition = new GameDefinition
-			    {
-				    GameTimeMinutes = gameTimeMinutes,
-				    Tags = tags,
-				    Reloads = reloads,
-				    Shields = shields,
-				    Mega = mega,
-				    TeamTags = teamTags,
-				    MedicMode = medicMode,
-				    GameId = _gameId,
-			    };
-	    }
+		//private void BaseGameSet(byte gameTimeMinutes, byte tags, byte reloads, byte shields, byte mega, bool teamTags, bool medicMode)
+		//{
+		//    _gameId = (byte) (new Random().Next());
+		//    _gameDefinition = new GameDefinition
+		//        {
+		//            GameTimeMinutes = gameTimeMinutes,
+		//            Tags = tags,
+		//            Reloads = reloads,
+		//            Shields = shields,
+		//            Mega = mega,
+		//            TeamTags = teamTags,
+		//            MedicMode = medicMode,
+		//            GameId = _gameId,
+		//        };
+		//}
 
 	    public void SetGameStartCountdownTime(int countdownTimeSeconds)
 		{
@@ -151,104 +151,97 @@ namespace LazerTagHostLibrary
             return c.ToString();
         }
 
-        private bool AssignTeamAndPlayer(int requestedTeam, Player newPlayer)
-        {
-            var assignedTeamNumber = 0;
-            var assignedPlayerNumber = 0;
+	    private bool AssignTeamAndPlayer(int requestedTeam, Player newPlayer)
+	    {
+		    var assignedTeamNumber = 0;
+		    var assignedPlayerNumber = 0;
 
-            if (_players.Count >= TeamPlayerId.MaximumPlayerNumber) {
-                HostDebugWriteLine("Cannot add player. The game is full.");
-                return false;
-            }
+		    if (_players.Count >= TeamPlayerId.MaximumPlayerNumber)
+		    {
+			    HostDebugWriteLine("Cannot add player. The game is full.");
+			    return false;
+		    }
 
-            switch (_gameDefinition.GameType)
-			{
-				// Solo Games
-				case CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
-					// Assign player to the first open player number
-					for (var playerNumber = 1; playerNumber <= 24; playerNumber++)
-					{
-						if (_players.ContainsKey(new TeamPlayerId(playerNumber))) continue;
+		    if (GameDefinition.IsTeamGame)
+		    {
+			    // Count the players on each team and find the smallest team
+			    var teamPlayerCounts = new int[_gameDefinition.TeamCount];
+			    var smallestTeamNumber = 0;
+			    var smallestTeamPlayerCount = 8;
+			    for (var i = 0; i < _gameDefinition.TeamCount; i++)
+			    {
+				    var teamPlayerCount = 0;
+				    foreach (var player in _players.Values)
+				    {
+					    if (player.TeamPlayerId.TeamNumber == i + 1) teamPlayerCount++;
+				    }
+				    if (teamPlayerCount < smallestTeamPlayerCount)
+				    {
+					    smallestTeamNumber = i + 1;
+					    smallestTeamPlayerCount = teamPlayerCount;
+				    }
+				    teamPlayerCounts[i] = teamPlayerCount;
+			    }
 
-						assignedPlayerNumber = playerNumber;
-						break;
-					}
+			    if (smallestTeamNumber == 0)
+			    {
+					HostDebugWriteLine("All teams are full.");
+					return false;
+			    }
+
+			    if (requestedTeam > 0 &&
+			        requestedTeam <= _gameDefinition.TeamCount &&
+			        teamPlayerCounts[requestedTeam - 1] < 8)
+			    {
+				    assignedTeamNumber = requestedTeam;
+			    }
+			    else
+			    {
+				    assignedTeamNumber = smallestTeamNumber;
+			    }
+
+			    for (var playerNumber = 1; playerNumber <= 8; playerNumber++)
+			    {
+				    if (!_players.ContainsKey(new TeamPlayerId(assignedTeamNumber, playerNumber)))
+				    {
+					    assignedPlayerNumber = playerNumber;
+					    break;
+				    }
+			    }
+		    }
+		    else
+		    {
+			    // Assign player to the first open player number
+			    for (var playerNumber = 1; playerNumber <= 24; playerNumber++)
+			    {
+				    if (_players.ContainsKey(new TeamPlayerId(playerNumber))) continue;
+				    assignedPlayerNumber = playerNumber;
 					break;
-				// Team Games
-				case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_HIDE_AND_SEEK_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_HUNT_THE_PREY_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_2_KINGS_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_3_KINGS_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-					// Count the players on each team and find the smallest team
-					var teamPlayerCounts = new int[_gameDefinition.TeamCount];
-					var smallestTeamNumber = 0;
-					var smallestTeamPlayerCount = 8;
-					for (var i = 0; i < _gameDefinition.TeamCount; i++)
-					{
-						var teamPlayerCount = 0;
-						foreach (var player in _players.Values)
-						{
-							if (player.TeamPlayerId.TeamNumber == i + 1) teamPlayerCount++;
-						}
-						if (teamPlayerCount < smallestTeamPlayerCount)
-						{
-							smallestTeamNumber = i + 1;
-							smallestTeamPlayerCount = teamPlayerCount;
-						}
-						teamPlayerCounts[i] = teamPlayerCount;
-					}
+			    }
+		    }
 
-					if (smallestTeamNumber == 0) break;
+		    if (assignedPlayerNumber == 0)
+		    {
+			    HostDebugWriteLine("Unable to assign a player number.");
+			    return false;
+		    }
 
-					if (requestedTeam > 0 &&
-						requestedTeam <= _gameDefinition.TeamCount &&
-						teamPlayerCounts[requestedTeam - 1] < 8)
-					{
-						assignedTeamNumber = requestedTeam;
-					}
-					else
-					{
-						assignedTeamNumber = smallestTeamNumber;
-					}
+		    if (_gameDefinition.IsTeamGame)
+		    {
+			    newPlayer.TeamPlayerId = new TeamPlayerId(assignedTeamNumber, assignedPlayerNumber);
+			    HostDebugWriteLine(String.Format("Assigned player to team {0} player {1}.", assignedTeamNumber,
+			                                     assignedPlayerNumber));
+		    }
+		    else
+		    {
+			    newPlayer.TeamPlayerId = new TeamPlayerId(assignedPlayerNumber);
+			    HostDebugWriteLine(String.Format("Assigned player to player {0}.", assignedPlayerNumber));
+		    }
 
-					for (var playerNumber = 1; playerNumber <= 8; playerNumber++)
-					{
-						if (!_players.ContainsKey(new TeamPlayerId(assignedTeamNumber, playerNumber)))
-						{
-							assignedPlayerNumber = playerNumber;
-							break;
-						}
-					}
-					break;
-			}
+		    return true;
+	    }
 
-			if (assignedPlayerNumber == 0)
-			{
-				HostDebugWriteLine("Unable to assign a player number.");
-				return false;
-			}
-
-			if(IsTeamGame())
-			{
-				newPlayer.TeamPlayerId = new TeamPlayerId(assignedTeamNumber, assignedPlayerNumber);
-		        HostDebugWriteLine(String.Format("Assigned player to team {0} player {1}.", assignedTeamNumber,
-		                                         assignedPlayerNumber));
-	        }
-	        else
-	        {
-				newPlayer.TeamPlayerId = new TeamPlayerId(assignedPlayerNumber);
-				HostDebugWriteLine(String.Format("Assigned player to player {0}.", assignedPlayerNumber));
-	        }
-
-            return true;
-        }
-
-        private static void AssertUnknownBits(String name, IrPacket data, byte mask)
+	    private static void AssertUnknownBits(String name, IrPacket data, byte mask)
         {
 	        if (((byte) (data.Data & mask)) == 0) return;
 	        HostDebugWriteLine("Unknown bits set: \"{0}\", data: 0x{2:X2}, mask: 0x{3:X2}, unknown: 0x{1:X2}", name, (byte) (data.Data & mask), (byte) data.Data, mask);
@@ -282,13 +275,13 @@ namespace LazerTagHostLibrary
             var gameId = gameIdPacket.Data;
 	        var teamPlayerId = TeamPlayerId.FromPacked44(teamPlayerIdPacket.Data);
             
-            if ((CommandCode)commandPacket.Data != CommandCode.COMMAND_CODE_PLAYER_REPORT_SCORE)
+            if ((CommandCode)commandPacket.Data != CommandCode.TagSummary)
 			{
                 HostDebugWriteLine("Wrong command.");
                 return false;
             }
 
-			if (gameId != _gameId)
+			if (gameId != _gameDefinition.GameId)
 			{
                 HostDebugWriteLine("Wrong game ID.");
                 return false;
@@ -328,10 +321,10 @@ namespace LazerTagHostLibrary
             var scoreBitmaskPacket = _incomingPacketQueue[3];
             
             // what team do the scores relate to hits from
-            var reportTeamNumber = (int)(commandPacket.Data - CommandCode.COMMAND_CODE_PLAYER_HIT_BY_TEAM_1_REPORT + 1);
+            var reportTeamNumber = (int)(commandPacket.Data - CommandCode.TeamOneTagReport + 1);
 	        var teamPlayerId = TeamPlayerId.FromPacked44(taggerId.Data);
 
-            if (gameIdPacket.Data != _gameId)
+			if (gameIdPacket.Data != _gameDefinition.GameId)
 			{
                 HostDebugWriteLine("Wrong game ID.");
                 return false;
@@ -374,7 +367,7 @@ namespace LazerTagHostLibrary
                 if (taggedByPlayer == null)  continue;
 
 	            HostDebugWriteLine(String.Format("Tagged by {0}", player.DisplayName));
-				if (IsTeamGame())
+				if (_gameDefinition.IsTeamGame)
 	            {
 					taggedByPlayer.TaggedPlayerCounts[player.TeamPlayerId.PlayerNumber - 1] = HexCodedDecimal.ToDecimal(scorePacket.Data);
 	            }
@@ -391,7 +384,7 @@ namespace LazerTagHostLibrary
             foreach (var player in _players.Values)
             {
 	            HostDebugWriteLine(String.Format("{0} (0x{1:X2})", player.DisplayName, player.GameSessionTaggerId));
-				if (IsTeamGame())
+				if (_gameDefinition.IsTeamGame)
 				{
 					HostDebugWriteLine(String.Format("\tPlayer Rank: {0}, Team Rank: {1}, Score: {2}", player.Rank, player.TeamRank, player.Score));
 					for (var teamNumber = 1; teamNumber <= 3; teamNumber++)
@@ -427,7 +420,7 @@ namespace LazerTagHostLibrary
 		        var commandPacket = _incomingPacketQueue[0];
 				switch ((CommandCode) commandPacket.Data)
 				{
-					case CommandCode.COMMAND_CODE_TAG_COUNT:
+					case CommandCode.SingleTagReport:
 						{
 							if (_incomingPacketQueue.Count != 5) break;
 							var isReply = ((_incomingPacketQueue[2].Data & 0x80) & (_incomingPacketQueue[3].Data & 0x80)) != 0;
@@ -438,7 +431,7 @@ namespace LazerTagHostLibrary
 							Console.WriteLine("Player {0} {1} player {2}. Player {0} received {3} tags from player {2}.", teamPlayerId1, replyText, teamPlayerId2, tagsReceived);
 							break;
 						}
-					case CommandCode.COMMAND_CODE_TEXT_MESSAGE:
+					case CommandCode.TextMessage:
 						{
 							var message = new StringBuilder();
 							var i = 1;
@@ -453,7 +446,7 @@ namespace LazerTagHostLibrary
 							Console.WriteLine("Received Text Message: {0}", message); 
 							break;
 						}
-					case CommandCode.COMMAND_CODE_SPECIAL_ATTACK:
+					case CommandCode.SpecialAttack:
 						{
 							var type = "Unknown Type";
 							if (_incomingPacketQueue.Count == 5)
@@ -498,13 +491,13 @@ namespace LazerTagHostLibrary
 				        var playerTeamRequestPacket = _incomingPacketQueue[3];
 				        var taggerId = taggerIdPacket.Data;
 
-				        if ((CommandCode) commandPacket.Data != CommandCode.COMMAND_CODE_PLAYER_JOIN_GAME_REQUEST)
+				        if ((CommandCode) commandPacket.Data != CommandCode.RequestJoinGame)
 				        {
 					        HostDebugWriteLine("Wrong command.");
 					        return false;
 				        }
 
-				        if (_gameId != gameIdPacket.Data)
+				        if (gameIdPacket.Data != _gameDefinition.GameId)
 				        {
 					        HostDebugWriteLine("Wrong game ID.");
 					        return false;
@@ -538,13 +531,13 @@ namespace LazerTagHostLibrary
 
 				        var values = new[]
 					        {
-						        (UInt16) CommandCode.COMMAND_CODE_ACK_PLAYER_JOIN_RESPONSE,
-						        _gameId, // Game ID
+						        (UInt16) CommandCode.AssignPlayer,
+						        GameDefinition.GameId, // Game ID
 						        taggerId, // Tagger ID
 						        player.TeamPlayerId.Packed23
 					        };
 
-				        if (gameIdPacket.Data != _gameId)
+						if (gameIdPacket.Data != GameDefinition.GameId)
 				        {
 					        HostDebugWriteLine("Game ID does not match current game, discarding.");
 					        return false;
@@ -569,7 +562,7 @@ namespace LazerTagHostLibrary
 				        var gameIdPacket = _incomingPacketQueue[1];
 				        var taggerIdPacket = _incomingPacketQueue[2];
 
-				        if ((CommandCode) commandPacket.Data != CommandCode.COMMAND_CODE_CONFIRM_PLAY_JOIN_GAME)
+				        if ((CommandCode) commandPacket.Data != CommandCode.AcknowledgePlayerAssignment)
 				        {
 					        HostDebugWriteLine("Wrong command.");
 					        return false;
@@ -578,9 +571,9 @@ namespace LazerTagHostLibrary
 				        var gameId = gameIdPacket.Data;
 				        var taggerId = taggerIdPacket.Data;
 
-				        if (_gameId != gameId || _confirmJoinState.TaggerId != taggerId)
+						if (gameId != GameDefinition.GameId || _confirmJoinState.TaggerId != taggerId)
 				        {
-					        HostDebugWriteLine("Invalid confirmation: 0x{0:X2} != 0x{1:X2} || 0x{2:X2} != 0x{3:X2}", gameId, _gameId,
+							HostDebugWriteLine("Invalid confirmation: 0x{0:X2} != 0x{1:X2} || 0x{2:X2} != 0x{3:X2}", gameId, GameDefinition.GameId,
 					                           taggerId, _confirmJoinState.TaggerId);
 					        ChangeState(now, HostingState.Adding);
 					        break;
@@ -625,11 +618,11 @@ namespace LazerTagHostLibrary
 
 				        switch ((CommandCode) commandPacket.Data)
 				        {
-					        case CommandCode.COMMAND_CODE_PLAYER_REPORT_SCORE:
+					        case CommandCode.TagSummary:
 						        return ProcessPlayerReportScore();
-					        case CommandCode.COMMAND_CODE_PLAYER_HIT_BY_TEAM_1_REPORT:
-					        case CommandCode.COMMAND_CODE_PLAYER_HIT_BY_TEAM_2_REPORT:
-					        case CommandCode.COMMAND_CODE_PLAYER_HIT_BY_TEAM_3_REPORT:
+					        case CommandCode.TeamOneTagReport:
+					        case CommandCode.TeamTwoTagReport:
+					        case CommandCode.TeamThreeTagReport:
 						        return ProcessPlayerHitByTeamReport();
 				        }
 
@@ -828,9 +821,9 @@ namespace LazerTagHostLibrary
         {
             switch (_gameDefinition.GameType)
 			{
-				case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+				case GameType.OwnTheZone:
+				case GameType.OwnTheZoneTwoTeams:
+				case GameType.OwnTheZoneThreeTeams:
 				{
 					var rankings = new SortedList<int, Player>();
 					var teamZoneTime = new[] { 0, 0, 0 };
@@ -867,8 +860,8 @@ namespace LazerTagHostLibrary
 					var teamRank = new[] { 0, 0, 0 };
 					switch (_gameDefinition.GameType)
 					{
-						case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-						case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+						case GameType.OwnTheZoneTwoTeams:
+						case GameType.OwnTheZoneThreeTeams:
 						{
 							for (var i = 0; i < _gameDefinition.TeamCount; i++)
 							{
@@ -890,7 +883,7 @@ namespace LazerTagHostLibrary
 
 					break;
 				}
-				case CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST:
+				case GameType.CustomLazerTag:
 				{
 					var rankings = new SortedList<int, Player>();
 					/*
@@ -925,10 +918,10 @@ namespace LazerTagHostLibrary
 					}
 					break;
 				}
-				case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_HUNT_THE_PREY_GAME_MODE_HOST: //Untested
-				case CommandCode.COMMAND_CODE_HIDE_AND_SEEK_GAME_MODE_HOST: //Untested
+				case GameType.CustomLazerTagTwoTeams:
+				case GameType.CustomLazerTagThreeTeams:
+				case GameType.HuntThePrey: //Untested
+				case GameType.HideAndSeek: //Untested
 				{
 					var rankedPlayers = new SortedList<int, Player>();
 					var teamSurvivedPlayerCounts = new[] {0, 0, 0};
@@ -1021,8 +1014,8 @@ namespace LazerTagHostLibrary
                 
 					break;
 				}
-				case CommandCode.COMMAND_CODE_2_KINGS_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_3_KINGS_GAME_MODE_HOST:
+				case GameType.KingsTwoTeams:
+				case GameType.KingsThreeTeams:
 				{
 					//TODO: Write kings score
 					break;
@@ -1037,7 +1030,7 @@ namespace LazerTagHostLibrary
         {
 	        var shot = PacketPacker.Shot(teamPlayerId, damage);
 	        TransmitPacket(shot);
-			HostDebugWriteLine("Shot {0} tags as player {1}.", damage, teamPlayerId);
+			HostDebugWriteLine("Shot {0} tags as player {1}.", damage, _gameDefinition.IsTeamGame ? teamPlayerId.ToStringTeam() : teamPlayerId.ToString());
         }
 
         private void SendPlayerJoin(byte gameId, int preferredTeamNumber)
@@ -1048,7 +1041,7 @@ namespace LazerTagHostLibrary
 
 	        UInt16[] join =
 		        {
-			        (UInt16) CommandCode.COMMAND_CODE_PLAYER_JOIN_GAME_REQUEST,
+			        (UInt16) CommandCode.RequestJoinGame,
 			        gameId,
 			        taggerId,
 			        (UInt16) (preferredTeamNumber & 0x3)
@@ -1109,93 +1102,17 @@ namespace LazerTagHostLibrary
         }
 
 #region PublicInterface
-
-        public void DynamicHostMode(CommandCode gameType,
-                                    byte gameTimeMinutes,
-                                    byte tags,
-                                    byte reloads,
-                                    byte shields,
-                                    byte mega,
-                                    bool teamTags,
-                                    bool medicMode,
-                                    byte teamCount)
-        {
-            BaseGameSet(gameTimeMinutes,
-                        tags,
-                        reloads,
-                        shields,
-                        mega,
-                        teamTags,
-                        medicMode);
-			_gameDefinition.GameType = gameType;
-			_gameDefinition.TeamCount = teamCount;
-        }
-
-        public void Init2TeamHostMode(byte gameTimeMinutes,
-                                      byte tags,
-                                      byte reloads,
-                                      byte shields,
-                                      byte mega,
-                                      bool teamTags,
-                                      bool medicMode)
-        {
-            BaseGameSet(gameTimeMinutes,
-                        tags,
-                        reloads,
-                        shields,
-                        mega,
-                        teamTags,
-                        medicMode);
-			_gameDefinition.GameType = CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST;
-			_gameDefinition.TeamCount = 2;
-        }
-
-        public void Init3TeamHostMode(byte gameTimeMinutes,
-                                      byte tags,
-                                      byte reloads,
-                                      byte shields,
-                                      byte mega,
-                                      bool teamTags,
-                                      bool medicMode)
-        {
-            BaseGameSet(gameTimeMinutes,
-                        tags,
-                        reloads,
-                        shields,
-                        mega,
-                        teamTags,
-                        medicMode);
-			_gameDefinition.GameType = CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST;
-			_gameDefinition.TeamCount = 3;
-        }
-        
-        public void InitCustomHostMode(byte gameTimeMinutes, 
-                                      byte tags,
-                                      byte reloads,
-                                      byte shields,
-                                      byte mega,
-                                      bool teamTags,
-                                      bool medicMode)
-        {
-            BaseGameSet(gameTimeMinutes,
-                        tags,
-                        reloads,
-                        shields,
-                        mega,
-                        teamTags,
-                        medicMode);
-			_gameDefinition.GameType = CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST;
-			_gameDefinition.TeamCount = 1;
-        }
-
 		public Player LookupPlayer(TeamPlayerId teamPlayerId)
 		{
 			return _players.ContainsKey(teamPlayerId) ? _players[teamPlayerId] : null;
 		}
 
-        public void StartServer()
+        public void StartServer(GameDefinition gameDefinition)
 		{
             if (_hostingState != HostingState.Idle) return;
+
+			_gameDefinition = gameDefinition;
+			_gameDefinition.GameId = (byte)(new Random().Next());
 
             ChangeState(DateTime.Now, HostingState.Adding);
         }
@@ -1382,7 +1299,7 @@ namespace LazerTagHostLibrary
 				        if (now.CompareTo(_nextAnnouncement) > 0)
 				        {
 					        Teams.Clear();
-					        if (IsTeamGame())
+							if (_gameDefinition.IsTeamGame)
 					        {
 						        for (var teamNumber = 1; teamNumber <= _gameDefinition.TeamCount; teamNumber++)
 						        {
@@ -1396,45 +1313,7 @@ namespace LazerTagHostLibrary
 
 					        _incomingPacketQueue.Clear();
 
-					        _gameDefinition.GameId = _gameId;
-					        _gameDefinition.ExtendedTagging = false;
-					        _gameDefinition.RapidTags = false;
-					        _gameDefinition.Hunt = false;
-					        _gameDefinition.HuntDirection = false;
-
-					        _gameDefinition.Zones = false;
-					        _gameDefinition.TeamZones = false;
-					        _gameDefinition.NeutralizeTaggedPlayers = false;
-					        _gameDefinition.ZonesRevivePlayers = false;
-					        _gameDefinition.HospitalZones = false;
-					        _gameDefinition.ZonesTagPlayers = false;
-
-					        _gameDefinition.Name = null;
-
-					        switch (_gameDefinition.GameType)
-					        {
-						        case CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST:
-						        case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
-						        case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
-						        case CommandCode.COMMAND_CODE_2_KINGS_GAME_MODE_HOST:
-						        case CommandCode.COMMAND_CODE_3_KINGS_GAME_MODE_HOST:
-							        break;
-						        case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
-						        case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-						        case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-							        _gameDefinition.Zones = true;
-							        _gameDefinition.NeutralizeTaggedPlayers = true;
-							        _gameDefinition.TeamTags = true;
-							        _gameDefinition.MedicMode = true;
-							        break;
-						        case CommandCode.COMMAND_CODE_HIDE_AND_SEEK_GAME_MODE_HOST:
-						        case CommandCode.COMMAND_CODE_HUNT_THE_PREY_GAME_MODE_HOST:
-							        _gameDefinition.Hunt = true;
-							        break;
-					        }
-
-					        var values = PacketPacker.GameDefinition(_gameDefinition);
-
+					        var values = PacketPacker.AnnounceGame(_gameDefinition);
 					        TransmitPacket(values);
 
 					        _nextAnnouncement = now.AddSeconds(GameAnnouncementFrequencySeconds);
@@ -1475,8 +1354,8 @@ namespace LazerTagHostLibrary
 							 */
 					        var values = new UInt16[]
 						        {
-							        (UInt16) CommandCode.COMMAND_CODE_COUNTDOWN_TO_GAME_START,
-							        _gameId, // Game ID
+							        (UInt16) CommandCode.AnnounceCountdown,
+							        GameDefinition.GameId, // Game ID
 							        HexCodedDecimal.FromDecimal(remainingSeconds),
 							        0x08, // Players on Team 1
 							        0x08, // Players on Team 2
@@ -1497,29 +1376,34 @@ namespace LazerTagHostLibrary
 				        {
 					        switch (_gameDefinition.GameType)
 					        {
-						        case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
-						        case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-						        case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-							        TransmitBeaconBytes(0x02, 5);
+								case GameType.OwnTheZone:
+								case GameType.OwnTheZoneTwoTeams:
+								case GameType.OwnTheZoneThreeTeams:
+							        TransmitPacket(PacketPacker.ZoneBeacon(0, ZoneType.ContestedZone));
 									_nextAnnouncement = now.AddMilliseconds(500);
 							        break;
-					        }
+								case GameType.Respawn:
+							        TransmitPacket(PacketPacker.ZoneBeacon(0, ZoneType.TeamZone));
+									_nextAnnouncement = now.AddMilliseconds(500);
+									break;
+							}
 
-					        // Keep sending out a countdown for taggers that may have missed it
-					        var values = new UInt16[]
-						        {
-							        (UInt16) CommandCode.COMMAND_CODE_COUNTDOWN_TO_GAME_START,
-							        _gameId, //Game ID
-							        HexCodedDecimal.FromDecimal((byte) (((_stateChangeTimeout - now).Seconds%5) + 1)),
-							        0x08, //players on team 1
-							        0x08, //players on team 2
-							        0x08  //players on team 3
-						        };
-					        TransmitPacket(values);
-					        if (_nextAnnouncement < now || _nextAnnouncement > now.AddMilliseconds(1000))
-					        {
-						        _nextAnnouncement = now.AddMilliseconds(1000);
-					        }
+							// TODO: Make this configurable and re-enable it.
+							//// Keep sending out a countdown for taggers that may have missed it
+							//var values = new UInt16[]
+							//    {
+							//        (UInt16) CommandCode.AnnounceCountdown,
+							//        GameDefinition.GameId, //Game ID
+							//        HexCodedDecimal.FromDecimal((byte) (((_stateChangeTimeout - now).Seconds%5) + 1)),
+							//        0x08, //players on team 1
+							//        0x08, //players on team 2
+							//        0x08  //players on team 3
+							//    };
+							//TransmitPacket(values);
+							//if (_nextAnnouncement < now || _nextAnnouncement > now.AddMilliseconds(1000))
+							//{
+							//    _nextAnnouncement = now.AddMilliseconds(1000);
+							//}
 				        }
 				        break;
 			        }
@@ -1553,8 +1437,8 @@ namespace LazerTagHostLibrary
 
 					        var values = new UInt16[]
 						        {
-							        (UInt16) CommandCode.COMMAND_CODE_SCORE_ANNOUNCEMENT,
-							        _gameId, // Game ID
+							        (UInt16) CommandCode.RequestTagReport,
+							        GameDefinition.GameId, // Game ID
 							        nextDebriefPlayer.TeamPlayerId.Packed44, // player index [ 4 bits - team ] [ 4 bits - player number ]
 							        0x0F // unknown
 						        };
@@ -1578,8 +1462,8 @@ namespace LazerTagHostLibrary
 					        if (team == null) break;
 
 							var values = new UInt16[11];
-						    values[0] = (UInt16) CommandCode.COMMAND_CODE_GAME_OVER;
-						    values[1] = _gameId;
+						    values[0] = (UInt16) CommandCode.AnnounceTeamPlayerRanks;
+							values[1] = GameDefinition.GameId;
 						    values[2] = (UInt16) (((team.TeamNumber & 0xf) << 4) | (team.TeamRank & 0xf));
 
 						    foreach (var player in _players.Values)
@@ -1604,7 +1488,7 @@ namespace LazerTagHostLibrary
 		{
             _serial = new LazerTagSerial(device);
             _listener = l;
-        }
+		}
 
         public bool SetDevice(string device)
 		{
@@ -1631,41 +1515,6 @@ namespace LazerTagHostLibrary
         public HostingState GetGameState()
 		{
             return _hostingState;
-        }
-
-        public bool IsTeamGame()
-		{
-            switch (_gameDefinition.GameType)
-			{
-				case CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
-					return false;
-				case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_HIDE_AND_SEEK_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_HUNT_THE_PREY_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_2_KINGS_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_3_KINGS_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-					return true;
-				default:
-					HostDebugWriteLine("Unknown game type ({0}).", (int)_gameDefinition.GameType);
-					return false;
-            }
-        }
-
-        public bool IsZoneGame()
-		{
-            switch (_gameDefinition.GameType)
-			{
-				case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-				case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
-					return true;
-				default:
-					return false;
-            }
         }
 #endregion
     }

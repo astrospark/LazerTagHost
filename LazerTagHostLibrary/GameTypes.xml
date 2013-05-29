@@ -1,0 +1,405 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LazerSwarm>
+    <FileInfo Version="1.0">
+        <FileType>GameTypes</FileType>
+        <FileTypeVersion>1.0</FileTypeVersion>
+    </FileInfo>
+    <GameTypes>
+        <GameType Name="CUST">
+        	<DisplayName>
+        		<LocalizedText Culture="en">Custom Lazer Tag</LocalizedText>
+        	</DisplayName>
+        	<AnnounceGameCommandCode>0x02</AnnounceGameCommandCode>
+        	<TeamCount>1</TeamCount>
+        	<GameTimeStepMinutes>1</GameTimeStepMinutes>
+            <HuntThePrey>False</HuntThePrey>
+            <Zones>False</Zones>
+            <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>False</DefaultTeamTags>
+            <DefaultMedicMode>False</DefaultMedicMode>
+			<DefaultGameTimeMinutes>10</DefaultGameTimeMinutes>
+			<DefaultReloads>0xff</DefaultReloads>
+			<DefaultMega>10</DefaultMega>
+			<DefaultShields>15</DefaultShields>
+			<DefaultTags>10</DefaultTags>
+        </GameType>
+        <GameType Name="2TMS">
+            <DisplayName>
+                <LocalizedText Culture="en">Custom Lazer Tag (2 Teams)</LocalizedText>
+            </DisplayName>
+            <AnnounceGameCommandCode>0x03</AnnounceGameCommandCode>
+            <TeamCount>2</TeamCount>
+            <GameTimeStepMinutes>1</GameTimeStepMinutes>
+            <HuntThePrey>False</HuntThePrey>
+            <Zones>False</Zones>
+            <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>True</DefaultTeamTags>
+            <DefaultMedicMode>True</DefaultMedicMode>
+            <DefaultGameTimeMinutes>10</DefaultGameTimeMinutes>
+            <DefaultReloads>0xff</DefaultReloads>
+            <DefaultMega>10</DefaultMega>
+            <DefaultShields>15</DefaultShields>
+            <DefaultTags>20</DefaultTags>
+        </GameType>
+        <GameType Name="3TMS">
+            <DisplayName>
+                <LocalizedText Culture="en">Custom Lazer Tag (3 Teams)</LocalizedText>
+            </DisplayName>
+            <AnnounceGameCommandCode>0x04</AnnounceGameCommandCode>
+            <TeamCount>3</TeamCount>
+            <GameTimeStepMinutes>1</GameTimeStepMinutes>
+            <HuntThePrey>False</HuntThePrey>
+            <Zones>False</Zones>
+            <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>True</DefaultTeamTags>
+            <DefaultMedicMode>True</DefaultMedicMode>
+            <DefaultGameTimeMinutes>15</DefaultGameTimeMinutes>
+            <DefaultReloads>0xff</DefaultReloads>
+            <DefaultMega>10</DefaultMega>
+            <DefaultShields>15</DefaultShields>
+            <DefaultTags>20</DefaultTags>
+        </GameType>
+        <GameType Name="HDSK">
+        	<DisplayName>
+        		<LocalizedText Culture="en">Hide and Seek</LocalizedText>
+        	</DisplayName>
+        	<AnnounceGameCommandCode>0x05</AnnounceGameCommandCode>
+        	<TeamCount>2</TeamCount>
+        	<GameTimeStepMinutes>2</GameTimeStepMinutes>
+            <HuntThePrey>True</HuntThePrey>
+            <Zones>False</Zones>
+            <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>True</DefaultTeamTags>
+            <DefaultMedicMode>True</DefaultMedicMode>
+			<DefaultGameTimeMinutes>10</DefaultGameTimeMinutes>
+			<DefaultReloads>5</DefaultReloads>
+			<DefaultMega>15</DefaultMega>
+			<DefaultShields>30</DefaultShields>
+			<DefaultTags>25</DefaultTags>
+        </GameType>
+        <GameType Name="TMHS" Hidden="True">
+            <DisplayName>
+                <LocalizedText Culture="en">Tag Master Hide and Seek</LocalizedText>
+            </DisplayName>
+            <AnnounceGameCommandCode>0x0c</AnnounceGameCommandCode>
+            <TeamCount>2</TeamCount>
+            <GameTimeStepMinutes>2</GameTimeStepMinutes>
+            <HuntThePrey>False</HuntThePrey>
+            <Zones>False</Zones>
+            <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>False</DefaultTeamTags>
+            <DefaultMedicMode>False</DefaultMedicMode>
+            <DefaultGameTimeMinutes>20</DefaultGameTimeMinutes>
+            <DefaultReloads>25</DefaultReloads>
+            <DefaultMega>0</DefaultMega>
+            <DefaultShields>60</DefaultShields>
+            <DefaultTags>20</DefaultTags>
+        </GameType>
+        <GameType Name="HUNT">
+            <DisplayName>
+                <LocalizedText Culture="en">Hunt the Prey</LocalizedText>
+            </DisplayName>
+            <AnnounceGameCommandCode>0x06</AnnounceGameCommandCode>
+            <TeamCount>3</TeamCount>
+            <GameTimeStepMinutes>2</GameTimeStepMinutes>
+            <HuntThePrey>True</HuntThePrey>
+            <Zones>False</Zones>
+            <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>True</DefaultTeamTags>
+            <DefaultMedicMode>True</DefaultMedicMode>
+            <DefaultGameTimeMinutes>10</DefaultGameTimeMinutes>
+            <DefaultReloads>5</DefaultReloads>
+            <DefaultMega>15</DefaultMega>
+            <DefaultShields>30</DefaultShields>
+            <DefaultTags>25</DefaultTags>
+        </GameType>
+        <GameType Name="TMHP" Hidden="True">
+            <DisplayName>
+                <LocalizedText Culture="en">Tag Master Hunt the Prey</LocalizedText>
+            </DisplayName>
+            <AnnounceGameCommandCode>0x0c</AnnounceGameCommandCode>
+            <TeamCount>3</TeamCount>
+            <GameTimeStepMinutes>2</GameTimeStepMinutes>
+            <HuntThePrey>False</HuntThePrey>
+            <Zones>False</Zones>
+            <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>False</DefaultTeamTags>
+            <DefaultMedicMode>False</DefaultMedicMode>
+            <DefaultGameTimeMinutes>20</DefaultGameTimeMinutes>
+            <DefaultReloads>25</DefaultReloads>
+            <DefaultMega>0</DefaultMega>
+            <DefaultShields>60</DefaultShields>
+            <DefaultTags>20</DefaultTags>
+        </GameType>
+        <GameType Name="2KNG">
+            <DisplayName>
+                <LocalizedText Culture="en">Kings (2 Teams)</LocalizedText>
+            </DisplayName>
+            <AnnounceGameCommandCode>0x07</AnnounceGameCommandCode>
+            <TeamCount>2</TeamCount>
+            <GameTimeStepMinutes>1</GameTimeStepMinutes>
+            <HuntThePrey>False</HuntThePrey>
+            <Zones>False</Zones>
+            <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>True</DefaultTeamTags>
+            <DefaultMedicMode>True</DefaultMedicMode>
+            <DefaultGameTimeMinutes>15</DefaultGameTimeMinutes>
+            <DefaultReloads>20</DefaultReloads>
+            <DefaultMega>0</DefaultMega>
+            <DefaultShields>30</DefaultShields>
+            <DefaultTags>15</DefaultTags>
+        </GameType>
+        <GameType Name="3KNG">
+            <DisplayName>
+                <LocalizedText Culture="en">Kings (3 Teams)</LocalizedText>
+            </DisplayName>
+            <AnnounceGameCommandCode>0x08</AnnounceGameCommandCode>
+            <TeamCount>3</TeamCount>
+            <GameTimeStepMinutes>1</GameTimeStepMinutes>
+            <HuntThePrey>False</HuntThePrey>
+            <Zones>False</Zones>
+            <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>True</DefaultTeamTags>
+            <DefaultMedicMode>True</DefaultMedicMode>
+            <DefaultGameTimeMinutes>30</DefaultGameTimeMinutes>
+            <DefaultReloads>20</DefaultReloads>
+            <DefaultMega>0</DefaultMega>
+            <DefaultShields>30</DefaultShields>
+            <DefaultTags>15</DefaultTags>
+        </GameType>
+        <GameType Name="OWNZ">
+            <DisplayName>
+                <LocalizedText Culture="en">Own the Zone</LocalizedText>
+            </DisplayName>
+            <AnnounceGameCommandCode>0x09</AnnounceGameCommandCode>
+            <TeamCount>1</TeamCount>
+            <GameTimeStepMinutes>1</GameTimeStepMinutes>
+            <HuntThePrey>False</HuntThePrey>
+            <Zones>True</Zones>
+            <NeutralizePlayersTaggedInZone>True</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>False</DefaultTeamTags>
+            <DefaultMedicMode>False</DefaultMedicMode>
+            <DefaultGameTimeMinutes>10</DefaultGameTimeMinutes>
+            <DefaultReloads>15</DefaultReloads>
+            <DefaultMega>0</DefaultMega>
+            <DefaultShields>45</DefaultShields>
+            <DefaultTags>10</DefaultTags>
+        </GameType>
+        <GameType Name="2TOZ">
+            <DisplayName>
+                <LocalizedText Culture="en">Own the Zone (2 Teams)</LocalizedText>
+            </DisplayName>
+            <AnnounceGameCommandCode>0x0a</AnnounceGameCommandCode>
+            <TeamCount>2</TeamCount>
+            <GameTimeStepMinutes>1</GameTimeStepMinutes>
+            <HuntThePrey>False</HuntThePrey>
+            <Zones>True</Zones>
+            <NeutralizePlayersTaggedInZone>True</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>False</DefaultTeamTags>
+            <DefaultMedicMode>True</DefaultMedicMode>
+            <DefaultGameTimeMinutes>15</DefaultGameTimeMinutes>
+            <DefaultReloads>15</DefaultReloads>
+            <DefaultMega>0</DefaultMega>
+            <DefaultShields>45</DefaultShields>
+            <DefaultTags>10</DefaultTags>
+        </GameType>
+        <GameType Name="3TOZ">
+            <DisplayName>
+                <LocalizedText Culture="en">Own the Zone (3 Teams)</LocalizedText>
+            </DisplayName>
+            <AnnounceGameCommandCode>0x0b</AnnounceGameCommandCode>
+            <TeamCount>3</TeamCount>
+            <GameTimeStepMinutes>1</GameTimeStepMinutes>
+            <HuntThePrey>False</HuntThePrey>
+            <Zones>True</Zones>
+            <NeutralizePlayersTaggedInZone>True</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>False</DefaultTeamTags>
+            <DefaultMedicMode>True</DefaultMedicMode>
+            <DefaultGameTimeMinutes>20</DefaultGameTimeMinutes>
+            <DefaultReloads>15</DefaultReloads>
+            <DefaultMega>0</DefaultMega>
+            <DefaultShields>45</DefaultShields>
+            <DefaultTags>10</DefaultTags>
+        </GameType>
+        <GameType Name="TAGM" Hidden="True">
+            <DisplayName>
+                <LocalizedText Culture="en">Hunt the Tag Master</LocalizedText>
+            </DisplayName>
+            <AnnounceGameCommandCode>0x0c</AnnounceGameCommandCode>
+            <TeamCount>2</TeamCount>
+            <GameTimeStepMinutes>1</GameTimeStepMinutes>
+            <HuntThePrey>False</HuntThePrey>
+            <Zones>False</Zones>
+            <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>True</DefaultTeamTags>
+            <DefaultMedicMode>False</DefaultMedicMode>
+            <DefaultGameTimeMinutes>10</DefaultGameTimeMinutes>
+            <DefaultReloads>1</DefaultReloads>
+            <DefaultMega>0</DefaultMega>
+            <DefaultShields>30</DefaultShields>
+            <DefaultTags>10</DefaultTags>
+        </GameType>
+        <GameType Name="TMIG" Hidden="True">
+            <DisplayName>
+                <LocalizedText Culture="en">Big Team Hunt the Tag Master</LocalizedText>
+            </DisplayName>
+            <AnnounceGameCommandCode>0x0c</AnnounceGameCommandCode>
+            <TeamCount>3</TeamCount>
+            <GameTimeStepMinutes>1</GameTimeStepMinutes>
+            <HuntThePrey>False</HuntThePrey>
+            <Zones>False</Zones>
+            <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>False</DefaultTeamTags>
+            <DefaultMedicMode>False</DefaultMedicMode>
+            <DefaultGameTimeMinutes>15</DefaultGameTimeMinutes>
+            <DefaultReloads>10</DefaultReloads>
+            <DefaultMega>0</DefaultMega>
+            <DefaultShields>30</DefaultShields>
+            <DefaultTags>10</DefaultTags>
+        </GameType>
+        <GameType Name="2TTM" Hidden="True">
+            <DisplayName>
+                <LocalizedText Culture="en">Hunt the Tag Master (2 Teams)</LocalizedText>
+            </DisplayName>
+            <AnnounceGameCommandCode>0x0c</AnnounceGameCommandCode>
+            <TeamCount>3</TeamCount>
+            <GameTimeStepMinutes>1</GameTimeStepMinutes>
+            <HuntThePrey>False</HuntThePrey>
+            <Zones>False</Zones>
+            <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>True</DefaultTeamTags>
+            <DefaultMedicMode>False</DefaultMedicMode>
+            <DefaultGameTimeMinutes>20</DefaultGameTimeMinutes>
+            <DefaultReloads>20</DefaultReloads>
+            <DefaultMega>0</DefaultMega>
+            <DefaultShields>30</DefaultShields>
+            <DefaultTags>10</DefaultTags>
+        </GameType>
+        <GameType Name="RESP">
+            <DisplayName>
+                <LocalizedText Culture="en">Respawn</LocalizedText>
+            </DisplayName>
+            <AnnounceGameCommandCode>0x0c</AnnounceGameCommandCode>
+            <TeamCount>1</TeamCount>
+            <GameTimeStepMinutes>1</GameTimeStepMinutes>
+            <HuntThePrey>False</HuntThePrey>
+            <Zones>False</Zones>
+            <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>False</DefaultTeamTags>
+            <DefaultMedicMode>False</DefaultMedicMode>
+            <DefaultGameTimeMinutes>10</DefaultGameTimeMinutes>
+            <DefaultReloads>20</DefaultReloads>
+            <DefaultMega>0</DefaultMega>
+            <DefaultShields>30</DefaultShields>
+            <DefaultTags>25</DefaultTags>
+        </GameType>
+        <GameType Name="2TRS">
+            <DisplayName>
+                <LocalizedText Culture="en">Respawn (2 Teams)</LocalizedText>
+            </DisplayName>
+            <AnnounceGameCommandCode>0x0c</AnnounceGameCommandCode>
+            <TeamCount>2</TeamCount>
+            <GameTimeStepMinutes>1</GameTimeStepMinutes>
+            <HuntThePrey>False</HuntThePrey>
+            <Zones>False</Zones>
+            <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>True</DefaultTeamTags>
+            <DefaultMedicMode>True</DefaultMedicMode>
+            <DefaultGameTimeMinutes>15</DefaultGameTimeMinutes>
+            <DefaultReloads>20</DefaultReloads>
+            <DefaultMega>0</DefaultMega>
+            <DefaultShields>30</DefaultShields>
+            <DefaultTags>25</DefaultTags>
+        </GameType>
+        <GameType Name="3TRS">
+            <DisplayName>
+                <LocalizedText Culture="en">Respawn (3 Teams)</LocalizedText>
+            </DisplayName>
+            <AnnounceGameCommandCode>0x0c</AnnounceGameCommandCode>
+            <TeamCount>3</TeamCount>
+            <GameTimeStepMinutes>1</GameTimeStepMinutes>
+            <HuntThePrey>False</HuntThePrey>
+            <Zones>False</Zones>
+            <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>True</DefaultTeamTags>
+            <DefaultMedicMode>True</DefaultMedicMode>
+            <DefaultGameTimeMinutes>30</DefaultGameTimeMinutes>
+            <DefaultReloads>20</DefaultReloads>
+            <DefaultMega>0</DefaultMega>
+            <DefaultShields>30</DefaultShields>
+            <DefaultTags>25</DefaultTags>
+        </GameType>
+        <GameType Name="1ON1" Hidden="True">
+            <DisplayName>
+                <LocalizedText Culture="en">One on One</LocalizedText>
+            </DisplayName>
+            <AnnounceGameCommandCode>0x0c</AnnounceGameCommandCode>
+            <TeamCount>2</TeamCount>
+            <GameTimeStepMinutes>1</GameTimeStepMinutes>
+            <HuntThePrey>False</HuntThePrey>
+            <Zones>False</Zones>
+            <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>True</DefaultTeamTags>
+            <DefaultMedicMode>True</DefaultMedicMode>
+            <DefaultGameTimeMinutes>10</DefaultGameTimeMinutes>
+            <DefaultReloads>0xff</DefaultReloads>
+            <DefaultMega>20</DefaultMega>
+            <DefaultShields>20</DefaultShields>
+            <DefaultTags>10</DefaultTags>
+        </GameType>
+        <GameType Name="SURV" Hidden="True">
+            <DisplayName>
+                <LocalizedText Culture="en">Survival</LocalizedText>
+            </DisplayName>
+            <AnnounceGameCommandCode>0x0c</AnnounceGameCommandCode>
+            <TeamCount>1</TeamCount>
+            <GameTimeStepMinutes>1</GameTimeStepMinutes>
+            <HuntThePrey>False</HuntThePrey>
+            <Zones>False</Zones>
+            <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>False</DefaultTeamTags>
+            <DefaultMedicMode>False</DefaultMedicMode>
+            <DefaultGameTimeMinutes>10</DefaultGameTimeMinutes>
+            <DefaultReloads>0xff</DefaultReloads>
+            <DefaultMega>0</DefaultMega>
+            <DefaultShields>15</DefaultShields>
+            <DefaultTags>30</DefaultTags>
+        </GameType>
+        <GameType Name="2SRV" Hidden="True">
+            <DisplayName>
+                <LocalizedText Culture="en">Survival (2 Teams)</LocalizedText>
+            </DisplayName>
+            <AnnounceGameCommandCode>0x0c</AnnounceGameCommandCode>
+            <TeamCount>2</TeamCount>
+            <GameTimeStepMinutes>1</GameTimeStepMinutes>
+            <HuntThePrey>False</HuntThePrey>
+            <Zones>False</Zones>
+            <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>True</DefaultTeamTags>
+            <DefaultMedicMode>True</DefaultMedicMode>
+            <DefaultGameTimeMinutes>10</DefaultGameTimeMinutes>
+            <DefaultReloads>0xff</DefaultReloads>
+            <DefaultMega>0</DefaultMega>
+            <DefaultShields>15</DefaultShields>
+            <DefaultTags>10</DefaultTags>
+        </GameType>
+        <GameType Name="3SRV" Hidden="True">
+            <DisplayName>
+                <LocalizedText Culture="en">Survival (3 Teams)</LocalizedText>
+            </DisplayName>
+            <AnnounceGameCommandCode>0x0c</AnnounceGameCommandCode>
+            <TeamCount>3</TeamCount>
+            <GameTimeStepMinutes>1</GameTimeStepMinutes>
+            <HuntThePrey>False</HuntThePrey>
+            <Zones>False</Zones>
+            <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+            <DefaultTeamTags>True</DefaultTeamTags>
+            <DefaultMedicMode>True</DefaultMedicMode>
+            <DefaultGameTimeMinutes>10</DefaultGameTimeMinutes>
+            <DefaultReloads>0xff</DefaultReloads>
+            <DefaultMega>0</DefaultMega>
+            <DefaultShields>15</DefaultShields>
+            <DefaultTags>30</DefaultTags>
+        </GameType>
+    </GameTypes>
+</LazerSwarm>

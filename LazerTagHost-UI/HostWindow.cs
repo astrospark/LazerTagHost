@@ -20,23 +20,27 @@ namespace LazerTagHostUI
             GLib.Timeout.Add(100,timeoutHandler);
 
             _hostGun = hostGun;
+			_hostGun.AddListener(this);
 
-            hostGun.AddListener(this);
+			Shown += HostWindow_Shown;
 
-            var playerSelector = playerselectionscreenMain.GetPlayerSelector();
-
-            if (hostGun.IsTeamGame())
-            {
-	            playerSelector.SetColumnLabels("Team 1", "Team 2", "Team 3");
-            }
-			else
-            {
-	            playerSelector.SetColumnLabels("", "", "");
-            }
             playerselectionscreenMain.SubscribeEvents(this);
 
             RefreshPlayerList();
         }
+
+		void HostWindow_Shown(object sender, EventArgs e)
+		{
+			var playerSelector = playerselectionscreenMain.GetPlayerSelector();
+			if (_hostGun.GameDefinition.IsTeamGame)
+			{
+				playerSelector.SetColumnLabels("Team 1", "Team 2", "Team 3");
+			}
+			else
+			{
+				playerSelector.SetColumnLabels("", "", "");
+			}
+		}
 
         private bool HostUpdate()
         {
@@ -92,7 +96,7 @@ namespace LazerTagHostUI
 					}
 					else
 					{
-						if (_hostGun.IsZoneGame())
+						if (_hostGun.GameDefinition.IsZoneGame)
 						{
 							text += string.Format("\nZone Time: {0}", player.ZoneTime.ToString("m:ss"));
 						}
