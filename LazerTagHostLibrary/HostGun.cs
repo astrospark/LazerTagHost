@@ -1030,7 +1030,7 @@ namespace LazerTagHostLibrary
         {
 	        var shot = PacketPacker.Shot(teamPlayerId, damage);
 	        TransmitPacket(shot);
-			HostDebugWriteLine("Shot {0} tags as player {1}.", damage, _gameDefinition.IsTeamGame ? teamPlayerId.ToStringTeam() : teamPlayerId.ToString());
+			HostDebugWriteLine("Shot {0} tags as player {1}.", damage, teamPlayerId.ToString(_gameDefinition.IsTeamGame));
         }
 
         private void SendPlayerJoin(byte gameId, int preferredTeamNumber)

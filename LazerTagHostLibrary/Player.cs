@@ -43,7 +43,7 @@ namespace LazerTagHostLibrary
 			get
 			{
 				var name = string.IsNullOrWhiteSpace(Name) ? "Player" : Name;
-				var playerId = _hostGun.GameDefinition.IsTeamGame ? TeamPlayerId.ToStringTeam() : TeamPlayerId.ToString();
+				var playerId = TeamPlayerId.ToString(_hostGun.GameDefinition.IsTeamGame);
 				return string.Format("{0} ({1})", name, playerId);
 			}
 		}
@@ -173,12 +173,31 @@ namespace LazerTagHostLibrary
 
 		public override string ToString()
 		{
-			return PlayerNumber.ToString(CultureInfo.InvariantCulture);
+			return ToString(false);
 		}
 
-		public string ToStringTeam()
+		public string ToString(bool teamGame)
 		{
-			return string.Format("{0}:{1}", TeamNumber, TeamPlayerNumber);
+			if (teamGame)
+			{
+				return string.Format("{0}:{1}", TeamNumber, TeamPlayerNumber);
+			}
+			else
+			{
+				return PlayerNumber.ToString(CultureInfo.InvariantCulture);
+			}
+		}
+
+		public string ToStringFull(bool teamGame)
+		{
+			if (teamGame)
+			{
+				return string.Format("Team {0}, Player {1}", TeamNumber, TeamPlayerNumber);
+			}
+			else
+			{
+				return string.Format("Player {0}", PlayerNumber);
+			}
 		}
 	}
 }
