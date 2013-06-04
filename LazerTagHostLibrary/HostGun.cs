@@ -124,22 +124,6 @@ namespace LazerTagHostLibrary
 
         private readonly List<IrPacket> _incomingPacketQueue = new List<IrPacket>();
 
-		//private void BaseGameSet(byte gameTimeMinutes, byte tags, byte reloads, byte shields, byte mega, bool teamTags, bool medicMode)
-		//{
-		//    _gameId = (byte) (new Random().Next());
-		//    _gameDefinition = new GameDefinition
-		//        {
-		//            GameTimeMinutes = gameTimeMinutes,
-		//            Tags = tags,
-		//            Reloads = reloads,
-		//            Shields = shields,
-		//            Mega = mega,
-		//            TeamTags = teamTags,
-		//            MedicMode = medicMode,
-		//            GameId = _gameId,
-		//        };
-		//}
-
 	    public void SetGameStartCountdownTime(int countdownTimeSeconds)
 		{
             _gameDefinition.CountdownTimeSeconds = countdownTimeSeconds;
@@ -1458,7 +1442,8 @@ namespace LazerTagHostLibrary
 				        {
 					        _nextAnnouncement = now.AddSeconds(GameOverAnnouncementFrequencySeconds);
 
-					        var team = _teams.Team(_rankReportTeamNumber);
+							// TODO: Fix this to work with solo games
+							var team = _teams.Team(_rankReportTeamNumber);
 
 							_rankReportTeamNumber++;
 							if (_rankReportTeamNumber > _gameDefinition.TeamCount) _rankReportTeamNumber = 1;
