@@ -6,7 +6,7 @@ namespace LazerTagHostLibrary
 	public class Player
 	{
 		private HostGun _hostGun;
-		public byte GameSessionTaggerId { get; set; }
+		public byte TaggerId { get; set; }
 		public bool Confirmed = false;
 		public bool TagSummaryReceived = false;
 		public TeamPlayerId TeamPlayerId { get; set; }
@@ -48,10 +48,10 @@ namespace LazerTagHostLibrary
 			}
 		}
 
-		public Player(HostGun hostGun, byte gameSessionTaggerId)
+		public Player(HostGun hostGun, byte taggerId)
 		{
 			_hostGun = hostGun;
-			GameSessionTaggerId = gameSessionTaggerId;
+			TaggerId = taggerId;
 			Survived = false;
 		}
 
@@ -80,53 +80,55 @@ namespace LazerTagHostLibrary
 		public TeamPlayerId(int teamNumber, int playerNumber)
 			: this()
 		{
-			TeamNumber = teamNumber;
-			TeamPlayerNumber = playerNumber;
+			PlayerNumber = PlayerFromTeamAndTeamPlayer(teamNumber, playerNumber);
 		}
 
 		public const int MaximumPlayerNumber = 24;
-	
+
 		public int PlayerNumber { get; set; }
 
 		public int TeamNumber
 		{
-			get { return (((PlayerNumber - 1) & 0x1f) >> 3) + 1; }
-			set { PlayerNumber = (((value & 0x3) - 1) << 3) + TeamPlayerNumber; }
+			get { return PlayerNumber == 0 ? 0 : (((PlayerNumber - 1) & 0x1f) >> 3) + 1; }
+			set { PlayerNumber = PlayerFromTeamAndTeamPlayer(value, TeamPlayerNumber); }
 		}
 
 		public int TeamPlayerNumber
 		{
-			get { return ((PlayerNumber - 1) & 0x7) + 1; }
-			set { PlayerNumber = ((TeamNumber - 1) * 8) + (value & 0xf); }
+			get { return PlayerNumber == 0 ? 0 : ((PlayerNumber - 1) & 0x7) + 1; }
+			set { PlayerNumber = PlayerFromTeamAndTeamPlayer(TeamNumber, value); }
 		}
 
 		public UInt16 Packed23
 		{
-			get { return (byte) (((TeamNumber & 0x3) << 3) | ((TeamPlayerNumber - 1) & 0x7)); }
+			get { return (byte) (PlayerNumber == 0 ? 0 : ((TeamNumber & 0x3) << 3) | ((TeamPlayerNumber - 1) & 0x7)); }
 			set
 			{
-				TeamNumber = (value >> 3) & 0x3;
-				TeamPlayerNumber = (value & 0x7) + 1;
+				var teamNumber = (value >> 3) & 0x3;
+				var teamPlayerNumber = (value & 0x7) + 1;
+				PlayerNumber = PlayerFromTeamAndTeamPlayer(teamNumber, teamPlayerNumber);
 			}
 		}
 
 		public UInt16 Packed34
 		{
-			get { return (UInt16) (Packed44 & 0x7f); }
+			get { return (UInt16) (PlayerNumber == 0 ? 0 : (Packed44 & 0x7f)); }
 			set
 			{
-				TeamNumber = (value >> 4) & 0x7;
-				TeamPlayerNumber = (value & 0xf) + 1;
+				var teamNumber = (value >> 4) & 0x7;
+				var teamPlayerNumber = (value & 0xf) + 1;
+				PlayerNumber = PlayerFromTeamAndTeamPlayer(teamNumber, teamPlayerNumber);
 			}
 		}
 
 		public UInt16 Packed44
 		{
-			get { return (byte) (((TeamNumber & 0xf) << 4) | ((TeamPlayerNumber - 1) & 0xf)); }
+			get { return (byte) (PlayerNumber == 0 ? 0 : (((TeamNumber & 0xf) << 4) | ((TeamPlayerNumber - 1) & 0xf))); }
 			set
 			{
-				TeamNumber = (value >> 4) & 0xf;
-				TeamPlayerNumber = (value & 0xf) + 1;
+				var teamNumber = (value >> 4) & 0xf;
+				var teamPlayerNumber = (value & 0xf) + 1;
+				PlayerNumber = PlayerFromTeamAndTeamPlayer(teamNumber, teamPlayerNumber);
 			}
 		}
 
@@ -143,6 +145,12 @@ namespace LazerTagHostLibrary
 		public static TeamPlayerId FromPacked44(UInt16 value)
 		{
 			return new TeamPlayerId {Packed44 = value};
+		}
+
+		private static int PlayerFromTeamAndTeamPlayer(int teamNumber, int teamPlayerNumber)
+		{
+			if (teamNumber == 0 || teamPlayerNumber == 0) return 0;
+			return (((teamNumber & 0x3) - 1) << 3) + (((teamPlayerNumber - 1) & 0x7) + 1);
 		}
 
 		public static bool operator ==(TeamPlayerId first, TeamPlayerId second)

@@ -383,7 +383,7 @@ namespace LazerTagHostLibrary
         {
             foreach (var player in _players.Values)
             {
-	            HostDebugWriteLine(String.Format("{0} (0x{1:X2})", player.DisplayName, player.GameSessionTaggerId));
+	            HostDebugWriteLine(String.Format("{0} (0x{1:X2})", player.DisplayName, player.TaggerId));
 				if (_gameDefinition.IsTeamGame)
 				{
 					HostDebugWriteLine(String.Format("\tPlayer Rank: {0}, Team Rank: {1}, Score: {2}", player.Rank, player.TeamRank, player.Score));
@@ -503,31 +503,41 @@ namespace LazerTagHostLibrary
 					        return false;
 				        }
 
-				        foreach (var checkPlayer in _players.Values)
+				        Player player = null;
+
+						foreach (var checkPlayer in _players.Values)
 				        {
-					        if (checkPlayer.GameSessionTaggerId == taggerId && !checkPlayer.Confirmed)
+					        if (checkPlayer.TaggerId == taggerId)
 					        {
-						        HostDebugWriteLine("Game session tagger ID collision.");
-						        return false;
+								if (checkPlayer.Confirmed)
+								{
+									HostDebugWriteLine("Tagger ID collision.");
+									return false;
+								}
+								else
+								{
+									player = checkPlayer;
+									break;
+								}
 					        }
 				        }
 
-				        _confirmJoinState.TaggerId = (byte) taggerId;
-
-				        /* 
-						 * 0 = any
-						 * 1-3 = team 1-3
-						 */
-				        var requestedTeam = (UInt16) (playerTeamRequestPacket.Data & 0x03);
-
-				        var player = new Player(this, (byte) taggerId);
-
-				        if (!AssignTeamAndPlayer(requestedTeam, player))
+				        if (player == null)
 				        {
-					        return false;
+					        player = new Player(this, (byte) taggerId);
+
+							/* 
+							 * 0 = any
+							 * 1-3 = team 1-3
+							 */
+							var requestedTeam = (UInt16)(playerTeamRequestPacket.Data & 0x03);
+
+							if (!AssignTeamAndPlayer(requestedTeam, player)) return false;
+
+							_players[player.TeamPlayerId] = player;
 				        }
 
-				        _players[player.TeamPlayerId] = player;
+				        _confirmJoinState.TaggerId = (byte) taggerId;
 
 				        var values = new[]
 					        {
@@ -536,12 +546,6 @@ namespace LazerTagHostLibrary
 						        taggerId, // Tagger ID
 						        player.TeamPlayerId.Packed23
 					        };
-
-						if (gameIdPacket.Data != GameDefinition.GameId)
-				        {
-					        HostDebugWriteLine("Game ID does not match current game, discarding.");
-					        return false;
-				        }
 
 				        HostDebugWriteLine("Tagger 0x{0:X2} found, joining.", taggerId);
 
@@ -582,7 +586,7 @@ namespace LazerTagHostLibrary
 				        var found = false;
 				        foreach (var player in _players.Values)
 				        {
-					        if (player.GameSessionTaggerId == taggerId)
+					        if (player.TaggerId == taggerId)
 					        {
 						        player.Confirmed = true;
 						        found = true;
@@ -834,7 +838,7 @@ namespace LazerTagHostLibrary
 						player.Score = playerZoneTimeSeconds;
 
 						var score = playerZoneTimeSeconds;
-						score = (Int32.MaxValue - score) << 8 | player.GameSessionTaggerId;
+						score = (Int32.MaxValue - score) << 8 | player.TaggerId;
 						rankings.Add(score, player);
 
 						teamZoneTime[player.TeamPlayerId.TeamNumber - 1] += playerZoneTimeSeconds;
@@ -900,7 +904,7 @@ namespace LazerTagHostLibrary
 						}
 
 						//we want high rankings out first
-						rankings.Add(-player.Score << 8 | player.GameSessionTaggerId, player);
+						rankings.Add(-player.Score << 8 | player.TaggerId, player);
 					}
 
 					//Determine PlayerRanks
@@ -971,7 +975,7 @@ namespace LazerTagHostLibrary
 							teamSurvivedPlayerScoreTotals[player.TeamPlayerId.TeamNumber - 1] += score;
 						}
 						//prevent duplicates
-						score = score << 8 | player.GameSessionTaggerId;
+						score = score << 8 | player.TaggerId;
 						//we want high rankings out first
 						rankedPlayers.Add(-score, player);
 					}
