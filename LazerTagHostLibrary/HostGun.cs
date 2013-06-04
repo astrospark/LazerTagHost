@@ -621,6 +621,14 @@ namespace LazerTagHostLibrary
 	        return false;
         }
 
+		private void ProcessShot(UInt16 data)
+		{
+			var teamPlayerId = TeamPlayerId.FromPacked23((UInt16)((data >> 2) & 0x1f));
+			var strength = (data & 0x3) + 1;
+			var isTeamGame = GameDefinition != null && GameDefinition.IsTeamGame;
+			HostDebugWriteLine("Received shot from player {0} with {1} tags.", teamPlayerId.ToString(isTeamGame), strength);
+		}
+
 	    private static void ProcessBeaconPacket(UInt16 data, UInt16 bitCount)
 		{
 			switch (bitCount)
@@ -725,17 +733,20 @@ namespace LazerTagHostLibrary
 				    _incomingPacketQueue.Clear();
 			    }
 		    }
-		    else if (bitCount == 8 && _incomingPacketQueue.Count > 0)
+			else if (bitCount == 8 && _incomingPacketQueue.Count > 0) // mid sequence
 		    {
-			    // mid sequence
 				_incomingPacketQueue.Add(new IrPacket(IrPacket.PacketTypes.Data, data, bitCount));
 		    }
-		    else if (bitCount == 8)
+			else if (bitCount == 8) // junk
 		    {
-			    // junk
 			    HostDebugWriteLine("Unknown packet, clearing queue.");
 			    _incomingPacketQueue.Clear();
 		    }
+		    else if (bitCount == 7) // shot
+		    {
+			    ProcessShot(data);
+				_incomingPacketQueue.Clear();
+			}
 		    else
 		    {
 				HostDebugWriteLine("Data: 0x{0:X2}, {1:d} bits", data, bitCount);
