@@ -464,10 +464,7 @@ namespace LazerTagHostLibrary
 			        }
 		        case HostingState.Adding:
 			        {
-				        if (_incomingPacketQueue.Count != 4)
-				        {
-					        return false;
-				        }
+				        if (_incomingPacketQueue.Count != 4) return false;
 
 				        var commandPacket = _incomingPacketQueue[0];
 				        var gameIdPacket = _incomingPacketQueue[1];
