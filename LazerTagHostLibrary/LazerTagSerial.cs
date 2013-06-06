@@ -43,7 +43,6 @@ namespace LazerTagHostLibrary
 			if (_serialPort == null || !_serialPort.IsOpen || _serialPort.BytesToRead < 1) return null;
 
             var input = _serialPort.ReadLine();
-            // Console.Write("RX: {0}", input);
             return input;
         }
 
@@ -71,57 +70,22 @@ namespace LazerTagHostLibrary
 
         public void EnqueueBeacon(UInt16 data, UInt16 bitCount)
         {
-	        var packet = new[]
+	        var signature = new[]
 		        {
 			        (byte) ((0x01 << 5) | ((bitCount & 0xf) << 1) | ((data >> 8) & 0x1)),
 			        (byte) (data & 0xff)
 		        };
-            _queue.Enqueue(packet);
+            _queue.Enqueue(signature);
         }
 
         public void EnqueueData(UInt16 data, UInt16 bitCount)
         {
-	        var packet = new[]
+	        var signature = new[]
 		        {
 			        (byte) ((0x00 << 5) | ((bitCount & 0xf) << 1) | ((data >> 8) & 0x1)),
 			        (byte) (data & 0xff)
 		        };
-            _queue.Enqueue(packet);
-        }
-
-        public void TransmitPacket(UInt16[] values)
-        {
-			var hexValues = new string[values.Length];
-			for (var i = 0; i < values.Length; i++)
-			{
-				EnqueueData(values[i], (UInt16) (i == 0 ? 9 : 8));
-				hexValues[i] = string.Format(i == 0 ? "0x{0:X3}" : "0x{0:X2}", values[i]);
-			}
-	        UInt16 checksum = ComputeChecksum(values);
-	        checksum |= 0x100;
-	        EnqueueData(checksum, 9);
-	        Console.WriteLine("TX: {0}, 0x{1:X3}", string.Join(", ", hexValues), checksum);
-        }
-
-        static public byte ComputeChecksum(UInt16[] values)
-        {
-            byte checksum = 0;
-			foreach (var value in values)
-			{
-				checksum += (byte) value;
-			}
-            return checksum;
-        }
-
-        static public byte ComputeChecksum(List<IrPacket> values)
-        {
-            byte checksum = 0;
-            foreach (var value in values)
-			{
-				// don't add the checksum value in
-				if ((value.Data & 0x100) == 0) checksum += (byte)value.Data;
-            }
-            return checksum;
+            _queue.Enqueue(signature);
         }
 
         static public List<string> GetSerialPorts()

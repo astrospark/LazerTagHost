@@ -108,7 +108,7 @@
 		{
 			get
 			{
-				if (_name == null & GameTypeInfo.CommandCode == HostGun.CommandCode.AnnounceGameSpecial)
+				if (_name == null & GameTypeInfo.PacketType == PacketType.AnnounceGameSpecial)
 				{
 					return Tools.GetCharArrayExactLength(GameTypeInfo.Name, 4);
 				}

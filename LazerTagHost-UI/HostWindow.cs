@@ -215,7 +215,7 @@ namespace LazerTagHostUI
             switch (state)
 			{
 				case HostGun.HostingState.Adding:
-				case HostGun.HostingState.ConfirmJoin:
+				case HostGun.HostingState.AcknowledgePlayerAssignment:
 					// disable late join
 					playerselectionscreenMain.SetControlOptions(true, true, false, true, true, true);
 					break;

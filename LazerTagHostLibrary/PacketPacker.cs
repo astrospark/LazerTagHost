@@ -1,29 +1,22 @@
 using System;
+using System.Collections.Generic;
 
 namespace LazerTagHostLibrary
 {
     public class PacketPacker
     {
-		public static IrPacket[] Shot(TeamPlayerId teamPlayerId, int damage)
+		public static Signature Tag(TeamPlayerId teamPlayerId, int damage)
 		{
-			var flags =
-				(byte) ((teamPlayerId.Packed23 << 2) |
-				        (damage & 0x3));
-			
-			var values = new []
-				{
-					new IrPacket(IrPacket.PacketTypes.Data, flags, 7) 
-				};
-			
-			return values;
+			var flags = (byte) ((teamPlayerId.Packed23 << 2) | (damage & 0x3));
+			return new Signature(SignatureType.Tag, flags, 7);
 		}
 
-		public static IrPacket[] Shot(int damage)
-        {
-	        return Shot(new TeamPlayerId(0), damage);
-        }
+		public static Signature Tag(int damage)
+		{
+			return Tag(new TeamPlayerId(0), damage);
+		}
 
-        public static IrPacket[] Beacon(int teamNumber, bool tagReceived, int tagStrength)
+		public static Signature Beacon(int teamNumber, bool tagReceived, int tagStrength)
         {
 	        if (!tagReceived) tagStrength = 0;
 	        
@@ -32,34 +25,30 @@ namespace LazerTagHostLibrary
 		                ((tagReceived ? 1 : 0) << 2) |
 		                ((tagStrength & 0x3)));
 	        
-			var values = new []
-		        {
-			        new IrPacket(IrPacket.PacketTypes.Beacon, flags, 5) 
-		        };
-
-			return values;
+			return new Signature(SignatureType.Beacon, flags, 5);
         }
 
-		public static IrPacket[] ZoneBeacon(int teamNumber, HostGun.ZoneType zoneType)
+		public static Signature ZoneBeacon(int teamNumber, HostGun.ZoneType zoneType)
 		{
-			var flags =
-				(byte) (((teamNumber & 0x3) << 3) |
-				        ((byte) zoneType & 0x3));
-
-			var values = new[]
-		        {
-			        new IrPacket(IrPacket.PacketTypes.Beacon, flags, 5) 
-		        };
-			
-			return values;
+			var flags = (byte) (((teamNumber & 0x3) << 3) | ((byte) zoneType & 0x3));
+			return new Signature(SignatureType.Beacon, flags, 5);
 		}
 
-        public static UInt16[] AnnounceGame(GameDefinition gameDefinition)
+        public static Packet AnnounceGame(GameDefinition gameDefinition)
         {
-	        if (gameDefinition.GameTypeInfo.CommandCode == HostGun.CommandCode.AnnounceGameSpecial)
+	        if (gameDefinition.GameTypeInfo.PacketType == PacketType.AnnounceGameSpecial)
 		        return AnnounceSpecialGame(gameDefinition);
 
-	        var flags1 =
+			var packet = new Packet();
+			packet.Type = gameDefinition.GameTypeInfo.PacketType;
+			packet.Data.Add(new Signature(SignatureType.Data, gameDefinition.GameId));
+			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.GameTimeMinutes)));
+			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.Tags)));
+			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.Reloads)));
+			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.Shields)));
+			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.Mega)));
+			
+			var flags1 =
 		        (byte) ((gameDefinition.ExtendedTagging ? 1 : 0) << 7 |
 		                (gameDefinition.UnlimitedMega ? 1 : 0) << 6 |
 		                (gameDefinition.UnlimitedReloads ? 1 : 0) << 5 |
@@ -68,43 +57,43 @@ namespace LazerTagHostLibrary
 		                (gameDefinition.RapidTags ? 1 : 0) << 2 |
 		                (gameDefinition.GameTypeInfo.HuntThePrey ? 1 : 0) << 1 |
 		                (gameDefinition.HuntDirection ? 1 : 0) << 0);
-	        var flags2 =
-		        (byte) ((gameDefinition.GameTypeInfo.Zones ? 1 : 0) << 7 |
-		                (gameDefinition.GameTypeInfo.TeamZones ? 1 : 0) << 6 |
-		                (gameDefinition.GameTypeInfo.NeutralizePlayersTaggedInZone ? 1 : 0) << 5 |
-		                (gameDefinition.GameTypeInfo.ZonesRevivePlayers ? 1 : 0) << 4 |
-		                (gameDefinition.GameTypeInfo.HospitalZones ? 1 : 0) << 3 |
-		                (gameDefinition.GameTypeInfo.ZonesTagPlayers ? 1 : 0) << 2 |
-		                (gameDefinition.TeamCount & 0x03));
+			packet.Data.Add(new Signature(SignatureType.Data, flags1));
 
-	        var values = new[]
-		        {
-			        (UInt16) gameDefinition.GameTypeInfo.CommandCode,
-			        gameDefinition.GameId,
-			        HexCodedDecimal.FromDecimal((byte) gameDefinition.GameTimeMinutes),
-			        HexCodedDecimal.FromDecimal((byte) gameDefinition.Tags),
-			        HexCodedDecimal.FromDecimal((byte) gameDefinition.Reloads),
-			        HexCodedDecimal.FromDecimal((byte) gameDefinition.Shields),
-			        HexCodedDecimal.FromDecimal((byte) gameDefinition.Mega),
-			        flags1,
-			        flags2
-		        };
+			var flags2 =
+				(byte)((gameDefinition.GameTypeInfo.Zones ? 1 : 0) << 7 |
+						(gameDefinition.GameTypeInfo.TeamZones ? 1 : 0) << 6 |
+						(gameDefinition.GameTypeInfo.NeutralizePlayersTaggedInZone ? 1 : 0) << 5 |
+						(gameDefinition.GameTypeInfo.ZonesRevivePlayers ? 1 : 0) << 4 |
+						(gameDefinition.GameTypeInfo.HospitalZones ? 1 : 0) << 3 |
+						(gameDefinition.GameTypeInfo.ZonesTagPlayers ? 1 : 0) << 2 |
+						(gameDefinition.TeamCount & 0x03));
+			packet.Data.Add(new Signature(SignatureType.Data, flags2));
 
-			if (gameDefinition.Name != null)
+			if (gameDefinition.Name != null && gameDefinition.Name.Length == 4)
 			{
-                var newValues = new UInt16[values.Length + 4];
-				values.CopyTo(newValues, 0);
-				gameDefinition.Name.CopyTo(newValues, values.Length);
-				values = newValues;
+				for (var i = 0; i < 4; i ++)
+				{
+					packet.Data.Add(new Signature(SignatureType.Data, gameDefinition.Name[i]));
+				}
 			}
 
-            return values;
-        }
+			packet.PopulateChecksum();
 
-		public static UInt16[] AnnounceSpecialGame(GameDefinition gameDefinition)
+			return packet;
+		}
+
+		public static Packet AnnounceSpecialGame(GameDefinition gameDefinition)
 		{
-			byte flags1, flags2;
+			var packet = new Packet();
+			packet.Type = gameDefinition.GameTypeInfo.PacketType;
+			packet.Data.Add(new Signature(SignatureType.Data, gameDefinition.GameId));
+			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.GameTimeMinutes)));
+			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.Tags)));
+			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.Reloads)));
+			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.Shields)));
+			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.Mega)));
 
+			byte flags1, flags2;
 			switch (gameDefinition.GameType)
 			{
 				case GameType.HuntTheTagMaster: // TAGM
@@ -131,48 +120,127 @@ namespace LazerTagHostLibrary
 					flags1 = flags2 = 0;
 					break;
 			}
-			var values = new[]
-		        {
-			        (UInt16) gameDefinition.GameTypeInfo.CommandCode,
-			        gameDefinition.GameId,
-			        HexCodedDecimal.FromDecimal((byte) gameDefinition.GameTimeMinutes),
-			        HexCodedDecimal.FromDecimal((byte) gameDefinition.Tags),
-			        HexCodedDecimal.FromDecimal((byte) gameDefinition.Reloads),
-			        HexCodedDecimal.FromDecimal((byte) gameDefinition.Shields),
-			        HexCodedDecimal.FromDecimal((byte) gameDefinition.Mega),
-			        flags1,
-			        flags2
-		        };
 
-			if (gameDefinition.Name != null)
+			packet.Data.Add(new Signature(SignatureType.Data, flags1));
+			packet.Data.Add(new Signature(SignatureType.Data, flags2));
+
+			if (gameDefinition.Name != null && gameDefinition.Name.Length == 4)
 			{
-				var newValues = new UInt16[values.Length + 4];
-				values.CopyTo(newValues, 0);
-				gameDefinition.Name.CopyTo(newValues, values.Length);
-				values = newValues;
+				for (var i = 0; i < 4; i++)
+				{
+					packet.Data.Add(new Signature(SignatureType.Data, gameDefinition.Name[i]));
+				}
 			}
 
-			return values;
+			packet.PopulateChecksum();
+
+			return packet;
 		}
 
-		public static UInt16[] TextMessage(String message)
+		public static Packet TextMessage(String message)
         {
+			var packet = new Packet();
+			packet.Type = PacketType.TextMessage;
+
 			if (message.Length > 10) message = message.Substring(0, 10);
-
-			var values = new UInt16[message.Length + 2];
-
-	        values[0] = (UInt16) HostGun.CommandCode.TextMessage;
-
 			var messageChars = message.ToCharArray();
 			for (var i = 0; i < messageChars.Length; i++)
 			{
-				values[i + 1] = messageChars[i];
+				packet.Data.Add(new Signature(SignatureType.Data, messageChars[i]));
 			}
 
-			values[message.Length + 1] = 0;
+			packet.Data.Add(new Signature(SignatureType.Data, 0)); // null terminator
 
-			return values;
-        }
+			packet.PopulateChecksum();
+
+			return packet;
+		}
+
+		public static Packet AssignPlayer(UInt16 gameId, UInt16 taggerId, TeamPlayerId teamPlayerId)
+		{
+			var packet = new Packet();
+			packet.Type = PacketType.AssignPlayer;
+			packet.Data.Add(new Signature(SignatureType.Data, gameId));
+			packet.Data.Add(new Signature(SignatureType.Data, taggerId));
+			packet.Data.Add(new Signature(SignatureType.Data, teamPlayerId.Packed23));
+			packet.PopulateChecksum();
+
+			return packet;
+		}
+
+		public static Packet RequestJoinGame(UInt16 gameId, UInt16 taggerId, int preferredTeamNumber)
+		{
+			var packet = new Packet();
+			packet.Type = PacketType.RequestJoinGame;
+			packet.Data.Add(new Signature(SignatureType.Data, gameId));
+			packet.Data.Add(new Signature(SignatureType.Data, taggerId));
+			packet.Data.Add(new Signature(SignatureType.Data, (UInt16)(preferredTeamNumber & 0x3)));
+			packet.PopulateChecksum();
+
+			return packet;
+		}
+
+		public static Packet Countdown(UInt16 gameId, byte remainingSeconds, int playerCountTeam1, int playerCountTeam2, int playerCountTeam3)
+		{
+			var packet = new Packet();
+			packet.Type = PacketType.AnnounceCountdown;
+			packet.Data.Add(new Signature(SignatureType.Data, gameId));
+			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal(remainingSeconds)));
+			packet.Data.Add(new Signature(SignatureType.Data, (UInt16)(playerCountTeam1 & 0xff)));
+			packet.Data.Add(new Signature(SignatureType.Data, (UInt16)(playerCountTeam2 & 0xff)));
+			packet.Data.Add(new Signature(SignatureType.Data, (UInt16)(playerCountTeam3 & 0xff)));
+			packet.PopulateChecksum();
+
+			return packet;
+		}
+
+	    public static Packet RequestTagReport(UInt16 gameId, TeamPlayerId teamPlayerId)
+	    {
+		    var packet = new Packet();
+		    packet.Type = PacketType.RequestTagReport;
+		    packet.Data.Add(new Signature(SignatureType.Data, gameId));
+			packet.Data.Add(new Signature(SignatureType.Data, teamPlayerId.Packed44));
+		    packet.Data.Add(new Signature(SignatureType.Data, 0x0f)); // TODO: Magic Number
+		    packet.PopulateChecksum();
+
+		    return packet;
+	    }
+
+	    public static Packet RankReport(UInt16 gameId, int teamNumber, int teamRank, int[] playerRanks)
+	    {
+		    var packet = new Packet();
+		    packet.Type = PacketType.RankReport;
+		    packet.Data.Add(new Signature(SignatureType.Data, gameId));
+
+		    var flags = (UInt16) (((teamNumber & 0xf) << 4) | (teamRank & 0xf));
+		    packet.Data.Add(new Signature(SignatureType.Data, flags));
+
+		    for (int i = 0; i < 8; i++)
+		    {
+			    if (playerRanks.Length > i)
+			    {
+				    packet.Data.Add(new Signature(SignatureType.Data, (UInt16) (playerRanks[i] & 0xff)));
+			    }
+			    else
+			    {
+				    packet.Data.Add(new Signature(SignatureType.Data, 0));
+			    }
+		    }
+		    packet.PopulateChecksum();
+
+		    return packet;
+	    }
+
+		public static Packet AssignPlayerFailed(UInt16 gameId, UInt16 taggerId)
+		{
+			var packet = new Packet();
+			packet.Type = PacketType.AssignPlayerFailed;
+			packet.Data.Add(new Signature(SignatureType.Data, gameId));
+			packet.Data.Add(new Signature(SignatureType.Data, taggerId));
+			packet.PopulateChecksum();
+
+			return packet;
+		}
     }
 }
 

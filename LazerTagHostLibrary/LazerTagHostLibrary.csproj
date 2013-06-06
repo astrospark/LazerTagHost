@@ -62,11 +62,12 @@
     <Compile Include="GameDefinition.cs" />
     <Compile Include="GameTypes.cs" />
     <Compile Include="HexCodedDecimal.cs" />
+    <Compile Include="Packet.cs" />
     <Compile Include="Player.cs" />
-    <Compile Include="IrPacket.cs" />
     <Compile Include="HostGun.cs" />
     <Compile Include="LazerTagSerial.cs" />
     <Compile Include="PacketPacker.cs" />
+    <Compile Include="Signature.cs" />
     <Compile Include="Team.cs" />
     <Compile Include="Tools.cs" />
   </ItemGroup>

@@ -133,7 +133,7 @@ namespace LazerTagHostLibrary
 					gameTypeInfo.Name = nameAttribute.Value;
 
 					gameTypeInfo.DisplayName = GetNodeLocalizedText(gameTypeNode, "DisplayName");
-					gameTypeInfo.CommandCode = (HostGun.CommandCode)GetNodeTextInt(gameTypeNode, "AnnounceGameCommandCode");
+					gameTypeInfo.PacketType = (PacketType)GetNodeTextInt(gameTypeNode, "AnnounceGameCommandCode");
 					gameTypeInfo.TeamCount = GetNodeTextInt(gameTypeNode, "TeamCount");
 					gameTypeInfo.GameTimeStepMinutes = GetNodeTextInt(gameTypeNode, "GameTimeStepMinutes");
 					gameTypeInfo.HuntThePrey = GetNodeTextBool(gameTypeNode, "HuntThePrey");
@@ -231,7 +231,7 @@ namespace LazerTagHostLibrary
 		public GameType Type { get; set; }
 		public string Name { get; set; }
 		public string DisplayName { get; set; }
-		public HostGun.CommandCode CommandCode { get; set; }
+		public PacketType PacketType { get; set; }
 		public int TeamCount { get; set; }
 		public int GameTimeStepMinutes { get; set; }
 		public bool HuntThePrey { get; set; }

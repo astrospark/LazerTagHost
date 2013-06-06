@@ -20,57 +20,26 @@ namespace LazerTagHostLibrary
 			Console.WriteLine("{0}: {1}", DateTime.Now, String.Format(format, arguments));
 		}
 
-	    private struct ConfirmJoinState {
-            public byte TaggerId;
-        };
+	    private class JoinState
+	    {
+		    public UInt16 GameId;
+		    public Player Player;
+		    public DateTime AssignPlayerSendTime;
+		    public bool Failed;
+		    public int AssignPlayerFailSendCount;
+		    public DateTime LastAssignPlayerFailSendTime;
+	    };
 
-        public enum HostingState {
+        public enum HostingState
+		{
             Idle,
             Adding,
-            ConfirmJoin,
+			AcknowledgePlayerAssignment,
             Countdown,
             Playing,
             Summary,
             GameOver,
         };
-
-	    public enum CommandCode
-	    {
-		    AnnounceGameCustomLazerTag = 0x02,
-		    AnnounceGameCustomLazerTagTwoTeams = 0x03,
-		    AnnounceGameCustomLazerTagThreeTeams = 0x04,
-		    AnnounceGameHideAndSeek = 0x05,
-		    AnnounceGameHuntThePrey = 0x06,
-		    AnnounceGameKingsTwoTeams = 0x07,
-		    AnnounceGameKingsThreeTeams = 0x08,
-		    AnnounceGameOwnTheZone = 0x09,
-		    AnnounceGameOwnTheZoneTwoTeams = 0x0A,
-		    AnnounceGameOwnTheZoneThreeTeams = 0x0B,
-		    AnnounceGameSpecial = 0x0C,
-
-		    RequestJoinGame = 0x10,
-		    AssignPlayer = 0x01,
-		    AcknowledgePlayerAssignment = 0x11,
-
-			// TODO: ResendAcknowledgePlayerAssignment
-		    // SEQ: 0x00f, 0x79, 0xbe
-			ResendAcknowledgePlayerAssignment = 0x0f,
-
-		    AnnounceCountdown = 0x00,
-
-		    RequestTagReport = 0x31,
-
-		    TagSummary = 0x40,
-		    TeamOneTagReport = 0x41,
-		    TeamTwoTagReport = 0x42,
-		    TeamThreeTagReport = 0x43,
-
-		    AnnounceTeamPlayerRanks = 0x32,
-
-		    SingleTagReport = 0x48,
-		    TextMessage = 0x80,
-		    SpecialAttack = 0x90,
-	    };
 
 		public enum ZoneType
 		{
@@ -99,8 +68,11 @@ namespace LazerTagHostLibrary
 
         private LazerTagSerial _serial;
 
-        private const int GameAnnouncementFrequencySeconds = 3;
-        private const int WaitForAdditionalPlayersTimeoutSeconds = 60;
+        private const int GameAnnouncementFrequencyMilliseconds = 1500;
+		private const int AcknowledgePlayerAssignmentTimeoutSeconds = 2;
+		private const int AssignPlayerFailedSendCount = 6;
+		private const int AssignPlayerFailedFrequencyMilliseconds = 500;
+		private const int WaitForAdditionalPlayersTimeoutSeconds = 60;
         private const int MinimumPlayerCount = 2;
         private const int RequestTagReportFrequencySeconds = 3;
         private const int GameOverAnnouncementFrequencySeconds = 3;
@@ -114,7 +86,7 @@ namespace LazerTagHostLibrary
 	    private HostingState _hostingState = HostingState.Idle;
         private bool _paused;
 
-        private ConfirmJoinState _confirmJoinState;
+        private readonly Dictionary<UInt16, JoinState> _joinStates = new Dictionary<ushort, JoinState>();
 
         private IHostChangedListener _listener;
         private DateTime _stateChangeTimeout;
@@ -122,14 +94,14 @@ namespace LazerTagHostLibrary
 	    private int _debriefPlayerSequence;
 		private int _rankReportTeamNumber;
 
-        private readonly List<IrPacket> _incomingPacketQueue = new List<IrPacket>();
+	    private Packet _incomingPacket;
 
 	    public void SetGameStartCountdownTime(int countdownTimeSeconds)
 		{
             _gameDefinition.CountdownTimeSeconds = countdownTimeSeconds;
         }
 
-        private static string GetCommandCodeName(CommandCode code)
+        private static string GetPacketTypeName(PacketType code)
         {
             Enum c = code;
             return c.ToString();
@@ -213,154 +185,19 @@ namespace LazerTagHostLibrary
 		    if (_gameDefinition.IsTeamGame)
 		    {
 			    newPlayer.TeamPlayerId = new TeamPlayerId(assignedTeamNumber, assignedPlayerNumber);
-			    HostDebugWriteLine(String.Format("Assigned player to team {0} player {1}.", assignedTeamNumber,
-			                                     assignedPlayerNumber));
 		    }
 		    else
 		    {
 			    newPlayer.TeamPlayerId = new TeamPlayerId(assignedPlayerNumber);
-			    HostDebugWriteLine(String.Format("Assigned player to player {0}.", assignedPlayerNumber));
 		    }
 
 		    return true;
 	    }
 
-	    private static void AssertUnknownBits(String name, IrPacket data, byte mask)
+	    private static void AssertUnknownBits(String name, Signature signature, byte mask)
         {
-	        if (((byte) (data.Data & mask)) == 0) return;
-	        HostDebugWriteLine("Unknown bits set: \"{0}\", data: 0x{2:X2}, mask: 0x{3:X2}, unknown: 0x{1:X2}", name, (byte) (data.Data & mask), (byte) data.Data, mask);
-        }
-        
-        private bool ProcessPlayerReportScore()
-        {
-            if (_incomingPacketQueue.Count != 9)
-			{
-                return false;
-            }
-            
-            var commandPacket = _incomingPacketQueue[0];
-            var gameIdPacket = _incomingPacketQueue[1];
-            var teamPlayerIdPacket = _incomingPacketQueue[2];
-            
-            var tagsReceivedPacket = _incomingPacketQueue[3]; // Hex Coded Decimal
-            var survivedPacket = _incomingPacketQueue[4]; // [7 bits - zero - unknown][1 bit - alive]
-			AssertUnknownBits("survivedPacket", _incomingPacketQueue[4], 0xfe);
-
-            var unknownPacket = _incomingPacketQueue[5];
-	        AssertUnknownBits("unknownPacket", unknownPacket, 0xff);
-
-            var zoneTimeMinutesPacket = _incomingPacketQueue[6];
-            var zoneTimeSecondsPacket = _incomingPacketQueue[7];
-			
-            // [4 bits - zero - unknown][1 bit - hit by t3][1 bit - hit by t2][1 bit - hit by t1][1 bit - zero - unknown]
-            var teamTagReports = _incomingPacketQueue[8];
-			AssertUnknownBits("teamTagReports", teamTagReports, 0xf1);
-            
-            var gameId = gameIdPacket.Data;
-	        var teamPlayerId = TeamPlayerId.FromPacked44(teamPlayerIdPacket.Data);
-            
-            if ((CommandCode)commandPacket.Data != CommandCode.TagSummary)
-			{
-                HostDebugWriteLine("Wrong command.");
-                return false;
-            }
-
-			if (gameId != _gameDefinition.GameId)
-			{
-                HostDebugWriteLine("Wrong game ID.");
-                return false;
-            }
-
-			if (_players.ContainsKey(teamPlayerId))
-			{
-				var player = _players[teamPlayerId];
-
-                player.Survived = ((survivedPacket.Data & 0x1) == 1);
-                player.TagsTaken = HexCodedDecimal.ToDecimal(tagsReceivedPacket.Data);
-				player.TeamTagReportsExpected[0] = ((teamTagReports.Data & 0x2) == 1);
-				player.TeamTagReportsExpected[1] = ((teamTagReports.Data & 0x4) == 1);
-				player.TeamTagReportsExpected[2] = ((teamTagReports.Data & 0x8) == 1);
-				player.ZoneTime = new TimeSpan(0, 0, HexCodedDecimal.ToDecimal(zoneTimeMinutesPacket.Data), HexCodedDecimal.ToDecimal(zoneTimeSecondsPacket.Data));
-
-				player.TagSummaryReceived = true;
-
-				HostDebugWriteLine("Received tag summary from {0}.", player.DisplayName);
-			}
-			else
-			{
-                HostDebugWriteLine("Unable to find player for score report.");
-                return false;
-            }
-            
-            return true;
-        }
-
-        private bool ProcessPlayerHitByTeamReport()
-        {
-			if (_incomingPacketQueue.Count <= 4) return false;
-            
-            var commandPacket = _incomingPacketQueue[0];
-            var gameIdPacket = _incomingPacketQueue[1];
-            var taggerId = _incomingPacketQueue[2];
-            var scoreBitmaskPacket = _incomingPacketQueue[3];
-            
-            // what team do the scores relate to hits from
-            var reportTeamNumber = (int)(commandPacket.Data - CommandCode.TeamOneTagReport + 1);
-	        var teamPlayerId = TeamPlayerId.FromPacked44(taggerId.Data);
-
-			if (gameIdPacket.Data != _gameDefinition.GameId)
-			{
-                HostDebugWriteLine("Wrong game ID.");
-                return false;
-            }
-
-			var player = LookupPlayer(teamPlayerId);
-            if (player == null) return false;
-            
-            if (player.TagSummaryReceived && !player.TeamTagReportsExpected[reportTeamNumber - 1])
-			{
-                HostDebugWriteLine("A tag report from this player for this team was not expected.");
-            }
-
-			if (player.TeamTagReportsReceived[reportTeamNumber - 1])
-			{
-				HostDebugWriteLine("A tag report from this player for this team was already received. Discarding.");
-				return false;
-			}
-
-	        player.TeamTagReportsReceived[reportTeamNumber - 1] = true;
-            
-            var packetIndex = 4;
-            var mask = (byte)scoreBitmaskPacket.Data;
-            for (var reportPlayerNumber = 1; reportPlayerNumber <= 8; reportPlayerNumber++)
-            {
-	            var reportTeamPlayerId = new TeamPlayerId(reportTeamNumber, reportPlayerNumber);
-                var hasScore = ((mask >> (reportPlayerNumber - 1)) & 0x1) != 0;
-                if (!hasScore) continue;
-                
-                if (_incomingPacketQueue.Count <= packetIndex)
-				{
-                    HostDebugWriteLine("Ran off end of score report");
-                    return false;
-                }
-                
-                var scorePacket = _incomingPacketQueue[packetIndex];
-
-				player.TaggedByPlayerCounts[reportTeamPlayerId.PlayerNumber - 1] = HexCodedDecimal.ToDecimal(scorePacket.Data);
-				var taggedByPlayer = LookupPlayer(reportTeamPlayerId);
-                if (taggedByPlayer == null)  continue;
-
-	            HostDebugWriteLine(String.Format("Tagged by {0}", player.DisplayName));
-				if (_gameDefinition.IsTeamGame)
-	            {
-					taggedByPlayer.TaggedPlayerCounts[player.TeamPlayerId.PlayerNumber - 1] = HexCodedDecimal.ToDecimal(scorePacket.Data);
-	            }
-                packetIndex++;
-            }
-
-            if (_listener != null) _listener.PlayerListChanged(_players.Values.ToList());
-            
-            return true;
+	        if (((byte) (signature.Data & mask)) == 0) return;
+	        HostDebugWriteLine("Unknown bits set: \"{0}\", data: 0x{2:X2}, mask: 0x{3:X2}, unknown: 0x{1:X2}", name, (byte) (signature.Data & mask), (byte) signature.Data, mask);
         }
         
         private void PrintScoreReport()
@@ -396,46 +233,47 @@ namespace LazerTagHostLibrary
             }
         }
 
-        private bool ProcessCommandSequence()
+        private bool ProcessPacket(Packet packet)
         {
             var now = DateTime.Now;
 
 	        {
-		        var commandPacket = _incomingPacketQueue[0];
-				switch ((CommandCode) commandPacket.Data)
+		        var packetType = (PacketType) packet.PacketTypeSignature.Data;
+				switch (packetType)
 				{
-					case CommandCode.SingleTagReport:
+					case PacketType.SingleTagReport:
 						{
-							if (_incomingPacketQueue.Count != 5) break;
-							var isReply = ((_incomingPacketQueue[2].Data & 0x80) & (_incomingPacketQueue[3].Data & 0x80)) != 0;
-							var teamPlayerId1 = TeamPlayerId.FromPacked34(_incomingPacketQueue[2].Data);
-							var teamPlayerId2 = TeamPlayerId.FromPacked34(_incomingPacketQueue[3].Data);
-							var tagsReceived = _incomingPacketQueue[4].Data;
+							if (packet.Data.Count != 4) break;
+							var isReply = ((packet.Data[1].Data & 0x80) & (packet.Data[2].Data & 0x80)) != 0;
+							var teamPlayerId1 = TeamPlayerId.FromPacked34(packet.Data[1].Data);
+							var teamPlayerId2 = TeamPlayerId.FromPacked34(packet.Data[2].Data);
+							var tagsReceived = packet.Data[3].Data;
 							var replyText = isReply ? "replied to tag count request from" : "requested tag count from";
-							Console.WriteLine("Player {0} {1} player {2}. Player {0} received {3} tags from player {2}.", teamPlayerId1, replyText, teamPlayerId2, tagsReceived);
+							HostDebugWriteLine("Player {0} {1} player {2}. Player {0} received {3} tags from player {2}.", teamPlayerId1,
+							                   replyText, teamPlayerId2, tagsReceived);
 							break;
 						}
-					case CommandCode.TextMessage:
+					case PacketType.TextMessage:
 						{
 							var message = new StringBuilder();
-							var i = 1;
-							while (i < _incomingPacketQueue.Count &&
-								   _incomingPacketQueue[i].Data >= 0x20 &&
-								   _incomingPacketQueue[i].Data <= 0x7e &&
-								   _incomingPacketQueue[i].BitCount == 8)
+							var i = 0;
+							while (i < packet.Data.Count &&
+								   packet.Data[i].Data >= 0x20 &&
+								   packet.Data[i].Data <= 0x7e &&
+								   packet.Data[i].BitCount == 8)
 							{
-								message.Append(Convert.ToChar(_incomingPacketQueue[i].Data));
+								message.Append(Convert.ToChar(packet.Data[i].Data));
 								i++;
 							}
-							Console.WriteLine("Received Text Message: {0}", message); 
+							HostDebugWriteLine("Received Text Message: {0}", message); 
 							break;
 						}
-					case CommandCode.SpecialAttack:
+					case PacketType.SpecialAttack:
 						{
 							var type = "Unknown Type";
-							if (_incomingPacketQueue.Count == 5)
+							if (packet.Data.Count == 4)
 							{
-								switch (_incomingPacketQueue[3].Data)
+								switch (packet.Data[2].Data)
 								{
 									case 0x77:
 										type = "EM Peacemaker";
@@ -445,11 +283,11 @@ namespace LazerTagHostLibrary
 										break;
 								}
 							}
-							Console.WriteLine("Special Attack: {0} - {1}", type, SerializeCommandSequence(_incomingPacketQueue.GetRange(0, 6)));
-							AssertUnknownBits("Special Attack Byte 2", _incomingPacketQueue[1], 0xff);
-							AssertUnknownBits("Special Attack Byte 3", _incomingPacketQueue[2], 0xff);
-							AssertUnknownBits("Special Attack Byte 4", _incomingPacketQueue[3], 0xff);
-							AssertUnknownBits("Special Attack Byte 5", _incomingPacketQueue[4], 0xff);
+							HostDebugWriteLine("Special Attack: {0} - {1}", type, packet.ToString());
+							AssertUnknownBits("Special Attack Flags 1", packet.Data[1], 0xff);
+							AssertUnknownBits("Special Attack Flags 2", packet.Data[2], 0xff);
+							AssertUnknownBits("Special Attack Flags 3", packet.Data[3], 0xff);
+							AssertUnknownBits("Special Attack Flags 4", packet.Data[4], 0xff);
 
 							break;
 						}
@@ -463,152 +301,35 @@ namespace LazerTagHostLibrary
 				        return true;
 			        }
 		        case HostingState.Adding:
-			        {
-				        if (_incomingPacketQueue.Count != 4) return false;
+				case HostingState.AcknowledgePlayerAssignment:
+					{
+				        if (packet.Data.Count < 2) return false;
 
-				        var commandPacket = _incomingPacketQueue[0];
-				        var gameIdPacket = _incomingPacketQueue[1];
-				        var taggerIdPacket = _incomingPacketQueue[2];
-				        var playerTeamRequestPacket = _incomingPacketQueue[3];
-				        var taggerId = taggerIdPacket.Data;
+						var gameId = packet.Data[0].Data;
+						var taggerId = packet.Data[1].Data;
 
-				        if ((CommandCode) commandPacket.Data != CommandCode.RequestJoinGame)
+						switch (packet.Type)
 				        {
-					        HostDebugWriteLine("Wrong command.");
-					        return false;
-				        }
-
-				        if (gameIdPacket.Data != _gameDefinition.GameId)
-				        {
-					        HostDebugWriteLine("Wrong game ID.");
-					        return false;
-				        }
-
-				        Player player = null;
-
-						foreach (var checkPlayer in _players.Values)
-				        {
-					        if (checkPlayer.TaggerId == taggerId)
-					        {
-								if (checkPlayer.Confirmed)
-								{
-									HostDebugWriteLine("Tagger ID collision.");
-									return false;
-								}
-								else
-								{
-									player = checkPlayer;
-									break;
-								}
-					        }
-				        }
-
-				        if (player == null)
-				        {
-					        player = new Player(this, (byte) taggerId);
-
-							/* 
-							 * 0 = any
-							 * 1-3 = team 1-3
-							 */
-							var requestedTeam = (UInt16)(playerTeamRequestPacket.Data & 0x03);
-
-							if (!AssignTeamAndPlayer(requestedTeam, player)) return false;
-
-							_players[player.TeamPlayerId] = player;
-				        }
-
-				        _confirmJoinState.TaggerId = (byte) taggerId;
-
-				        var values = new[]
-					        {
-						        (UInt16) CommandCode.AssignPlayer,
-						        GameDefinition.GameId, // Game ID
-						        taggerId, // Tagger ID
-						        player.TeamPlayerId.Packed23
-					        };
-
-				        HostDebugWriteLine("Tagger 0x{0:X2} found, joining.", taggerId);
-
-				        TransmitPacket(values);
-
-				        _incomingPacketQueue.Clear();
-
-				        _hostingState = HostingState.ConfirmJoin;
-				        _stateChangeTimeout = now.AddSeconds(2);
-
-				        return true;
-			        }
-		        case HostingState.ConfirmJoin:
-			        {
-				        if (_incomingPacketQueue.Count != 3) return false;
-
-				        var commandPacket = _incomingPacketQueue[0];
-				        var gameIdPacket = _incomingPacketQueue[1];
-				        var taggerIdPacket = _incomingPacketQueue[2];
-
-				        if ((CommandCode) commandPacket.Data != CommandCode.AcknowledgePlayerAssignment)
-				        {
-					        HostDebugWriteLine("Wrong command.");
-					        return false;
-				        }
-
-				        var gameId = gameIdPacket.Data;
-				        var taggerId = taggerIdPacket.Data;
-
-						if (gameId != GameDefinition.GameId || _confirmJoinState.TaggerId != taggerId)
-				        {
-							HostDebugWriteLine("Invalid confirmation: 0x{0:X2} != 0x{1:X2} || 0x{2:X2} != 0x{3:X2}", gameId, GameDefinition.GameId,
-					                           taggerId, _confirmJoinState.TaggerId);
-					        ChangeState(now, HostingState.Adding);
-					        break;
-				        }
-
-				        var found = false;
-				        foreach (var player in _players.Values)
-				        {
-					        if (player.TaggerId == taggerId)
-					        {
-						        player.Confirmed = true;
-						        found = true;
-						        break;
-					        }
-				        }
-
-				        if (found)
-				        {
-					        HostDebugWriteLine("Confirmed player");
-				        }
-				        else
-				        {
-					        HostDebugWriteLine("Unable to find player to confirm");
-					        return false;
-				        }
-
-				        if (_players.Count >= MinimumPlayerCount)
-				        {
-					        _stateChangeTimeout = now.AddSeconds(WaitForAdditionalPlayersTimeoutSeconds);
-				        }
-
-				        ChangeState(now, HostingState.Adding);
-				        _incomingPacketQueue.Clear();
-
-				        if (_listener != null) _listener.PlayerListChanged(_players.Values.ToList());
-
-				        return true;
+							case PacketType.RequestJoinGame:
+						        var requestedTeam = (UInt16) (packet.Data[2].Data & 0x03);
+						        return HandleRequestJoinGame(gameId, taggerId, requestedTeam);
+							case PacketType.AcknowledgePlayerAssignment:
+								return HandleAcknowledgePlayerAssignment(gameId, taggerId);
+							default:
+								HostDebugWriteLine("Wrong command.");
+								return false;
+						}
 			        }
 		        case HostingState.Summary:
 			        {
-				        var commandPacket = _incomingPacketQueue[0];
-
-				        switch ((CommandCode) commandPacket.Data)
+						switch (packet.Type)
 				        {
-					        case CommandCode.TagSummary:
-						        return ProcessPlayerReportScore();
-					        case CommandCode.TeamOneTagReport:
-					        case CommandCode.TeamTwoTagReport:
-					        case CommandCode.TeamThreeTagReport:
-						        return ProcessPlayerHitByTeamReport();
+					        case PacketType.TagSummary:
+						        return HandleTagSummary(packet);
+					        case PacketType.TeamOneTagReport:
+					        case PacketType.TeamTwoTagReport:
+					        case PacketType.TeamThreeTagReport:
+								return HandleTeamTagReport(packet);
 				        }
 
 				        return false;
@@ -618,15 +339,226 @@ namespace LazerTagHostLibrary
 	        return false;
         }
 
-		private void ProcessShot(UInt16 data)
+	    private bool HandleRequestJoinGame(UInt16 gameId, UInt16 taggerId, UInt16 requestedTeam)
+	    {
+			// TODO: Handle multiple simultaneous games
+			if (gameId != _gameDefinition.GameId)
+			{
+				HostDebugWriteLine("Wrong game ID.");
+				return false;
+			}
+
+			Player player = null;
+
+			foreach (var checkPlayer in _players.Values)
+			{
+				if (checkPlayer.TaggerId == taggerId)
+				{
+					if (checkPlayer.Confirmed)
+					{
+						HostDebugWriteLine("Tagger ID collision.");
+						return false;
+					}
+
+					player = checkPlayer;
+					break;
+				}
+			}
+
+			if (player == null)
+			{
+				player = new Player(this, (byte)taggerId);
+
+				if (!AssignTeamAndPlayer(requestedTeam, player)) return false;
+
+				_players[player.TeamPlayerId] = player;
+			}
+
+		    var joinState = new JoinState
+			    {
+				    GameId = gameId,
+				    Player = player,
+				    AssignPlayerSendTime = DateTime.Now
+			    };
+			_joinStates.Remove(taggerId);
+			_joinStates.Add(taggerId, joinState);
+
+			HostDebugWriteLine("Assigning tagger 0x{0:X2} to player {1} for game 0x{2:X2}.", taggerId,
+				   player.TeamPlayerId.ToString(_gameDefinition.IsTeamGame), gameId);
+
+		    var packet = PacketPacker.AssignPlayer(gameId, taggerId, player.TeamPlayerId);
+			TransmitPacket(packet);
+
+		    ChangeState(DateTime.Now, HostingState.AcknowledgePlayerAssignment);
+
+			return true;
+		}
+
+		private bool HandleAcknowledgePlayerAssignment(UInt16 gameId, UInt16 taggerId)
 		{
-			var teamPlayerId = TeamPlayerId.FromPacked23((UInt16)((data >> 2) & 0x1f));
-			var strength = (data & 0x3) + 1;
+			// TODO: Handle multiple simultaneous games
+			if (gameId != _gameDefinition.GameId)
+			{
+				HostDebugWriteLine("Wrong game ID.");
+				return false;
+			}
+
+			JoinState joinState;
+			if (!_joinStates.TryGetValue(taggerId, out joinState))
+			{
+				HostDebugWriteLine("Unable to find player to confirm");
+				return false;
+			}
+
+			var player = joinState.Player;
+			player.Confirmed = true;
+			_joinStates.Remove(taggerId);
+
+			HostDebugWriteLine("Confirmed player {0} for game 0x{1:X2}.",
+			                   player.TeamPlayerId.ToString(_gameDefinition.IsTeamGame), gameId);
+
+			if (_joinStates.Count < 1) ChangeState(DateTime.Now, HostingState.Adding);
+
+			if (_listener != null) _listener.PlayerListChanged(_players.Values.ToList());
+
+			return true;
+		}
+
+		private bool HandleTagSummary(Packet packet)
+		{
+			if (packet.Data.Count != 8)
+			{
+				return false;
+			}
+
+			var gameId = packet.Data[0].Data;
+			var teamPlayerId = TeamPlayerId.FromPacked44(packet.Data[1].Data);
+			var tagsReceived = packet.Data[2].Data; // Hex Coded Decimal
+			var survivedSignature = packet.Data[3]; // [7 bits - zero - unknown][1 bit - alive]
+			AssertUnknownBits("survivedSignature", survivedSignature, 0xfe);
+			var survived = survivedSignature.Data;
+
+			var unknownSignature = packet.Data[3];
+			AssertUnknownBits("unknownSignature", unknownSignature, 0xff);
+
+			var zoneTimeMinutes = packet.Data[5].Data;
+			var zoneTimeSeconds = packet.Data[6].Data;
+
+			// [4 bits - zero - unknown][1 bit - hit by t3][1 bit - hit by t2][1 bit - hit by t1][1 bit - zero - unknown]
+			var teamTagReports = packet.Data[7];
+			AssertUnknownBits("teamTagReports", teamTagReports, 0xf1);
+
+			if (packet.Type != PacketType.TagSummary)
+			{
+				HostDebugWriteLine("Wrong command.");
+				return false;
+			}
+
+			if (gameId != _gameDefinition.GameId)
+			{
+				HostDebugWriteLine("Wrong game ID.");
+				return false;
+			}
+
+			if (_players.ContainsKey(teamPlayerId))
+			{
+				var player = _players[teamPlayerId];
+
+				player.Survived = ((survived & 0x1) == 1);
+				player.TagsTaken = HexCodedDecimal.ToDecimal(tagsReceived);
+				player.TeamTagReportsExpected[0] = ((teamTagReports.Data & 0x2) == 1);
+				player.TeamTagReportsExpected[1] = ((teamTagReports.Data & 0x4) == 1);
+				player.TeamTagReportsExpected[2] = ((teamTagReports.Data & 0x8) == 1);
+				player.ZoneTime = new TimeSpan(0, 0, HexCodedDecimal.ToDecimal(zoneTimeMinutes), HexCodedDecimal.ToDecimal(zoneTimeSeconds));
+
+				player.TagSummaryReceived = true;
+
+				HostDebugWriteLine("Received tag summary from {0}.", player.DisplayName);
+			}
+			else
+			{
+				HostDebugWriteLine("Unable to find player for score report.");
+				return false;
+			}
+
+			return true;
+		}
+
+		private bool HandleTeamTagReport(Packet packet)
+		{
+			if (packet.Data.Count < 4) return false;
+
+			var gameId = packet.Data[0].Data;
+			var teamPlayerId = TeamPlayerId.FromPacked44(packet.Data[1].Data);
+			var scoreBitmask = packet.Data[2].Data;
+
+			// what team do the scores relate to hits from
+			var reportTeamNumber = (int)(packet.PacketTypeSignature.Data - PacketType.TeamOneTagReport + 1);
+
+			if (gameId != _gameDefinition.GameId)
+			{
+				HostDebugWriteLine("Wrong game ID.");
+				return false;
+			}
+
+			var player = LookupPlayer(teamPlayerId);
+			if (player == null) return false;
+
+			if (player.TagSummaryReceived && !player.TeamTagReportsExpected[reportTeamNumber - 1])
+			{
+				HostDebugWriteLine("A tag report from this player for this team was not expected.");
+			}
+
+			if (player.TeamTagReportsReceived[reportTeamNumber - 1])
+			{
+				HostDebugWriteLine("A tag report from this player for this team was already received. Discarding.");
+				return false;
+			}
+
+			player.TeamTagReportsReceived[reportTeamNumber - 1] = true;
+
+			var packetIndex = 3;
+			var mask = scoreBitmask;
+			for (var reportPlayerNumber = 1; reportPlayerNumber <= 8; reportPlayerNumber++)
+			{
+				var reportTeamPlayerId = new TeamPlayerId(reportTeamNumber, reportPlayerNumber);
+				var hasScore = ((mask >> (reportPlayerNumber - 1)) & 0x1) != 0;
+				if (!hasScore) continue;
+
+				if (packet.Data.Count <= packetIndex)
+				{
+					HostDebugWriteLine("Ran off end of score report");
+					return false;
+				}
+
+				var scorePacket = packet.Data[packetIndex];
+
+				player.TaggedByPlayerCounts[reportTeamPlayerId.PlayerNumber - 1] = HexCodedDecimal.ToDecimal(scorePacket.Data);
+				var taggedByPlayer = LookupPlayer(reportTeamPlayerId);
+				if (taggedByPlayer == null) continue;
+
+				HostDebugWriteLine(String.Format("Tagged by {0}", player.DisplayName));
+				if (_gameDefinition.IsTeamGame)
+				{
+					taggedByPlayer.TaggedPlayerCounts[player.TeamPlayerId.PlayerNumber - 1] = HexCodedDecimal.ToDecimal(scorePacket.Data);
+				}
+				packetIndex++;
+			}
+
+			if (_listener != null) _listener.PlayerListChanged(_players.Values.ToList());
+
+			return true;
+		}
+
+		private void ProcessTag(Signature signature)
+		{
+			var teamPlayerId = TeamPlayerId.FromPacked23((UInt16)((signature.Data >> 2) & 0x1f));
+			var strength = (signature.Data & 0x3) + 1;
 			var isTeamGame = GameDefinition != null && GameDefinition.IsTeamGame;
 			HostDebugWriteLine("Received shot from player {0} with {1} tags.", teamPlayerId.ToString(isTeamGame), strength);
 		}
 
-	    private static void ProcessBeaconPacket(UInt16 data, UInt16 bitCount)
+	    private static void ProcessBeaconSignature(UInt16 data, UInt16 bitCount)
 		{
 			switch (bitCount)
 			{
@@ -702,55 +634,74 @@ namespace LazerTagHostLibrary
 			}
 		}
 
-	    private void ProcessDataPacket(UInt16 data, UInt16 bitCount)
+	    private void ProcessDataSignature(UInt16 data,UInt16 bitCount)
 	    {
-		    if (bitCount == 9)
+			if (bitCount == 9)
 		    {
-			    if ((data & 0x100) == 0) // command
+				if ((data & 0x100) == 0) // packet type
 			    {
-				    // start sequence
-				    _incomingPacketQueue.Add(new IrPacket(IrPacket.PacketTypes.Data, data, bitCount));
+				    _incomingPacket = new Packet
+					    {
+						    PacketTypeSignature = new Signature(SignatureType.PacketType, data),
+					    };
 			    }
 			    else // checksum
 			    {
-				    if ((data & 0xff) == LazerTagSerial.ComputeChecksum(_incomingPacketQueue))
-				    {
-					    HostDebugWriteLine(String.Format("RX {0}: {1}",
-					                                     GetCommandCodeName((CommandCode) (_incomingPacketQueue[0].Data)),
-					                                     SerializeCommandSequence(_incomingPacketQueue)));
-					    if (!ProcessCommandSequence())
+					if (_incomingPacket == null)
+					{
+						HostDebugWriteLine("Stray checksum signature received.");
+						return;
+					}
+
+					if (!(_incomingPacket.PacketTypeSignatureValid && _incomingPacket.DataValid))
+					{
+						HostDebugWriteLine("Checksum received for invalid packet: {0}", _incomingPacket);
+						_incomingPacket = null;
+						return;
+					}
+
+				    _incomingPacket.Checksum = new Signature(SignatureType.Checksum, data);
+
+					if (_incomingPacket.ChecksumValid)
+					{
+						HostDebugWriteLine("RX {0}: {1}", GetPacketTypeName(_incomingPacket.Type), _incomingPacket);
+
+						if (!ProcessPacket(_incomingPacket))
 					    {
-						    HostDebugWriteLine("ProcessCommandSequence() failed: {0}", SerializeCommandSequence(_incomingPacketQueue));
+							HostDebugWriteLine("ProcessCommandSequence() failed: {0}", _incomingPacket);
 					    }
 				    }
 				    else
-				    {
-					    HostDebugWriteLine("Invalid Checksum " + SerializeCommandSequence(_incomingPacketQueue));
-				    }
-				    _incomingPacketQueue.Clear();
+					{
+						HostDebugWriteLine("Invalid checksum received. {0}", _incomingPacket);
+					}
+
+					_incomingPacket = null;
 			    }
 		    }
-			else if (bitCount == 8 && _incomingPacketQueue.Count > 0) // mid sequence
+			else if (bitCount == 8) // data
 		    {
-				_incomingPacketQueue.Add(new IrPacket(IrPacket.PacketTypes.Data, data, bitCount));
+				if (_incomingPacket == null || !_incomingPacket.PacketTypeSignatureValid)
+				{
+					HostDebugWriteLine("Stray data packet received. 0x{0:X2} ({1})", data, bitCount);
+					_incomingPacket = null;
+					return;
+				}
+
+			    _incomingPacket.Data.Add(new Signature(SignatureType.Data, data));
 		    }
-			else if (bitCount == 8) // junk
-		    {
-			    HostDebugWriteLine("Unknown packet, clearing queue.");
-			    _incomingPacketQueue.Clear();
-		    }
-		    else if (bitCount == 7) // shot
-		    {
-			    ProcessShot(data);
-				_incomingPacketQueue.Clear();
+			else if (bitCount == 7) // tag
+			{
+				_incomingPacket = null;
+				ProcessTag(new Signature(SignatureType.Tag, data, bitCount));
 			}
 		    else
 		    {
-				HostDebugWriteLine("Data: 0x{0:X2}, {1:d} bits", data, bitCount);
-		    }
+				HostDebugWriteLine("Stray data packet received. 0x{0:X2} ({1})", data, bitCount);
+			}
 	    }
 
-	    private void ProcessMessage(string command, IList<string> parameters)
+	    private void ProcessSignature(string command, IList<string> parameters)
         {
 	        if (parameters.Count != 2) return;
 
@@ -760,10 +711,10 @@ namespace LazerTagHostLibrary
             switch (command)
 			{
 				case "LTTO":
-					ProcessBeaconPacket(data, bitCount);
+					ProcessBeaconSignature(data, bitCount);
 					break;
 				case "LTX":
-					ProcessDataPacket(data, bitCount);
+					ProcessDataSignature(data, bitCount);
 					break;
 				default:
 					return;
@@ -772,45 +723,44 @@ namespace LazerTagHostLibrary
 
 #region SerialProtocol
 
-        private void TransmitPacket(UInt16[] values)
-        {
-	        _serial.TransmitPacket(values);
-        }
-
-		private void TransmitPacket(IEnumerable<IrPacket> packets)
+		private void TransmitSignature(Signature signature)
 		{
-			foreach (var packet in packets)
+			switch (signature.Type)
 			{
-				if (packet.Type == IrPacket.PacketTypes.Beacon)
-				{
-					TransmitBeaconBytes(packet.Data, packet.BitCount);
-				}
-				else
-				{
-					TransmitDataBytes(packet.Data, packet.BitCount);
-				}
+				case SignatureType.Beacon:
+					_serial.EnqueueBeacon(signature.Data, signature.BitCount);
+					break;
+				case SignatureType.Tag:
+					_serial.EnqueueData(signature.Data, signature.BitCount);
+					break;
+				case SignatureType.PacketType:
+					_serial.EnqueueData((UInt16)(signature.Data & ~0x100), 9);
+					break;
+				case SignatureType.Data:
+					_serial.EnqueueData(signature.Data, signature.BitCount);
+					break;
+				case SignatureType.Checksum:
+					_serial.EnqueueData((UInt16)(signature.Data | 0x100), 9);
+					break;
+				default:
+					HostDebugWriteLine("TransmitSignature() - Unknown SignatureType.");
+					break;
 			}
 		}
 
-        private void TransmitDataBytes(UInt16 data, UInt16 bitCount)
-        {
-	        _serial.EnqueueData(data, bitCount);
-        }
-
-        private void TransmitBeaconBytes(UInt16 data, UInt16 bitCount)
-        {
-	        _serial.EnqueueBeacon(data, bitCount);
-        }
-
-        static private string SerializeCommandSequence(IList<IrPacket> packets)
-        {
-			var hexValues = new string[packets.Count];
-			for (var i = 0; i < packets.Count; i++)
+		private void TransmitSignature(IEnumerable<Signature> signatures)
+		{
+			foreach (var signature in signatures)
 			{
-				hexValues[i] = String.Format("0x{0:X2}", packets[i].Data);
-            }
-			return String.Format("SEQ: {0}", String.Join(", ", hexValues));
-        }
+				TransmitSignature(signature);
+			}
+		}
+
+		private void TransmitPacket(Packet packet)
+		{
+			HostDebugWriteLine("TX {0}: {1}", GetPacketTypeName(packet.Type), packet);
+			TransmitSignature(packet.Signatures);
+		}
 #endregion
 
         private void RankPlayers()
@@ -890,7 +840,7 @@ namespace LazerTagHostLibrary
 					foreach (var player in _players.Values)
 					{
 						player.Score = -player.TagsTaken;
-						for (int playerIndex = 0; playerIndex < 8; playerIndex++) // TODO: Fix this to work with up to 24 players
+						for (var playerIndex = 0; playerIndex < 8; playerIndex++) // TODO: Fix this to work with up to 24 players
 						{
 							player.Score += 2 * player.TaggedByPlayerCounts[player.TeamPlayerId.PlayerNumber - 1];
 						}
@@ -900,11 +850,11 @@ namespace LazerTagHostLibrary
 					}
 
 					//Determine PlayerRanks
-					int rank = 0;
-					int lastScore = 99;
-					foreach (KeyValuePair<int, Player> ranking in rankings)
+					var rank = 0;
+					var lastScore = 99;
+					foreach (var ranking in rankings)
 					{
-						Player player = ranking.Value;
+						var player = ranking.Value;
 						if (player.Score != lastScore)
 						{
 							rank++;
@@ -1022,34 +972,30 @@ namespace LazerTagHostLibrary
 			}
         }
 
-        private void Shoot(TeamPlayerId teamPlayerId, int damage)
+        private void SendTag(TeamPlayerId teamPlayerId, int damage)
         {
-	        var shot = PacketPacker.Shot(teamPlayerId, damage);
-	        TransmitPacket(shot);
+	        var signature = PacketPacker.Tag(teamPlayerId, damage);
+			TransmitSignature(signature);
 			HostDebugWriteLine("Shot {0} tags as player {1}.", damage, teamPlayerId.ToString(_gameDefinition.IsTeamGame));
         }
 
-        private void SendPlayerJoin(byte gameId, int preferredTeamNumber)
+		private static UInt16 GenerateRandomId()
 		{
-            var taggerId = (UInt16)(new Random().Next() & 0xff);
-
-			HostDebugWriteLine("Joining with tagger ID 0x{0:X2}.", taggerId);
-
-	        UInt16[] join =
-		        {
-			        (UInt16) CommandCode.RequestJoinGame,
-			        gameId,
-			        taggerId,
-			        (UInt16) (preferredTeamNumber & 0x3)
-		        };
-
-	        TransmitPacket(join);
+			return (UInt16) (new Random().Next() & 0xff);
+		}
+        private void SendRequestJoinGame(byte gameId, int preferredTeamNumber)
+		{
+			var taggerId = GenerateRandomId();
+			var packet = PacketPacker.RequestJoinGame(gameId, taggerId, preferredTeamNumber);
+			TransmitPacket(packet);
+	        HostDebugWriteLine("Sending request to join game 0x{0:X2} with tagger ID 0x{1:X2}. Requesting team {2}", gameId,
+	                           taggerId, preferredTeamNumber);
 		}
 
 	    public void SendTextMessage(string message)
 	    {
-			var values = PacketPacker.TextMessage(message);
-		    TransmitPacket(values);
+			var packet = PacketPacker.TextMessage(message);
+			TransmitPacket(packet);
 	    }
 
         private bool ChangeState(DateTime now, HostingState state) {
@@ -1069,12 +1015,35 @@ namespace LazerTagHostLibrary
 					break;
 				case HostingState.Adding:
 					HostDebugWriteLine("Joining players");
-					_incomingPacketQueue.Clear();
+
+					if (_hostingState != HostingState.AcknowledgePlayerAssignment)
+					{
+						Teams.Clear();
+						if (_gameDefinition.IsTeamGame)
+						{
+							for (var teamNumber = 1; teamNumber <= _gameDefinition.TeamCount; teamNumber++)
+							{
+								Teams.Add(new Team(teamNumber));
+							}
+						}
+						else
+						{
+							Teams.Add(new Team(1));
+						}
+
+						_joinStates.Clear();
+					}
+
+					_stateChangeTimeout = now.AddSeconds(WaitForAdditionalPlayersTimeoutSeconds);
+
+					break;
+				case HostingState.AcknowledgePlayerAssignment:
+					HostDebugWriteLine("Waiting for AcknowledgePlayerAssignment packet.");
+					_stateChangeTimeout = now.AddSeconds(AcknowledgePlayerAssignmentTimeoutSeconds);
 					break;
 				case HostingState.Playing:
 					HostDebugWriteLine("Starting Game");
 					_stateChangeTimeout = now.AddMinutes(_gameDefinition.GameTimeMinutes);
-					_incomingPacketQueue.Clear();
 					break;
 				case HostingState.Summary:
 					HostDebugWriteLine("Debriefing");
@@ -1165,6 +1134,7 @@ namespace LazerTagHostLibrary
             switch (_hostingState)
 			{
 				case HostingState.Adding:
+				case HostingState.AcknowledgePlayerAssignment:
 					return "Adding Players";
 				case HostingState.Countdown:
 					return "Countdown to Game Start";
@@ -1188,6 +1158,7 @@ namespace LazerTagHostLibrary
                 switch (_hostingState)
 				{
 					case HostingState.Adding:
+					case HostingState.AcknowledgePlayerAssignment:
 						var needed = (MinimumPlayerCount - _players.Count);
 						countdown = needed > 0 ? String.Format("Waiting for {0} more players", needed) : "Ready to start";
 						break;
@@ -1209,6 +1180,7 @@ namespace LazerTagHostLibrary
                 switch (_hostingState)
 				{
 					case HostingState.Adding:
+					case HostingState.AcknowledgePlayerAssignment:
 						var needed = (MinimumPlayerCount - _players.Count);
 						if (needed > 0)
 						{
@@ -1277,7 +1249,7 @@ namespace LazerTagHostLibrary
 						{
 							parameters[i] = parameters[i].Trim();
 						}
-						ProcessMessage(command, parameters);
+						ProcessSignature(command, parameters);
                     }
                 }
             }
@@ -1292,44 +1264,31 @@ namespace LazerTagHostLibrary
 			        }
 		        case HostingState.Adding:
 			        {
-				        if (now.CompareTo(_nextAnnouncement) > 0)
+						CheckAssignPlayerFailed();
+						
+						if (now.CompareTo(_nextAnnouncement) > 0)
 				        {
-					        Teams.Clear();
-							if (_gameDefinition.IsTeamGame)
-					        {
-						        for (var teamNumber = 1; teamNumber <= _gameDefinition.TeamCount; teamNumber++)
-						        {
-							        Teams.Add(new Team(teamNumber));
-						        }
-					        }
-					        else
-					        {
-						        Teams.Add(new Team(0));
-					        }
+					        var packet = PacketPacker.AnnounceGame(_gameDefinition);
+							TransmitPacket(packet);
 
-					        _incomingPacketQueue.Clear();
-
-					        var values = PacketPacker.AnnounceGame(_gameDefinition);
-					        TransmitPacket(values);
-
-					        _nextAnnouncement = now.AddSeconds(GameAnnouncementFrequencySeconds);
+					        _nextAnnouncement = now.AddMilliseconds(GameAnnouncementFrequencyMilliseconds);
 				        }
-				        else if (_players.Count >= MinimumPlayerCount
-				                 && now > _stateChangeTimeout
-				                 && !_paused)
+
+				        var confirmedPlayerCount = Players.Values.Count(player => player.Confirmed);
+				        if (confirmedPlayerCount >= MinimumPlayerCount
+				            && now > _stateChangeTimeout
+				            && !_paused)
 				        {
 					        ChangeState(now, HostingState.Countdown);
 				        }
 				        break;
 			        }
-		        case HostingState.ConfirmJoin:
+				case HostingState.AcknowledgePlayerAssignment:
 			        {
-						if (now.CompareTo(_stateChangeTimeout) > 0)
-				        {
-					        //TODO: Use COMMAND_CODE_RESEND_JOIN_CONFIRMATION
-					        HostDebugWriteLine("No confirmation on timeout");
+						if (now > _stateChangeTimeout)
+						{
 							ChangeState(now, HostingState.Adding);
-				        }
+						}
 				        break;
 			        }
 		        case HostingState.Countdown:
@@ -1339,27 +1298,18 @@ namespace LazerTagHostLibrary
 							ChangeState(now, HostingState.Playing);
 				        }
 						else if (_nextAnnouncement < now)
-				        {
-							_nextAnnouncement = now.AddSeconds(1);
-
-							var remainingSeconds = (byte)((_stateChangeTimeout - now).TotalSeconds);
+						{
+							var remainingSeconds = (byte) ((_stateChangeTimeout - now).TotalSeconds);
 					        /**
 							 * There does not appear to be a reason to tell the gun the number of players
 							 * ahead of time.  It only prevents those players from joining midgame.  The
 							 * score report is bitmasked and only reports non-zero scores.
 							 */
-					        var values = new UInt16[]
-						        {
-							        (UInt16) CommandCode.AnnounceCountdown,
-							        GameDefinition.GameId, // Game ID
-							        HexCodedDecimal.FromDecimal(remainingSeconds),
-							        0x08, // Players on Team 1
-							        0x08, // Players on Team 2
-							        0x08 // Players on Team 3
-						        };
-					        TransmitPacket(values);
-					        HostDebugWriteLine("T-{0}", remainingSeconds);
-				        }
+					        var packet = PacketPacker.Countdown(GameDefinition.GameId, remainingSeconds, 8, 8, 8);
+					        TransmitPacket(packet);
+							HostDebugWriteLine("T-{0}", remainingSeconds);
+							_nextAnnouncement = now.AddSeconds(1);
+						}
 				        break;
 			        }
 		        case HostingState.Playing:
@@ -1375,11 +1325,11 @@ namespace LazerTagHostLibrary
 								case GameType.OwnTheZone:
 								case GameType.OwnTheZoneTwoTeams:
 								case GameType.OwnTheZoneThreeTeams:
-							        TransmitPacket(PacketPacker.ZoneBeacon(0, ZoneType.ContestedZone));
+							        TransmitSignature(PacketPacker.ZoneBeacon(0, ZoneType.ContestedZone));
 									_nextAnnouncement = now.AddMilliseconds(500);
 							        break;
 								case GameType.Respawn:
-							        TransmitPacket(PacketPacker.ZoneBeacon(0, ZoneType.TeamZone));
+									TransmitSignature(PacketPacker.ZoneBeacon(0, ZoneType.TeamZone));
 									_nextAnnouncement = now.AddMilliseconds(500);
 									break;
 							}
@@ -1431,14 +1381,8 @@ namespace LazerTagHostLibrary
 						        break;
 					        }
 
-					        var values = new UInt16[]
-						        {
-							        (UInt16) CommandCode.RequestTagReport,
-							        GameDefinition.GameId, // Game ID
-							        nextDebriefPlayer.TeamPlayerId.Packed44, // player index [ 4 bits - team ] [ 4 bits - player number ]
-							        0x0F // unknown
-						        };
-					        TransmitPacket(values);
+					        var packet = PacketPacker.RequestTagReport(GameDefinition.GameId, nextDebriefPlayer.TeamPlayerId);
+							TransmitPacket(packet);
 
 					        _nextAnnouncement = now.AddSeconds(RequestTagReportFrequencySeconds);
 				        }
@@ -1451,32 +1395,72 @@ namespace LazerTagHostLibrary
 					        _nextAnnouncement = now.AddSeconds(GameOverAnnouncementFrequencySeconds);
 
 							// TODO: Fix this to work with solo games
-							var team = _teams.Team(_rankReportTeamNumber);
+							var team = Teams.Team(_rankReportTeamNumber);
 
 							_rankReportTeamNumber++;
 							if (_rankReportTeamNumber > _gameDefinition.TeamCount) _rankReportTeamNumber = 1;
 
 					        if (team == null) break;
 
-							var values = new UInt16[11];
-						    values[0] = (UInt16) CommandCode.AnnounceTeamPlayerRanks;
-							values[1] = GameDefinition.GameId;
-						    values[2] = (UInt16) (((team.TeamNumber & 0xf) << 4) | (team.TeamRank & 0xf));
+							var playerRanks = new int[8];
 
 						    foreach (var player in _players.Values)
 						    {
 							    if (player.TeamPlayerId.TeamNumber != team.TeamNumber) continue;
-							    values[player.TeamPlayerId.TeamPlayerNumber + 2] = (UInt16) player.Rank;
+							    playerRanks[player.TeamPlayerId.TeamPlayerNumber - 1] = player.Rank;
 						    }
 
-						    TransmitPacket(values);
+							var packet = PacketPacker.RankReport(GameDefinition.GameId, team.TeamNumber, team.TeamRank, playerRanks);
+					        TransmitPacket(packet);
 				        }
 				        break;
 			        }
 	        }
         }
 
-        public void AddListener(IHostChangedListener listener)
+	    private void CheckAssignPlayerFailed()
+	    {
+		    var removeKeys = new List<UInt16>();
+
+		    foreach (var taggerId in _joinStates.Keys)
+		    {
+				var joinState = _joinStates[taggerId];
+
+			    if (!joinState.Failed)
+			    {
+					if (DateTime.Now < joinState.AssignPlayerSendTime.AddSeconds(AcknowledgePlayerAssignmentTimeoutSeconds)) continue;
+
+					HostDebugWriteLine(
+						"Timed out after {0} seconds waiting for AcknowledgePlayerAssignment from tagger 0x{1:X2} for game 0x{2:X2}.",
+						AcknowledgePlayerAssignmentTimeoutSeconds, taggerId, _gameDefinition.GameId);
+
+					joinState.Failed = true;
+				    joinState.AssignPlayerFailSendCount = 0;
+					joinState.LastAssignPlayerFailSendTime = new DateTime(0);
+				}
+
+			    if (!joinState.Failed) continue;
+
+			    if (DateTime.Now < joinState.LastAssignPlayerFailSendTime.AddMilliseconds(AssignPlayerFailedFrequencyMilliseconds)) continue;
+
+			    var packet = PacketPacker.AssignPlayerFailed(joinState.GameId, taggerId);
+			    TransmitPacket(packet);
+
+				joinState.AssignPlayerFailSendCount++;
+			    joinState.LastAssignPlayerFailSendTime = DateTime.Now;
+
+				if (joinState.AssignPlayerFailSendCount >= AssignPlayerFailedSendCount) removeKeys.Add(taggerId);
+		    }
+
+		    foreach (var key in removeKeys)
+		    {
+			    var player = _joinStates[key].Player;
+				Players.Remove(player.TeamPlayerId);
+				_joinStates.Remove(key);
+		    }
+	    }
+
+	    public void AddListener(IHostChangedListener listener)
 		{
             _listener = listener;
         }
