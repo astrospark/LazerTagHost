@@ -87,6 +87,9 @@
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Title.png" />
+    <EmbeddedResource Include="UnhandledException.resx">
+      <DependentUpon>UnhandledException.cs</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="gtk-gui\generated.cs" />
@@ -112,6 +115,12 @@
     </Compile>
     <Compile Include="ScoreReport.Designer.cs">
       <DependentUpon>ScoreReport.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UnhandledException.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UnhandledException.Designer.cs">
+      <DependentUpon>UnhandledException.cs</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup>
