@@ -9,22 +9,40 @@ namespace LazerTagHostLibrary
 	{
 		public Team(int teamNumber)
 		{
-			TeamNumber = teamNumber;
+			Number = teamNumber;
 		}
 
-		public int TeamNumber { get; set; }
-		public int TeamRank { get; set; }
+		private readonly PlayerCollection _players = new PlayerCollection();
+		public PlayerCollection Players
+		{
+			get { return _players; }
+		}
+
+		public int Number { get; set; }
+		public int Score { get; set; }
+		public int Rank { get; set; }
 	}
 
 	public class TeamCollection: ICollection<Team>
 	{
 		private readonly List<Team> _teams = new List<Team>();
- 
+
+		public void CalculateRanks()
+		{
+			var sortedTeams = (from t in _teams select t).OrderByDescending(t => t.Score);
+			var rank = 1;
+			foreach (var team in sortedTeams)
+			{
+				team.Rank = rank;
+				rank++;
+			}
+		}
+
 		public Team Team(int teamNumber)
 		{
 			try
 			{
-				return _teams.First(team => team.TeamNumber == teamNumber);
+				return _teams.FirstOrDefault(team => team.Number == teamNumber);
 			}
 			catch (InvalidOperationException)
 			{

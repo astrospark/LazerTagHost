@@ -16,8 +16,8 @@
                 </tr>
                 {% for team in teams -%}
                     <tr class="{% cycle 'team': 'odd', 'even' -%}">
-                        <td>Team {{ team.team_number }}</td>
-                        <td>{{ team.team_rank | to_ordinal }}</td>
+                        <td>Team {{ team.number }}</td>
+                        <td>{{ team.rank | to_ordinal }}</td>
                     </tr>
                 {% endfor -%}
             </table>

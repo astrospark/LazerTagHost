@@ -28,7 +28,7 @@ namespace LazerTagHostUI
 			var template = Template.Parse(contentTemplate);
 			Template.RegisterFilter(typeof (OrdinalFilter));
 			Template.RegisterFilter(typeof (YesNoFilter));
-			Template.RegisterSafeType(typeof (Team), new[] {"TeamNumber", "TeamRank"});
+			Template.RegisterSafeType(typeof (Team), new[] {"Number", "Rank"});
 			Template.RegisterSafeType(typeof (Player), new[] {"TeamPlayerId", "DisplayName", "Rank", "Score", "Survived", "TaggedByPlayerCounts"});
 			Template.RegisterSafeType(typeof (TeamPlayerId), new[] {"PlayerNumber", "TeamNumber", "TeamPlayerNumber"});
 
@@ -110,7 +110,7 @@ namespace LazerTagHostUI
 					base_uri = basePath,
 					is_team_game = _hostGun.GameDefinition.IsTeamGame,
 					teams = _hostGun.Teams,
-					players = _hostGun.Players.Values,
+					players = _hostGun.Players,
 					//is_team_game = testIsTeamGame,
 					//teams = testTeams,
 					//players = testPlayers,

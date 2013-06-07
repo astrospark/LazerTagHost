@@ -60,13 +60,13 @@ namespace LazerTagHostUI
             var playerNumber = playerSelector.GetCurrentSelectedPlayer();
             if (playerNumber == 0) return null;
 
-            return _hostGun.LookupPlayer(new TeamPlayerId(playerNumber));
+			return _hostGun.Players.Player(new TeamPlayerId(playerNumber));
         }
 
         private string GetPlayerName(int teamNumber, int playerNumber)
         {
 	        var teamPlayerId = new TeamPlayerId(teamNumber, playerNumber);
-			var player = _hostGun.LookupPlayer(teamPlayerId);
+			var player = _hostGun.Players.Player(teamPlayerId);
 			if (player == null) return "Open";
 
 	        var text = player.DisplayName + " ";

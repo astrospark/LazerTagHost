@@ -1,5 +1,8 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 namespace LazerTagHostLibrary
 {
@@ -10,6 +13,7 @@ namespace LazerTagHostLibrary
 		public bool Confirmed = false;
 		public bool TagSummaryReceived = false;
 		public TeamPlayerId TeamPlayerId { get; set; }
+		public Team Team { get; set; }
 
 		public int TagsTaken = 0;
 		public bool Survived { get; set; }
@@ -34,7 +38,6 @@ namespace LazerTagHostLibrary
 
 		public int Score { get; set; }
 		public int Rank { get; set; } // 1-24
-		public int TeamRank = 0; // 1-3
 
 		public string Name { get; set; }
 
@@ -65,6 +68,84 @@ namespace LazerTagHostLibrary
 			}
 
 			return true;
+		}
+	}
+
+	public class PlayerCollection : ICollection<Player>
+	{
+		private readonly List<Player> _players = new List<Player>();
+
+		public void CalculateRanks()
+		{
+			var sortedPlayers = (from p in _players select p).OrderByDescending(p => p.Score);
+			var rank = 1;
+			foreach (var player in sortedPlayers)
+			{
+				player.Rank = rank;
+				rank++;
+			}
+		}
+
+		public Player Player(TeamPlayerId teamPlayerId)
+		{
+			try
+			{
+				return _players.FirstOrDefault(player => player.TeamPlayerId == teamPlayerId);
+			}
+			catch (InvalidOperationException)
+			{
+				return null;
+			}
+		}
+
+		public IEnumerator<Player> GetEnumerator()
+		{
+			return _players.GetEnumerator();
+		}
+
+		IEnumerator IEnumerable.GetEnumerator()
+		{
+			return GetEnumerator();
+		}
+
+		public void Add(Player item)
+		{
+			_players.Add(item);
+		}
+
+		public void Clear()
+		{
+			_players.Clear();
+		}
+
+		public bool Contains(Player item)
+		{
+			return (_players.Contains(item));
+		}
+
+		public void CopyTo(Player[] array, int arrayIndex)
+		{
+			_players.CopyTo(array, arrayIndex);
+		}
+
+		public bool Remove(Player item)
+		{
+			return _players.Remove(item);
+		}
+
+		public bool Remove(TeamPlayerId teamPlayerId)
+		{
+			return _players.Remove(Player(teamPlayerId));
+		}
+
+		public int Count
+		{
+			get { return _players.Count; }
+		}
+
+		public bool IsReadOnly
+		{
+			get { return false; }
 		}
 	}
 
