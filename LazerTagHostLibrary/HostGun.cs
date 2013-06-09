@@ -314,9 +314,9 @@ namespace LazerTagHostLibrary
 				        {
 							case PacketType.RequestJoinGame:
 						        var requestedTeam = (UInt16) (packet.Data[2].Data & 0x03);
-						        return HandleRequestJoinGame(gameId, taggerId, requestedTeam);
+						        return ProcessRequestJoinGame(gameId, taggerId, requestedTeam);
 							case PacketType.AcknowledgePlayerAssignment:
-								return HandleAcknowledgePlayerAssignment(gameId, taggerId);
+								return ProcessAcknowledgePlayerAssignment(gameId, taggerId);
 							default:
 								HostDebugWriteLine("Wrong command.");
 								return false;
@@ -327,11 +327,11 @@ namespace LazerTagHostLibrary
 						switch (packet.Type)
 				        {
 					        case PacketType.TagSummary:
-						        return HandleTagSummary(packet);
+						        return ProcessTagSummary(packet);
 					        case PacketType.TeamOneTagReport:
 					        case PacketType.TeamTwoTagReport:
 					        case PacketType.TeamThreeTagReport:
-								return HandleTeamTagReport(packet);
+								return ProcessTeamTagReport(packet);
 				        }
 
 				        return false;
@@ -341,7 +341,7 @@ namespace LazerTagHostLibrary
 	        return false;
         }
 
-	    private bool HandleRequestJoinGame(UInt16 gameId, UInt16 taggerId, UInt16 requestedTeam)
+	    private bool ProcessRequestJoinGame(UInt16 gameId, UInt16 taggerId, UInt16 requestedTeam)
 	    {
 			// TODO: Handle multiple simultaneous games
 			if (gameId != _gameDefinition.GameId)
@@ -396,7 +396,7 @@ namespace LazerTagHostLibrary
 			return true;
 		}
 
-		private bool HandleAcknowledgePlayerAssignment(UInt16 gameId, UInt16 taggerId)
+		private bool ProcessAcknowledgePlayerAssignment(UInt16 gameId, UInt16 taggerId)
 		{
 			// TODO: Handle multiple simultaneous games
 			if (gameId != _gameDefinition.GameId)
@@ -426,16 +426,28 @@ namespace LazerTagHostLibrary
 			return true;
 		}
 
-		private bool HandleTagSummary(Packet packet)
+		private bool ProcessTagSummary(Packet packet)
 		{
+			if (packet.Type != PacketType.TagSummary)
+			{
+				HostDebugWriteLine("Wrong command.");
+				return false;
+			}
+
 			if (packet.Data.Count != 8)
 			{
 				return false;
 			}
 
 			var gameId = packet.Data[0].Data;
+			if (gameId != _gameDefinition.GameId)
+			{
+				HostDebugWriteLine("Wrong game ID.");
+				return false;
+			}
+
 			var teamPlayerId = TeamPlayerId.FromPacked44(packet.Data[1].Data);
-			var tagsReceived = packet.Data[2].Data; // Hex Coded Decimal
+			var tagsTaken = packet.Data[2].Data; // Hex Coded Decimal
 			var survivedSignature = packet.Data[3];
 			AssertUnknownBits("survivedSignature", survivedSignature, 0xef);
 			var survived = survivedSignature.Data;
@@ -449,81 +461,70 @@ namespace LazerTagHostLibrary
 			var teamTagReports = packet.Data[7];
 			AssertUnknownBits("teamTagReports", teamTagReports, 0xf1);
 
-			if (packet.Type != PacketType.TagSummary)
-			{
-				HostDebugWriteLine("Wrong command.");
-				return false;
-			}
-
-			if (gameId != _gameDefinition.GameId)
-			{
-				HostDebugWriteLine("Wrong game ID.");
-				return false;
-			}
-
 			var player = _players.Player(teamPlayerId);
-			if (player != null)
-			{
-				player.Survived = (survived & 0x10) == 0x10;
-				player.TagsTaken = HexCodedDecimal.ToDecimal(tagsReceived);
-				player.TeamTagReportsExpected[0] = (teamTagReports.Data & 0x2) == 1;
-				player.TeamTagReportsExpected[1] = (teamTagReports.Data & 0x4) == 1;
-				player.TeamTagReportsExpected[2] = (teamTagReports.Data & 0x8) == 1;
-				player.ZoneTime = new TimeSpan(0, 0, HexCodedDecimal.ToDecimal(zoneTimeMinutes), HexCodedDecimal.ToDecimal(zoneTimeSeconds));
-
-				player.TagSummaryReceived = true;
-
-				HostDebugWriteLine("Received tag summary from {0}.", player.DisplayName);
-			}
-			else
+			if (player == null)
 			{
 				HostDebugWriteLine("Unable to find player for score report.");
 				return false;
 			}
 
+			player.Survived = (survived & 0x10) == 0x10;
+			player.TagsTaken = HexCodedDecimal.ToDecimal(tagsTaken);
+			player.TeamTagReportsExpected[0] = (teamTagReports.Data & 0x2) != 0;
+			player.TeamTagReportsExpected[1] = (teamTagReports.Data & 0x4) != 0;
+			player.TeamTagReportsExpected[2] = (teamTagReports.Data & 0x8) != 0;
+			player.ZoneTime = new TimeSpan(0, 0, HexCodedDecimal.ToDecimal(zoneTimeMinutes), HexCodedDecimal.ToDecimal(zoneTimeSeconds));
+
+			player.TagSummaryReceived = true;
+
+			HostDebugWriteLine("Received tag summary from {0}.", player.DisplayName);
+
 			return true;
 		}
 
-		private bool HandleTeamTagReport(Packet packet)
+		private bool ProcessTeamTagReport(Packet packet)
 		{
 			if (packet.Data.Count < 4) return false;
 
 			var gameId = packet.Data[0].Data;
-			var teamPlayerId = TeamPlayerId.FromPacked44(packet.Data[1].Data);
-			var scoreBitmask = packet.Data[2].Data;
-
-			// what team do the scores relate to hits from
-			var reportTeamNumber = (int)(packet.PacketTypeSignature.Data - PacketType.TeamOneTagReport + 1);
-
 			if (gameId != _gameDefinition.GameId)
 			{
 				HostDebugWriteLine("Wrong game ID.");
 				return false;
 			}
 
+			// what team do the scores relate to hits from
+			var taggedByTeamNumber = (int)(packet.PacketTypeSignature.Data - PacketType.TeamOneTagReport + 1);
+
+			var teamPlayerId = TeamPlayerId.FromPacked44(packet.Data[1].Data);
+
 			var player = Players.Player(teamPlayerId);
 			if (player == null) return false;
 
-			if (player.TagSummaryReceived && !player.TeamTagReportsExpected[reportTeamNumber - 1])
+			if (player.TagSummaryReceived && !player.TeamTagReportsExpected[taggedByTeamNumber - 1])
 			{
-				HostDebugWriteLine("A tag report from this player for this team was not expected.");
+				HostDebugWriteLine("A tag report from player {0} for team {1} was not expected.", player.TeamPlayerId,
+				                   taggedByTeamNumber);
 			}
 
-			if (player.TeamTagReportsReceived[reportTeamNumber - 1])
+			if (player.TeamTagReportsReceived[taggedByTeamNumber - 1])
 			{
-				HostDebugWriteLine("A tag report from this player for this team was already received. Discarding.");
+				HostDebugWriteLine("A tag report from player {0} for team {1} was already received. Discarding.",
+				                   player.TeamPlayerId, taggedByTeamNumber);
 				return false;
 			}
 
-			player.TeamTagReportsReceived[reportTeamNumber - 1] = true;
+			player.TeamTagReportsReceived[taggedByTeamNumber - 1] = true;
+
+			var scoreBitmask = packet.Data[2].Data;
 
 			var packetIndex = 3;
 			var mask = scoreBitmask;
-			for (var reportPlayerNumber = 1; reportPlayerNumber <= 8; reportPlayerNumber++)
+			for (var taggedByTeamPlayerNumber = 1; taggedByTeamPlayerNumber <= 8; taggedByTeamPlayerNumber++)
 			{
-				var reportTeamPlayerId = new TeamPlayerId(reportTeamNumber, reportPlayerNumber);
-				var hasScore = ((mask >> (reportPlayerNumber - 1)) & 0x1) != 0;
-				if (!hasScore) continue;
+				var taggedByTeamPlayerId = new TeamPlayerId(taggedByTeamNumber, taggedByTeamPlayerNumber);
+				var hasTags = ((mask >> (taggedByTeamPlayerNumber - 1)) & 0x1) != 0;
+				if (!hasTags) continue;
 
 				if (packet.Data.Count <= packetIndex)
 				{
@@ -531,17 +532,14 @@ namespace LazerTagHostLibrary
 					return false;
 				}
 
-				var scorePacket = packet.Data[packetIndex];
+				var tagsTaken = HexCodedDecimal.ToDecimal(packet.Data[packetIndex].Data);
 
-				player.TaggedByPlayerCounts[reportTeamPlayerId.PlayerNumber - 1] = HexCodedDecimal.ToDecimal(scorePacket.Data);
-				var taggedByPlayer = Players.Player(reportTeamPlayerId);
+				player.TaggedByPlayerCounts[taggedByTeamPlayerId.PlayerNumber - 1] = tagsTaken;
+
+				var taggedByPlayer = Players.Player(taggedByTeamPlayerId);
 				if (taggedByPlayer == null) continue;
+				taggedByPlayer.TaggedPlayerCounts[player.TeamPlayerId.PlayerNumber - 1] = tagsTaken;
 
-				HostDebugWriteLine(String.Format("Tagged by {0}", player.DisplayName));
-				if (_gameDefinition.IsTeamGame)
-				{
-					taggedByPlayer.TaggedPlayerCounts[player.TeamPlayerId.PlayerNumber - 1] = HexCodedDecimal.ToDecimal(scorePacket.Data);
-				}
 				packetIndex++;
 			}
 
@@ -763,193 +761,170 @@ namespace LazerTagHostLibrary
 		}
 #endregion
 
-        private void RankPlayers()
+        private void CalculateScores()
         {
             switch (_gameDefinition.GameType)
 			{
 				case GameType.OwnTheZone:
 				case GameType.OwnTheZoneTwoTeams:
 				case GameType.OwnTheZoneThreeTeams:
-				{
-					var rankings = new SortedList<int, Player>();
-					var teamZoneTime = new[] { 0, 0, 0 };
-
-					foreach (var player in _players)
-					{
-						var playerZoneTimeSeconds = Convert.ToInt32(player.ZoneTime.TotalSeconds);
-						player.Score = playerZoneTimeSeconds;
-
-						var score = playerZoneTimeSeconds;
-						score = (Int32.MaxValue - score) << 8 | player.TaggerId;
-						rankings.Add(score, player);
-
-						teamZoneTime[player.TeamPlayerId.TeamNumber - 1] += playerZoneTimeSeconds;
-					}
-
-					// Determine PlayerRanks
-					// TODO: Check if this sort order needs reversing
-					var rank = 0;
-					var lastScore = 99;
-					foreach(var e in rankings)
-					{
-						var p = e.Value;
-						if (p.Score != lastScore)
-						{
-							rank++;
-							lastScore = p.Score;
-						}
-						p.Rank = rank;
-						p.Team.Rank = 0;
-					}
-
-					//Team rank only for team games
-					var teamRank = new[] { 0, 0, 0 };
-					switch (_gameDefinition.GameType)
-					{
-						case GameType.OwnTheZoneTwoTeams:
-						case GameType.OwnTheZoneThreeTeams:
-						{
-							for (var i = 0; i < _gameDefinition.TeamCount; i++)
-							{
-								teamRank[i] = _gameDefinition.TeamCount;
-								if (teamZoneTime[i] >= teamZoneTime[(i + 1) % 3]) teamRank[i]--;
-								if (teamZoneTime[i] >= teamZoneTime[(i + 2) % 3]) teamRank[i]--;
-								Teams.Team(i + 1).Rank = teamRank[i];
-								HostDebugWriteLine("Team {0} Rank {1}", (i + 1), teamRank[i]);
-							}
-
-							foreach (var player in _players)
-							{
-								player.Team.Rank = teamRank[player.TeamPlayerId.TeamNumber - 1];
-							}
-
-							break;
-						}
-					}
-
+					CalculateScoresOwnTheZone();
 					break;
-				}
 				case GameType.CustomLazerTag:
-				{
-					var rankings = new SortedList<int, Player>();
-					/*
-					- Ranks are based on receiving 2 points per tag landed on players
-					and losing 1 point for every time you’re tagged by a another player
-					*/
-
-					foreach (var player in _players)
-					{
-						player.Score = -player.TagsTaken;
-						for (var playerIndex = 0; playerIndex < 8; playerIndex++) // TODO: Fix this to work with up to 24 players
-						{
-							player.Score += 2 * player.TaggedByPlayerCounts[player.TeamPlayerId.PlayerNumber - 1];
-						}
-
-						//we want high rankings out first
-						rankings.Add(-player.Score << 8 | player.TaggerId, player);
-					}
-
-					//Determine PlayerRanks
-					var rank = 0;
-					var lastScore = 99;
-					foreach (var ranking in rankings)
-					{
-						var player = ranking.Value;
-						if (player.Score != lastScore)
-						{
-							rank++;
-							lastScore = player.Score;
-						}
-						player.Rank = rank;
-					}
+					CalculateScoresCustomLazerTag();
 					break;
-				}
 				case GameType.CustomLazerTagTwoTeams:
 				case GameType.CustomLazerTagThreeTeams:
-				case GameType.HuntThePrey: //Untested
-				case GameType.HideAndSeek: //Untested
-				{
-					var rankedPlayers = new SortedList<int, Player>();
-					var teamSurvivedPlayerCounts = new[] {0, 0, 0};
-					var teamSurvivedPlayerScoreTotals = new [] {0, 0, 0}; // the total score of only the surviving players on each time
-					//var teamScores = new[] {0, 0, 0};
-					/*
-					- Individual ranks are based on receiving 2 points per tag landed on players
-					from other teams, and losing 1 point for every time you’re tagged by a player
-					from another team. Tagging your own teammate (Team Tags) costs you 2
-					points. Being tagged by your own teammates does not hurt your score.
-					- Team ranks are based on which team has the most players not tagged out
-					when the game ends (this gives an advantage to larger teams, so less-skilled
-					players can be grouped together on a larger team to even things out). In the
-					event of a tie, the TAG MASTER will attempt to break the tie based on the
-					individual scores of the players on each team who did not get tagged out –
-					this rewards the team with the more aggressive players that land more tags.
-					Just hiding or trying to not get tagged may cost your team valuable points that
-					could affect your team’s ranking.
-					*/
-
-					foreach (var player in _players)
-					{
-						var score = -player.TagsTaken;
-						// TODO: test to make sure scoring works accurately
-						for (var teamNumber = 1; teamNumber <= GameDefinition.TeamCount; teamNumber++)
-						{
-							for (var playerNumber = 1; playerNumber <= 8; playerNumber++)
-							{
-								var teamPlayerId = new TeamPlayerId(teamNumber, playerNumber);
-								if (player.TeamPlayerId.TeamNumber == teamNumber)
-								{
-									//Friendly fire
-									score -= 2 * player.TaggedByPlayerCounts[teamPlayerId.PlayerNumber - 1];
-								}
-								else
-								{
-									score += 2 * player.TaggedByPlayerCounts[teamPlayerId.PlayerNumber - 1];
-								}
-							}
-						}
-                    
-						player.Score = score;
-						if (player.Survived)
-						{
-							teamSurvivedPlayerCounts[player.TeamPlayerId.TeamNumber - 1]++;
-							teamSurvivedPlayerScoreTotals[player.TeamPlayerId.TeamNumber - 1] += score;
-						}
-						//prevent duplicates
-						score = score << 8 | player.TaggerId;
-						//we want high rankings out first
-						rankedPlayers.Add(-score, player);
-					}
-                
-					//Determine Team Ranks
-					for (var i = 0; i < GameDefinition.TeamCount; i++)
-					{
-						var teamNumber = i + 1;
-						var teamScore = (teamSurvivedPlayerCounts[i] << 10) + (teamSurvivedPlayerScoreTotals[i] << 2);
-						Teams.Team(teamNumber).Score = teamScore;
-						HostDebugWriteLine("Team {0} had {1} surviving players.", teamNumber, teamSurvivedPlayerCounts[i]);
-						HostDebugWriteLine("The surviving players' total score was {0}.", teamSurvivedPlayerScoreTotals[i]);
-						HostDebugWriteLine("Team {0}'s final score was {1}.", teamNumber, teamScore);
-					}
-
-					Teams.CalculateRanks();
-					Players.CalculateRanks();
-
+				case GameType.HuntThePrey:
+				case GameType.HideAndSeek:
+					CalculateScoresTeamGames();
 					break;
-				}
 				case GameType.KingsTwoTeams:
 				case GameType.KingsThreeTeams:
-				{
-					//TODO: Write kings score
+					CalculateScoresKings();
 					break;
-				}
 				default:
-					HostDebugWriteLine("Unable to score match");
+					HostDebugWriteLine("Unble to score game type {0}.", _gameDefinition.GameType);
 					break;
 			}
         }
 
-	    private void SendTag(TeamPlayerId teamPlayerId, int damage)
+		private void CalculateScoresOwnTheZone()
+		{
+			foreach (var player in _players)
+			{
+				var playerZoneTimeSeconds = Convert.ToInt32(player.ZoneTime.TotalSeconds);
+				player.Score = playerZoneTimeSeconds;
+				Teams.Team(player.TeamPlayerId.TeamNumber).Score += playerZoneTimeSeconds;
+			}
+
+			Teams.CalculateRanks();
+			Players.CalculateRanks();
+		}
+
+		private void CalculateScoresCustomLazerTag()
+		{
+			foreach (var player in _players)
+			{
+				// Players lose 1 point for each tag they receive from another player
+				player.Score = -player.TagsTaken;
+
+				for (var playerNumber = 1; playerNumber <= TeamPlayerId.MaximumPlayerNumber; playerNumber++)
+				{
+					// Players receive 2 points for each tag they land on another player
+					player.Score += 2*player.TaggedPlayerCounts[playerNumber - 1];
+				}
+			}
+
+		    Players.CalculateRanks();
+		}
+
+		private void CalculateScoresTeamGames()
+	    {
+			var teamCount = GameDefinition.TeamCount;
+			var teamSurvivedPlayerCounts = new int[teamCount];
+			var teamSurvivedPlayerScoreTotals = new int[teamCount];
+
+			// Calculate player scores
+		    foreach (var player in _players)
+		    {
+				// Players lose 1 point for each tag they receive from another player
+				var score = -player.TagsTaken;
+
+				for (var teamNumber = 1; teamNumber <= teamCount; teamNumber++)
+			    {
+				    for (var playerNumber = 1; playerNumber <= 8; playerNumber++)
+				    {
+					    var teamPlayerId = new TeamPlayerId(teamNumber, playerNumber);
+					    if (player.TeamPlayerId.TeamNumber == teamNumber)
+					    {
+							// Players lose 2 points for each tag they land on players on their own team
+							score -= 2 * player.TaggedPlayerCounts[teamPlayerId.PlayerNumber - 1];
+					    }
+					    else
+					    {
+							// Players receive 2 points for each tag they land on players from other teams
+							score += 2 * player.TaggedPlayerCounts[teamPlayerId.PlayerNumber - 1];
+					    }
+				    }
+			    }
+
+			    player.Score = score;
+			    if (player.Survived)
+			    {
+				    teamSurvivedPlayerCounts[player.TeamPlayerId.TeamNumber - 1]++;
+				    teamSurvivedPlayerScoreTotals[player.TeamPlayerId.TeamNumber - 1] += score;
+			    }
+		    }
+
+		    // Calculate team scores
+			for (var teamNumber = 1; teamNumber <= teamCount; teamNumber++)
+			{
+				var teamScore = (teamSurvivedPlayerCounts[teamNumber - 1] << 10) + (teamSurvivedPlayerScoreTotals[teamNumber - 1] << 2);
+				Teams.Team(teamNumber).Score = teamScore;
+				HostDebugWriteLine("Team {0} had {1} surviving players.", teamNumber, teamSurvivedPlayerCounts[teamNumber - 1]);
+				HostDebugWriteLine("The total score of the surviving players was {0}.", teamSurvivedPlayerScoreTotals[teamNumber - 1]);
+				HostDebugWriteLine("Team {0}'s final score was {1}.", teamNumber, teamScore);
+		    }
+
+		    Teams.CalculateRanks();
+		    Players.CalculateRanks();
+	    }
+
+		private void CalculateScoresKings()
+		{
+			// TODO: Check that this scoring matches that calculated by the taggers
+
+			var teamCount = GameDefinition.TeamCount;
+			var teamKingSurvived = new bool[teamCount];
+			var teamKingTagsTaken = new int[teamCount];
+
+			// Calculate player scores
+			foreach (var player in _players)
+			{
+				if (player.TeamPlayerId.TeamPlayerNumber == 1) // player is a king
+				{
+					var teamNumber = player.TeamPlayerId.TeamNumber - 1;
+					teamKingSurvived[teamNumber] = player.Survived;
+					teamKingTagsTaken[teamNumber] = player.TagsTaken;
+					HostDebugWriteLine("Team {0}'s king took {1} tags and {2}.", teamNumber, player.TagsTaken,
+					                   player.Survived ? "survived" : "did not survive");
+				}
+
+				for (var teamNumber = 1; teamNumber <= teamCount; teamNumber++)
+				{
+					var teamKing = Players.Player(new TeamPlayerId(teamNumber, 1));
+					if (teamKing == null)
+					{
+						HostDebugWriteLine("Could not find the king for team {0}.", teamNumber);
+						return;
+					}
+
+					if (player.TeamPlayerId.TeamNumber == teamNumber)
+					{
+						// Players lose 4 point for each tag they land on their own team's king
+						player.Score -= 4*player.TaggedPlayerCounts[teamKing.TeamPlayerId.PlayerNumber - 1];
+					}
+					else
+					{
+						// Players receive 1 point for each tag they land on other teams' kings
+						player.Score -= player.TaggedPlayerCounts[teamKing.TeamPlayerId.PlayerNumber - 1];
+					}
+				}
+			}
+
+			// Calculate team scores
+			for (var teamNumber = 1; teamNumber <= teamCount; teamNumber++)
+			{
+				var teamScore = (teamKingSurvived[teamNumber - 1] ? 1 : 0 << 10) - (teamKingTagsTaken[teamNumber - 1] << 2);
+				Teams.Team(teamNumber).Score = teamScore;
+			}
+
+			Teams.CalculateRanks();
+			Players.CalculateRanks();
+		}
+
+		private void SendTag(TeamPlayerId teamPlayerId, int damage)
         {
 	        var signature = PacketPacker.Tag(teamPlayerId, damage);
 			TransmitSignature(signature);
@@ -1271,14 +1246,20 @@ namespace LazerTagHostLibrary
 						else if (_nextAnnouncement < now)
 						{
 							var remainingSeconds = (byte) ((_stateChangeTimeout - now).TotalSeconds);
-					        /**
-							 * There does not appear to be a reason to tell the gun the number of players
-							 * ahead of time.  It only prevents those players from joining midgame.  The
-							 * score report is bitmasked and only reports non-zero scores.
-							 */
-					        var packet = PacketPacker.Countdown(GameDefinition.GameId, remainingSeconds, 8, 8, 8);
+
+							// There does not appear to be a reason to tell the gun the number of players
+							// ahead of time.  It only prevents those players from joining midgame.  The
+							// score report is bitmasked and only reports non-zero scores.
+							var playerCountTeam1 = 8;
+							var playerCountTeam2 = (GameDefinition.IsTeamGame || TeamCount >= 2) ? 8 : 0;
+							var playerCountTeam3 = (GameDefinition.IsTeamGame || TeamCount >= 3) ? 8 : 0;
+
+							var packet = PacketPacker.Countdown(GameDefinition.GameId, remainingSeconds, playerCountTeam1, playerCountTeam2,
+							                                    playerCountTeam3);
 					        TransmitPacket(packet);
+
 							HostDebugWriteLine("T-{0}", remainingSeconds);
+
 							_nextAnnouncement = now.AddSeconds(1);
 						}
 				        break;
@@ -1307,19 +1288,16 @@ namespace LazerTagHostLibrary
 
 							// TODO: Make this configurable and re-enable it.
 							//// Keep sending out a countdown for taggers that may have missed it
-							//var values = new UInt16[]
-							//    {
-							//        (UInt16) CommandCode.AnnounceCountdown,
-							//        GameDefinition.GameId, //Game ID
-							//        HexCodedDecimal.FromDecimal((byte) (((_stateChangeTimeout - now).Seconds%5) + 1)),
-							//        0x08, //players on team 1
-							//        0x08, //players on team 2
-							//        0x08  //players on team 3
-							//    };
-							//TransmitPacket(values);
+							//var remainingSeconds = (byte)(((_stateChangeTimeout - now).Seconds % 5) + 1);
+							//var playerCountTeam1 = 8;
+							//var playerCountTeam2 = (GameDefinition.IsTeamGame || TeamCount >= 2) ? 8 : 0;
+							//var playerCountTeam3 = (GameDefinition.IsTeamGame || TeamCount >= 3) ? 8 : 0;
+							//var packet = PacketPacker.Countdown(GameDefinition.GameId, remainingSeconds, playerCountTeam1, playerCountTeam2,
+							//                                    playerCountTeam3);
+							//TransmitPacket(packet);
 							//if (_nextAnnouncement < now || _nextAnnouncement > now.AddMilliseconds(1000))
 							//{
-							//    _nextAnnouncement = now.AddMilliseconds(1000);
+							//    _nextAnnouncement = now.AddSeconds(1);
 							//}
 				        }
 				        break;
@@ -1345,7 +1323,7 @@ namespace LazerTagHostLibrary
 					        {
 						        HostDebugWriteLine("All players debriefed");
 
-						        RankPlayers();
+						        CalculateScores();
 						        PrintScoreReport();
 
 						        ChangeState(now, HostingState.GameOver);
