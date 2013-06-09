@@ -28,38 +28,42 @@
 		/// </summary>
 		private void InitializeComponent()
 		{
-			System.Windows.Forms.SplitContainer splitContainer;
+			this.components = new System.ComponentModel.Container();
+			this.splitContainer = new System.Windows.Forms.SplitContainer();
 			this.webBrowser = new System.Windows.Forms.WebBrowser();
 			this.textBox = new System.Windows.Forms.TextBox();
-			splitContainer = new System.Windows.Forms.SplitContainer();
-			((System.ComponentModel.ISupportInitialize)(splitContainer)).BeginInit();
-			splitContainer.Panel1.SuspendLayout();
-			splitContainer.Panel2.SuspendLayout();
-			splitContainer.SuspendLayout();
+			this.contextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
+			this.viewPageSourceToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			((System.ComponentModel.ISupportInitialize)(this.splitContainer)).BeginInit();
+			this.splitContainer.Panel1.SuspendLayout();
+			this.splitContainer.Panel2.SuspendLayout();
+			this.splitContainer.SuspendLayout();
+			this.contextMenuStrip.SuspendLayout();
 			this.SuspendLayout();
 			// 
 			// splitContainer
 			// 
-			splitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
-			splitContainer.Location = new System.Drawing.Point(0, 0);
-			splitContainer.Name = "splitContainer";
-			splitContainer.Orientation = System.Windows.Forms.Orientation.Horizontal;
+			this.splitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
+			this.splitContainer.Location = new System.Drawing.Point(0, 0);
+			this.splitContainer.Name = "splitContainer";
+			this.splitContainer.Orientation = System.Windows.Forms.Orientation.Horizontal;
 			// 
 			// splitContainer.Panel1
 			// 
-			splitContainer.Panel1.Controls.Add(this.webBrowser);
+			this.splitContainer.Panel1.Controls.Add(this.webBrowser);
 			// 
 			// splitContainer.Panel2
 			// 
-			splitContainer.Panel2.Controls.Add(this.textBox);
-			splitContainer.Panel2Collapsed = true;
-			splitContainer.Size = new System.Drawing.Size(736, 501);
-			splitContainer.SplitterDistance = 417;
-			splitContainer.TabIndex = 1;
+			this.splitContainer.Panel2.Controls.Add(this.textBox);
+			this.splitContainer.Panel2Collapsed = true;
+			this.splitContainer.Size = new System.Drawing.Size(736, 501);
+			this.splitContainer.SplitterDistance = 417;
+			this.splitContainer.TabIndex = 1;
 			// 
 			// webBrowser
 			// 
 			this.webBrowser.AllowNavigation = false;
+			this.webBrowser.ContextMenuStrip = this.contextMenuStrip;
 			this.webBrowser.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.webBrowser.IsWebBrowserContextMenuEnabled = false;
 			this.webBrowser.Location = new System.Drawing.Point(0, 0);
@@ -85,22 +89,36 @@
 			this.textBox.TabIndex = 0;
 			this.textBox.WordWrap = false;
 			// 
+			// contextMenuStrip
+			// 
+			this.contextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.viewPageSourceToolStripMenuItem});
+			this.contextMenuStrip.Name = "contextMenuStrip";
+			this.contextMenuStrip.Size = new System.Drawing.Size(168, 26);
+			// 
+			// viewPageSourceToolStripMenuItem
+			// 
+			this.viewPageSourceToolStripMenuItem.Name = "viewPageSourceToolStripMenuItem";
+			this.viewPageSourceToolStripMenuItem.Size = new System.Drawing.Size(167, 22);
+			this.viewPageSourceToolStripMenuItem.Text = "&View Page Source";
+			this.viewPageSourceToolStripMenuItem.Click += new System.EventHandler(this.viewPageSourceToolStripMenuItem_Click);
+			// 
 			// ScoreReport
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.ClientSize = new System.Drawing.Size(736, 501);
-			this.Controls.Add(splitContainer);
+			this.Controls.Add(this.splitContainer);
 			this.Name = "ScoreReport";
 			this.Text = "Score Report";
 			this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
-			this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.ScoreReport_FormClosed);
 			this.Load += new System.EventHandler(this.ScoreReport_Load);
-			splitContainer.Panel1.ResumeLayout(false);
-			splitContainer.Panel2.ResumeLayout(false);
-			splitContainer.Panel2.PerformLayout();
-			((System.ComponentModel.ISupportInitialize)(splitContainer)).EndInit();
-			splitContainer.ResumeLayout(false);
+			this.splitContainer.Panel1.ResumeLayout(false);
+			this.splitContainer.Panel2.ResumeLayout(false);
+			this.splitContainer.Panel2.PerformLayout();
+			((System.ComponentModel.ISupportInitialize)(this.splitContainer)).EndInit();
+			this.splitContainer.ResumeLayout(false);
+			this.contextMenuStrip.ResumeLayout(false);
 			this.ResumeLayout(false);
 
 		}
@@ -109,6 +127,9 @@
 
 		private System.Windows.Forms.WebBrowser webBrowser;
 		private System.Windows.Forms.TextBox textBox;
+		private System.Windows.Forms.ContextMenuStrip contextMenuStrip;
+		private System.Windows.Forms.ToolStripMenuItem viewPageSourceToolStripMenuItem;
+		private System.Windows.Forms.SplitContainer splitContainer;
 
 	}
 }

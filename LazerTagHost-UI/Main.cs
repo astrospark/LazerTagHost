@@ -14,7 +14,6 @@ namespace LazerTagHostUI
 
             Application.Init ();
 			MainWindow win = new MainWindow();
-			//var win = new ScoreReport();
             win.Show ();
             Application.Run ();
         }
