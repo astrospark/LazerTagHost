@@ -72,7 +72,7 @@ namespace LazerTagHostLibrary
 		private const int AcknowledgePlayerAssignmentTimeoutSeconds = 2;
 		private const int AssignPlayerFailedSendCount = 6;
 		private const int AssignPlayerFailedFrequencyMilliseconds = 500;
-		private const int WaitForAdditionalPlayersTimeoutSeconds = 60;
+		private const int WaitForAdditionalPlayersTimeoutSeconds = 120;
         private const int MinimumPlayerCount = 2;
         private const int RequestTagReportFrequencySeconds = 3;
         private const int GameOverAnnouncementFrequencySeconds = 3;
