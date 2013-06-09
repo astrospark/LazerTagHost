@@ -11,6 +11,7 @@ namespace LazerTagHostLibrary
 		private HostGun _hostGun;
 		public byte TaggerId { get; set; }
 		public bool Confirmed = false;
+		public bool Dropped = false;
 		public bool TagSummaryReceived = false;
 		public TeamPlayerId TeamPlayerId { get; set; }
 		public Team Team { get; set; }
@@ -60,6 +61,7 @@ namespace LazerTagHostLibrary
 
 		public bool AllTagReportsReceived()
 		{
+			if (Dropped) return true;
 			if (!TagSummaryReceived) return false;
 
 			for (var i = 0; i < 3; i++)

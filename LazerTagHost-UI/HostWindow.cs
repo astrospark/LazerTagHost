@@ -211,7 +211,7 @@ namespace LazerTagHostUI
 				scoreReportForm.Show();
 			}
 
-            //drop,rename,late,abort,next
+            // drop, rename, late, abort, next, pause
             switch (state)
 			{
 				case HostGun.HostingState.Adding:
@@ -223,8 +223,11 @@ namespace LazerTagHostUI
 					// disable pause
 					playerselectionscreenMain.SetControlOptions(true, true, true, true, true, false);
 					break;
-				case HostGun.HostingState.GameOver:
 				case HostGun.HostingState.Summary:
+					// disable pause, late join
+					playerselectionscreenMain.SetControlOptions(true, true, false, true, true, false);
+					break;
+				case HostGun.HostingState.GameOver:
 					// disable pause, late join, next, drop
 					playerselectionscreenMain.SetControlOptions(false, true, false, true, false, false);
 					break;

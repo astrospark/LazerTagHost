@@ -763,6 +763,8 @@ namespace LazerTagHostLibrary
 
         private void CalculateScores()
         {
+	        RemoveDroppedPlayerTags();
+
             switch (_gameDefinition.GameType)
 			{
 				case GameType.OwnTheZone:
@@ -789,7 +791,25 @@ namespace LazerTagHostLibrary
 			}
         }
 
-		private void CalculateScoresOwnTheZone()
+	    private void RemoveDroppedPlayerTags()
+	    {
+		    foreach (var droppedPlayer in Players.Where(droppedPlayer => droppedPlayer.Dropped))
+		    {
+			    droppedPlayer.TagsTaken = 0;
+
+			    foreach (var otherPlayer in Players)
+			    {
+				    droppedPlayer.TaggedPlayerCounts[otherPlayer.TeamPlayerId.PlayerNumber - 1] = 0;
+				    droppedPlayer.TaggedByPlayerCounts[otherPlayer.TeamPlayerId.PlayerNumber - 1] = 0;
+
+				    otherPlayer.TagsTaken -= otherPlayer.TaggedByPlayerCounts[droppedPlayer.TeamPlayerId.PlayerNumber - 1];
+				    otherPlayer.TaggedPlayerCounts[droppedPlayer.TeamPlayerId.PlayerNumber - 1] = 0;
+				    otherPlayer.TaggedByPlayerCounts[droppedPlayer.TeamPlayerId.PlayerNumber - 1] = 0;
+			    }
+		    }
+	    }
+
+	    private void CalculateScoresOwnTheZone()
 		{
 			foreach (var player in _players)
 			{
@@ -1064,10 +1084,18 @@ namespace LazerTagHostLibrary
 					ChangeState(DateTime.Now, HostingState.Summary);
 					break;
 				case HostingState.Summary:
+					foreach (var player in Players)
+					{
+						if (!player.AllTagReportsReceived()) DropPlayer(player.TeamPlayerId);
+					}
 					ChangeState(DateTime.Now, HostingState.GameOver);
 					break;
+				case HostingState.Idle:
+				case HostingState.AcknowledgePlayerAssignment:
+				case HostingState.Countdown:
+				case HostingState.GameOver:
 				default:
-					HostDebugWriteLine("Next not enabled right now.");
+					HostDebugWriteLine("Next cannot be used while in the {0} hosting state.", _hostingState);
 					break;
             }
         }
@@ -1165,19 +1193,35 @@ namespace LazerTagHostLibrary
             return true;
         }
 
-        public bool DropPlayer(TeamPlayerId teamPlayerId)
+        public void DropPlayer(TeamPlayerId teamPlayerId)
         {
 			var player = Players.Player(teamPlayerId);
             if (player == null)
 			{
                 HostDebugWriteLine("Player not found.");
-                return false;
+                return;
             }
 
-	        _players.Remove(player.TeamPlayerId);
-			if (_listener != null) _listener.PlayerListChanged(_players.ToList());
-
-            return false;
+			switch (GetGameState())
+			{
+				case HostingState.Adding:
+				case HostingState.AcknowledgePlayerAssignment:
+				case HostingState.Countdown:
+					_players.Remove(player.TeamPlayerId);
+					if (_listener != null) _listener.PlayerListChanged(_players.ToList());
+					break;
+				case HostingState.Playing:
+				case HostingState.Summary:
+					if (player.AllTagReportsReceived()) return;
+					player.Dropped = true;
+					player.Survived = false;
+					break;
+				case HostingState.Idle:
+				case HostingState.GameOver:
+				default:
+					HostDebugWriteLine("Players cannot be dropped while in the {0} hosting state.", _hostingState);
+					return;
+			}
         }
 
         public void Update() {
