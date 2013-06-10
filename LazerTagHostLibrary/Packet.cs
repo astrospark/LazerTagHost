@@ -39,7 +39,7 @@ namespace LazerTagHostLibrary
 			}
 			set
 			{
-				PacketTypeSignature = new Signature(SignatureType.PacketType, (UInt16) value, 8);
+				PacketTypeSignature = new Signature(SignatureType.PacketType, (UInt16) value);
 			}
 		}
 

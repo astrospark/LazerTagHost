@@ -171,7 +171,7 @@ namespace LazerTagHostLibrary
 			var node = parentNode.SelectSingleNode(string.Format("./{0}", nodeName));
 			if (node == null) throw new NullReferenceException("node");
 
-			var localizedTextNode = SelectLocalizedTextNode(node);
+			var localizedTextNode = SelectLocalizedTextNode(node, cultureInfo);
 			if (localizedTextNode == null) throw new NullReferenceException("localizedTextNode");
 
 			return localizedTextNode.InnerText;

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 
 namespace LazerTagHostLibrary
 {
@@ -144,9 +143,9 @@ namespace LazerTagHostLibrary
 
 			if (message.Length > 10) message = message.Substring(0, 10);
 			var messageChars = message.ToCharArray();
-			for (var i = 0; i < messageChars.Length; i++)
+			foreach (var character in messageChars)
 			{
-				packet.Data.Add(new Signature(SignatureType.Data, messageChars[i]));
+				packet.Data.Add(new Signature(SignatureType.Data, character));
 			}
 
 			packet.Data.Add(new Signature(SignatureType.Data, 0)); // null terminator

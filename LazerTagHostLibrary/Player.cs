@@ -8,7 +8,7 @@ namespace LazerTagHostLibrary
 {
 	public class Player
 	{
-		private HostGun _hostGun;
+		private readonly HostGun _hostGun;
 		public byte TaggerId { get; set; }
 		public bool Confirmed = false;
 		public bool Dropped = false;

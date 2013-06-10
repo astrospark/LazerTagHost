@@ -109,8 +109,8 @@ namespace LazerTagHostLibrary
 
 	    private bool AssignTeamAndPlayer(int requestedTeam, Player newPlayer)
 	    {
-		    int assignedTeamNumber = 0;
-		    int assignedPlayerNumber = 0;
+		    int assignedTeamNumber;
+		    var assignedPlayerNumber = 0;
 
 		    if (_players.Count >= TeamPlayerId.MaximumPlayerNumber)
 		    {
@@ -124,19 +124,19 @@ namespace LazerTagHostLibrary
 			    var teamPlayerCounts = new int[_gameDefinition.TeamCount];
 			    var smallestTeamNumber = 0;
 			    var smallestTeamPlayerCount = 8;
-			    for (var i = 0; i < _gameDefinition.TeamCount; i++)
+			    for (var teamNumber = 1; teamNumber <= _gameDefinition.TeamCount; teamNumber++)
 			    {
 				    var teamPlayerCount = 0;
 				    foreach (var player in _players)
 				    {
-					    if (player.TeamPlayerId.TeamNumber == i + 1) teamPlayerCount++;
+					    if (player.TeamPlayerId.TeamNumber == teamNumber) teamPlayerCount++;
 				    }
 				    if (teamPlayerCount < smallestTeamPlayerCount)
 				    {
-					    smallestTeamNumber = i + 1;
+					    smallestTeamNumber = teamNumber;
 					    smallestTeamPlayerCount = teamPlayerCount;
 				    }
-				    teamPlayerCounts[i] = teamPlayerCount;
+				    teamPlayerCounts[teamNumber - 1] = teamPlayerCount;
 			    }
 
 			    if (smallestTeamNumber == 0)
@@ -944,17 +944,17 @@ namespace LazerTagHostLibrary
 			Players.CalculateRanks();
 		}
 
+		private static byte GenerateRandomId()
+		{
+			return (byte)(new Random().Next() & 0xff);
+		}
+
 		private void SendTag(TeamPlayerId teamPlayerId, int damage)
         {
 	        var signature = PacketPacker.Tag(teamPlayerId, damage);
 			TransmitSignature(signature);
 			HostDebugWriteLine("Shot {0} tags as player {1}.", damage, teamPlayerId.ToString(_gameDefinition.IsTeamGame));
         }
-
-		private static byte GenerateRandomId()
-		{
-			return (byte) (new Random().Next() & 0xff);
-		}
 
         private void SendRequestJoinGame(byte gameId, int preferredTeamNumber)
 		{
@@ -971,10 +971,9 @@ namespace LazerTagHostLibrary
 			TransmitPacket(packet);
 	    }
 
-        private bool ChangeState(DateTime now, HostingState state) {
-
+        private bool ChangeState(DateTime now, HostingState state)
+		{
             _paused = false;
-            //TODO: Clear timeouts
 
             switch (state)
 			{
@@ -1294,7 +1293,7 @@ namespace LazerTagHostLibrary
 							// There does not appear to be a reason to tell the gun the number of players
 							// ahead of time.  It only prevents those players from joining midgame.  The
 							// score report is bitmasked and only reports non-zero scores.
-							var playerCountTeam1 = 8;
+							const int playerCountTeam1 = 8;
 							var playerCountTeam2 = (GameDefinition.IsTeamGame || TeamCount >= 2) ? 8 : 0;
 							var playerCountTeam3 = (GameDefinition.IsTeamGame || TeamCount >= 3) ? 8 : 0;
 
@@ -1387,19 +1386,17 @@ namespace LazerTagHostLibrary
 				        {
 					        _nextAnnouncement = now.AddSeconds(GameOverAnnouncementFrequencySeconds);
 
-							// TODO: Fix this to work with solo games
 							var team = Teams.Team(_rankReportTeamNumber);
 
 							_rankReportTeamNumber++;
-							if (_rankReportTeamNumber > _gameDefinition.TeamCount) _rankReportTeamNumber = 1;
+							var maxTeamNumber = GameDefinition.IsTeamGame ? _gameDefinition.TeamCount : 3;
+							if (_rankReportTeamNumber > maxTeamNumber) _rankReportTeamNumber = 1;
 
 					        if (team == null) break;
 
 							var playerRanks = new int[8];
-
-						    foreach (var player in _players)
+						    foreach (var player in team.Players)
 						    {
-							    if (player.TeamPlayerId.TeamNumber != team.Number) continue;
 							    playerRanks[player.TeamPlayerId.TeamPlayerNumber - 1] = player.Rank;
 						    }
 
