@@ -190,36 +190,6 @@ namespace LazerTagHost_Test
 		}
 
 		/// <summary>
-		///A test for Equals
-		///</summary>
-		[TestMethod()]
-		public void EqualsTest()
-		{
-			TeamPlayerId target = new TeamPlayerId(); // TODO: Initialize to an appropriate value
-			object obj = null; // TODO: Initialize to an appropriate value
-			bool expected = false; // TODO: Initialize to an appropriate value
-			bool actual;
-			actual = target.Equals(obj);
-			Assert.AreEqual(expected, actual);
-			Assert.Inconclusive("Verify the correctness of this test method.");
-		}
-
-		/// <summary>
-		///A test for Equals
-		///</summary>
-		[TestMethod()]
-		public void EqualsTest1()
-		{
-			TeamPlayerId target = new TeamPlayerId(); // TODO: Initialize to an appropriate value
-			TeamPlayerId other = new TeamPlayerId(); // TODO: Initialize to an appropriate value
-			bool expected = false; // TODO: Initialize to an appropriate value
-			bool actual;
-			actual = target.Equals(other);
-			Assert.AreEqual(expected, actual);
-			Assert.Inconclusive("Verify the correctness of this test method.");
-		}
-
-		/// <summary>
 		///A test for FromPacked23
 		///</summary>
 		[TestMethod()]
@@ -325,20 +295,6 @@ namespace LazerTagHost_Test
 		}
 
 		/// <summary>
-		///A test for GetHashCode
-		///</summary>
-		[TestMethod()]
-		public void GetHashCodeTest()
-		{
-			TeamPlayerId target = new TeamPlayerId(); // TODO: Initialize to an appropriate value
-			int expected = 0; // TODO: Initialize to an appropriate value
-			int actual;
-			actual = target.GetHashCode();
-			Assert.AreEqual(expected, actual);
-			Assert.Inconclusive("Verify the correctness of this test method.");
-		}
-
-		/// <summary>
 		///A test for ToString
 		///</summary>
 		[TestMethod()]
@@ -392,111 +348,6 @@ namespace LazerTagHost_Test
 
 			target = new TeamPlayerId(24);
 			Assert.AreEqual("3:8", target.ToString(true));
-		}
-
-		/// <summary>
-		///A test for op_Equality
-		///</summary>
-		[TestMethod()]
-		public void op_EqualityTest()
-		{
-			TeamPlayerId first = new TeamPlayerId(); // TODO: Initialize to an appropriate value
-			TeamPlayerId second = new TeamPlayerId(); // TODO: Initialize to an appropriate value
-			bool expected = false; // TODO: Initialize to an appropriate value
-			bool actual;
-			actual = (first == second);
-			Assert.AreEqual(expected, actual);
-			Assert.Inconclusive("Verify the correctness of this test method.");
-		}
-
-		/// <summary>
-		///A test for op_Inequality
-		///</summary>
-		[TestMethod()]
-		public void op_InequalityTest()
-		{
-			TeamPlayerId first = new TeamPlayerId(); // TODO: Initialize to an appropriate value
-			TeamPlayerId second = new TeamPlayerId(); // TODO: Initialize to an appropriate value
-			bool expected = false; // TODO: Initialize to an appropriate value
-			bool actual;
-			actual = (first != second);
-			Assert.AreEqual(expected, actual);
-			Assert.Inconclusive("Verify the correctness of this test method.");
-		}
-
-		/// <summary>
-		///A test for Packed23
-		///</summary>
-		[TestMethod()]
-		public void Packed23Test()
-		{
-			TeamPlayerId target = new TeamPlayerId(); // TODO: Initialize to an appropriate value
-			ushort expected = 0; // TODO: Initialize to an appropriate value
-			ushort actual;
-			target.Packed23 = expected;
-			actual = target.Packed23;
-			Assert.AreEqual(expected, actual);
-			Assert.Inconclusive("Verify the correctness of this test method.");
-		}
-
-		/// <summary>
-		///A test for Packed44
-		///</summary>
-		[TestMethod()]
-		public void Packed44Test()
-		{
-			TeamPlayerId target = new TeamPlayerId(); // TODO: Initialize to an appropriate value
-			ushort expected = 0; // TODO: Initialize to an appropriate value
-			ushort actual;
-			target.Packed44 = expected;
-			actual = target.Packed44;
-			Assert.AreEqual(expected, actual);
-			Assert.Inconclusive("Verify the correctness of this test method.");
-		}
-
-		/// <summary>
-		///A test for PlayerNumber
-		///</summary>
-		[TestMethod()]
-		public void PlayerNumberTest()
-		{
-			TeamPlayerId target = new TeamPlayerId(); // TODO: Initialize to an appropriate value
-			int expected = 0; // TODO: Initialize to an appropriate value
-			int actual;
-			target.PlayerNumber = expected;
-			actual = target.PlayerNumber;
-			Assert.AreEqual(expected, actual);
-			Assert.Inconclusive("Verify the correctness of this test method.");
-		}
-
-		/// <summary>
-		///A test for TeamNumber
-		///</summary>
-		[TestMethod()]
-		public void TeamNumberTest()
-		{
-			TeamPlayerId target = new TeamPlayerId(); // TODO: Initialize to an appropriate value
-			int expected = 0; // TODO: Initialize to an appropriate value
-			int actual;
-			target.TeamNumber = expected;
-			actual = target.TeamNumber;
-			Assert.AreEqual(expected, actual);
-			Assert.Inconclusive("Verify the correctness of this test method.");
-		}
-
-		/// <summary>
-		///A test for TeamPlayerNumber
-		///</summary>
-		[TestMethod()]
-		public void TeamPlayerNumberTest()
-		{
-			TeamPlayerId target = new TeamPlayerId(); // TODO: Initialize to an appropriate value
-			int expected = 0; // TODO: Initialize to an appropriate value
-			int actual;
-			target.TeamPlayerNumber = expected;
-			actual = target.TeamPlayerNumber;
-			Assert.AreEqual(expected, actual);
-			Assert.Inconclusive("Verify the correctness of this test method.");
 		}
 	}
 }
