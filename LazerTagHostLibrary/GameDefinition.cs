@@ -2,6 +2,11 @@
 {
 	public class GameDefinition
 	{
+		public GameDefinition()
+		{
+			CountdownTimeSeconds = 30;
+		}
+
 		public GameType GameType
 		{
 			get { return _gameTypeInfo.Type; }

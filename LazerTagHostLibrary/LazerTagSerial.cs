@@ -15,15 +15,23 @@ namespace LazerTagHostLibrary
 
         public LazerTagSerial (string device)
         {
-            if (device != null) {
-                _serialPort = new SerialPort(device, 115200) {Parity = Parity.None, StopBits = StopBits.One};
+            if (!string.IsNullOrWhiteSpace(device))
+            {
+	            _serialPort = new SerialPort(device, 115200)
+		            {
+			            Parity = Parity.None,
+			            StopBits = StopBits.One
+		            };
 	            _serialPort.Open();
             }
 
-            _queue = new Queue<byte[]>();
+	        _queue = new Queue<byte[]>();
 
             _enableWrite = true;
-            _workerThread = new System.Threading.Thread(WriteThread) {IsBackground = true};
+	        _workerThread = new System.Threading.Thread(WriteThread)
+		        {
+			        IsBackground = true
+		        };
 	        _workerThread.Start();
         }
 

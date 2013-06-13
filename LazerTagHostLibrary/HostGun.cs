@@ -344,7 +344,7 @@ namespace LazerTagHostLibrary
 	    private bool ProcessRequestJoinGame(UInt16 gameId, UInt16 taggerId, UInt16 requestedTeam)
 	    {
 			// TODO: Handle multiple simultaneous games
-			if (gameId != _gameDefinition.GameId)
+			if (gameId != GameDefinition.GameId)
 			{
 				HostDebugWriteLine("Wrong game ID.");
 				return false;
@@ -352,7 +352,7 @@ namespace LazerTagHostLibrary
 
 			Player player = null;
 
-			foreach (var checkPlayer in _players)
+			foreach (var checkPlayer in Players)
 			{
 				if (checkPlayer.TaggerId == taggerId)
 				{
@@ -373,25 +373,24 @@ namespace LazerTagHostLibrary
 
 				if (!AssignTeamAndPlayer(requestedTeam, player)) return false;
 
-				_players.Add(player);
+				Players.Add(player);
 			}
 
-		    var joinState = new JoinState
-			    {
-				    GameId = gameId,
-				    Player = player,
-				    AssignPlayerSendTime = DateTime.Now
-			    };
+			var joinState = new JoinState
+			{
+				GameId = gameId,
+				Player = player,
+				AssignPlayerSendTime = DateTime.Now
+			};
 			_joinStates.Remove(taggerId);
 			_joinStates.Add(taggerId, joinState);
 
 			HostDebugWriteLine("Assigning tagger 0x{0:X2} to player {1} for game 0x{2:X2}.", taggerId,
 				   player.TeamPlayerId.ToString(_gameDefinition.IsTeamGame), gameId);
 
-		    var packet = PacketPacker.AssignPlayer(gameId, taggerId, player.TeamPlayerId);
-			TransmitPacket(packet);
+		    SendPlayerAssignment(player.TeamPlayerId);
 
-		    ChangeState(DateTime.Now, HostingState.AcknowledgePlayerAssignment);
+			ChangeState(DateTime.Now, HostingState.AcknowledgePlayerAssignment);
 
 			return true;
 		}
@@ -421,7 +420,7 @@ namespace LazerTagHostLibrary
 
 			if (_joinStates.Count < 1) ChangeState(DateTime.Now, HostingState.Adding);
 
-			if (_listener != null) _listener.PlayerListChanged(_players.ToList());
+			if (_listener != null) _listener.PlayerListChanged(Players.ToList());
 
 			return true;
 		}
@@ -543,7 +542,7 @@ namespace LazerTagHostLibrary
 				packetIndex++;
 			}
 
-			if (_listener != null) _listener.PlayerListChanged(_players.ToList());
+			if (_listener != null) _listener.PlayerListChanged(Players.ToList());
 
 			return true;
 		}
@@ -1207,7 +1206,7 @@ namespace LazerTagHostLibrary
 				case HostingState.AcknowledgePlayerAssignment:
 				case HostingState.Countdown:
 					_players.Remove(player.TeamPlayerId);
-					if (_listener != null) _listener.PlayerListChanged(_players.ToList());
+					if (_listener != null) _listener.PlayerListChanged(Players.ToList());
 					break;
 				case HostingState.Playing:
 				case HostingState.Summary:
@@ -1488,5 +1487,17 @@ namespace LazerTagHostLibrary
             return _hostingState;
         }
 #endregion
+
+	    public void SendPlayerAssignment(TeamPlayerId teamPlayerId)
+	    {
+		    if (_hostingState != HostingState.Adding && _hostingState != HostingState.AcknowledgePlayerAssignment) return;
+
+		    var gameId = _gameDefinition.GameId;
+			var player = Players.Player(teamPlayerId);
+			var taggerId = player.TaggerId;
+
+			var packet = PacketPacker.AssignPlayer(gameId, taggerId, teamPlayerId);
+			TransmitPacket(packet);
+		}
     }
 }

@@ -226,7 +226,7 @@ namespace LazerTagHostLibrary
 		}
 	}
 
-	public struct GameTypeInfo
+	public class GameTypeInfo
 	{
 		public GameType Type { get; set; }
 		public string Name { get; set; }
@@ -248,6 +248,10 @@ namespace LazerTagHostLibrary
 		public int DefaultMega { get; set; }
 		public int DefaultShields { get; set; }
 		public int DefaultTags { get; set; }
+		public override string ToString()
+		{
+			return DisplayName;
+		}
 	}
 
 	public enum GameType
