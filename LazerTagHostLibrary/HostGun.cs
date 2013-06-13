@@ -1051,7 +1051,8 @@ namespace LazerTagHostLibrary
         public void EndGame()
 		{
             ChangeState(DateTime.Now, HostingState.Idle);
-        }
+	        _stateChangeTimeout = new DateTime(0);
+		}
 
         public void DelayGame(int seconds)
 		{
@@ -1149,7 +1150,8 @@ namespace LazerTagHostLibrary
             }
 			else
 			{
-				countdown = ((int)((_stateChangeTimeout - DateTime.Now).TotalSeconds)) + " seconds";
+				var timeRemaining = (_stateChangeTimeout - DateTime.Now);
+				countdown = timeRemaining.ToString(@"m\:ss");
 
                 switch (_hostingState)
 				{
