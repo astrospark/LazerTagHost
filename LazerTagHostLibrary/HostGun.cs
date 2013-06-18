@@ -66,7 +66,7 @@ namespace LazerTagHostLibrary
 			get { return _gameDefinition.TeamCount; }
 	    }
 
-        private LazerTagSerial _serial;
+        private readonly LazerTagSerial _serial;
 
         private const int GameAnnouncementFrequencyMilliseconds = 1500;
 		private const int AcknowledgePlayerAssignmentTimeoutSeconds = 2;
@@ -725,19 +725,19 @@ namespace LazerTagHostLibrary
 			switch (signature.Type)
 			{
 				case SignatureType.Beacon:
-					_serial.EnqueueBeacon(signature.Data, signature.BitCount);
+					_serial.Enqueue(signature.Data, signature.BitCount, true);
 					break;
 				case SignatureType.Tag:
-					_serial.EnqueueData(signature.Data, signature.BitCount);
+					_serial.Enqueue(signature.Data, signature.BitCount);
 					break;
 				case SignatureType.PacketType:
-					_serial.EnqueueData((UInt16)(signature.Data & ~0x100), 9);
+					_serial.Enqueue((UInt16)(signature.Data & ~0x100), 9);
 					break;
 				case SignatureType.Data:
-					_serial.EnqueueData(signature.Data, signature.BitCount);
+					_serial.Enqueue(signature.Data, signature.BitCount);
 					break;
 				case SignatureType.Checksum:
-					_serial.EnqueueData((UInt16)(signature.Data | 0x100), 9);
+					_serial.Enqueue((UInt16)(signature.Data | 0x100), 9);
 					break;
 				default:
 					HostDebugWriteLine("TransmitSignature() - Unknown SignatureType.");
@@ -1224,10 +1224,11 @@ namespace LazerTagHostLibrary
 			}
         }
 
-        public void Update() {
+        public void Update()
+		{
             if (_serial != null)
 			{
-                var input = _serial.TryReadCommand();
+                var input = _serial.Read();
                 if (input != null)
                 {
 	                var parts = input.Split(new[] {':'}, 2, StringSplitOptions.RemoveEmptyEntries);
@@ -1456,33 +1457,26 @@ namespace LazerTagHostLibrary
             _listener = listener;
         }
 
-        public HostGun(string device, IHostChangedListener l)
+        public HostGun(string device, IHostChangedListener listener)
 		{
-            _serial = new LazerTagSerial(device);
-            _listener = l;
+            _serial = new LazerTagSerial();
+	        _serial.IoError += Serial_IoError;
+	        _serial.Connect(device);
+            _listener = listener;
 		}
 
-        public bool SetDevice(string device)
+		public event LazerTagSerial.IoErrorEventHandler IoError;
+		
+		private void Serial_IoError(object sender, LazerTagSerial.IoErrorEventArgs e)
+	    {
+		    IoError(sender, e);
+	    }
+
+	    public bool SetDevice(string device)
 		{
-            if (_serial != null)
-			{
-                _serial.Stop();
-                _serial = null;
-            }
-            if (device != null)
-			{
-                try
-				{
-                    _serial = new LazerTagSerial(device);
-                }
-				catch (Exception ex)
-				{
-                    HostDebugWriteLine(ex.ToString());
-                    return false;
-                }
-            }
-            return true;
-        }
+            _serial.Disconnect();
+	        return _serial.Connect(device);
+		}
 
         public HostingState GetGameState()
 		{
