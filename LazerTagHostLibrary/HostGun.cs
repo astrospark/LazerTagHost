@@ -1202,26 +1202,31 @@ namespace LazerTagHostLibrary
                 return;
             }
 
+			var changed = false;
 			switch (GetGameState())
 			{
+
 				case HostingState.Adding:
 				case HostingState.AcknowledgePlayerAssignment:
 				case HostingState.Countdown:
 					_players.Remove(player.TeamPlayerId);
-					if (_listener != null) _listener.PlayerListChanged(Players.ToList());
+					changed = true;
 					break;
 				case HostingState.Playing:
 				case HostingState.Summary:
 					if (player.AllTagReportsReceived()) return;
 					player.Dropped = true;
 					player.Survived = false;
+					changed = true;
 					break;
 				case HostingState.Idle:
 				case HostingState.GameOver:
 				default:
 					HostDebugWriteLine("Players cannot be dropped while in the {0} hosting state.", _hostingState);
-					return;
+					break;
 			}
+
+			if (_listener != null && changed) _listener.PlayerListChanged(Players.ToList());
         }
 
         public void Update()
