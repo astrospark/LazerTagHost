@@ -40,6 +40,7 @@ namespace LazerTagHostLibrary
 		public int Score { get; set; }
 		public int Rank { get; set; } // 1-24
 
+		// TODO: Remove this and handle it in the UI layer
 		public string Name { get; set; }
 
 		public string DisplayName
