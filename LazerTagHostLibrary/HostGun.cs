@@ -72,7 +72,6 @@ namespace LazerTagHostLibrary
 		private const int AcknowledgePlayerAssignmentTimeoutSeconds = 2;
 		private const int AssignPlayerFailedSendCount = 6;
 		private const int AssignPlayerFailedFrequencyMilliseconds = 500;
-		private const int WaitForAdditionalPlayersTimeoutSeconds = 120;
         private const int MinimumPlayerCount = 2;
         private const int RequestTagReportFrequencySeconds = 3;
         private const int GameOverAnnouncementFrequencySeconds = 3;
@@ -84,7 +83,6 @@ namespace LazerTagHostLibrary
 	    }
 
 	    private HostingState _hostingState = HostingState.Idle;
-        private bool _paused;
 
         private readonly Dictionary<UInt16, JoinState> _joinStates = new Dictionary<ushort, JoinState>();
 
@@ -972,8 +970,6 @@ namespace LazerTagHostLibrary
 
         private bool ChangeState(DateTime now, HostingState state)
 		{
-            _paused = false;
-
             switch (state)
 			{
 				case HostingState.Idle:
@@ -1004,9 +1000,6 @@ namespace LazerTagHostLibrary
 
 						_joinStates.Clear();
 					}
-
-					_stateChangeTimeout = now.AddSeconds(WaitForAdditionalPlayersTimeoutSeconds);
-
 					break;
 				case HostingState.AcknowledgePlayerAssignment:
 					HostDebugWriteLine("Waiting for AcknowledgePlayerAssignment packet.");
@@ -1059,20 +1052,12 @@ namespace LazerTagHostLibrary
 			_stateChangeTimeout = _stateChangeTimeout.AddSeconds(seconds);
         }
 
-        public void Pause()
-		{
-            switch (_hostingState)
-			{
-				case HostingState.Adding:
-					_paused = true;
-					break;
-				default:
-					HostDebugWriteLine("Pause is not enabled right now.");
-					break;
-            }
-        }
+	    [Obsolete("Pause() is no longer supported.", true)]
+	    public void Pause()
+	    {
+	    }
 
-        public void Next()
+	    public void Next()
 		{
             switch (_hostingState)
 			{
@@ -1124,59 +1109,41 @@ namespace LazerTagHostLibrary
             }
         }
 
-        public string GetCountdown()
-        {
-            string countdown;
-
-			if (_stateChangeTimeout < DateTime.Now || _paused)
-			{
-                switch (_hostingState)
-				{
-					case HostingState.Adding:
-					case HostingState.AcknowledgePlayerAssignment:
-						var needed = (MinimumPlayerCount - _players.Count);
-						countdown = needed > 0 ? String.Format("Waiting for {0} more players", needed) : "Ready to start";
-						break;
-					case HostingState.Summary:
-						countdown = "Waiting for all players to check in";
-						break;
-					case HostingState.GameOver:
-						countdown = "All players may now receive scores";
-						break;
-					default:
-						countdown = "Waiting";
-		                break;
-                }
-            }
-			else
-			{
-				var timeRemaining = (_stateChangeTimeout - DateTime.Now);
-				countdown = timeRemaining.ToString(@"m\:ss");
-
-                switch (_hostingState)
-				{
-					case HostingState.Adding:
-					case HostingState.AcknowledgePlayerAssignment:
-						var needed = (MinimumPlayerCount - _players.Count);
-						if (needed > 0)
-						{
-							countdown = "Waiting for " + needed + " more players";
-						}
-						else
-						{
-							countdown += " until countdown";
-						}
-						break;
-					case HostingState.Countdown:
-						countdown += " until game start";
-						break;
-					case HostingState.Playing:
-						countdown += " until game end";
-						break;
-                }
-
-            }
-            return countdown;
+	    public string GetCountdown()
+	    {
+			string countdown;
+		    var timeRemaining = (_stateChangeTimeout - DateTime.Now).ToString(@"m\:ss");
+		    switch (_hostingState)
+		    {
+			    case HostingState.Adding:
+			    case HostingState.AcknowledgePlayerAssignment:
+				    var needed = (MinimumPlayerCount - _players.Count);
+				    if (needed > 0)
+				    {
+					    countdown = "Waiting for " + needed + " more players";
+				    }
+				    else
+				    {
+					    countdown = "Ready to start countdown";
+				    }
+				    break;
+			    case HostingState.Countdown:
+				    countdown = string.Format("{0} until game start", timeRemaining);
+				    break;
+			    case HostingState.Playing:
+				    countdown = string.Format("{0} until game end", timeRemaining);
+				    break;
+			    case HostingState.Summary:
+				    countdown = "Waiting for all players to check in";
+				    break;
+			    case HostingState.GameOver:
+				    countdown = "All players may now receive scores";
+				    break;
+			    default:
+				    countdown = "Waiting";
+				    break;
+		    }
+		    return countdown;
         }
 
         public bool SetPlayerName(TeamPlayerId teamPlayerId, string name)
@@ -1268,14 +1235,6 @@ namespace LazerTagHostLibrary
 							TransmitPacket(packet);
 
 					        _nextAnnouncement = now.AddMilliseconds(GameAnnouncementFrequencyMilliseconds);
-				        }
-
-				        var confirmedPlayerCount = Players.Count(player => player.Confirmed);
-				        if (confirmedPlayerCount >= MinimumPlayerCount
-				            && now > _stateChangeTimeout
-				            && !_paused)
-				        {
-					        ChangeState(now, HostingState.Countdown);
 				        }
 				        break;
 			        }
