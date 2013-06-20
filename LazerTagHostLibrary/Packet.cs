@@ -10,9 +10,9 @@ namespace LazerTagHostLibrary
 			get
 			{
 				var signatures = new List<Signature>();
-				signatures.Add(PacketTypeSignature);
+				if (PacketTypeSignature != null) signatures.Add(PacketTypeSignature);
 				signatures.AddRange(Data);
-				signatures.Add(Checksum);
+				if (Checksum != null) signatures.Add(Checksum);
 				return signatures;
 			}
 		}
@@ -101,7 +101,7 @@ namespace LazerTagHostLibrary
 			var values = new List<string>();
 			foreach (var signature in Signatures)
 			{
-				values.Add(signature.ToString());
+				if (signature != null) values.Add(signature.ToString());
 			}
 			return String.Join(", ", values);
 		}
