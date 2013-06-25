@@ -70,6 +70,7 @@
     <Compile Include="Signature.cs" />
     <Compile Include="Team.cs" />
     <Compile Include="Tools.cs" />
+    <Compile Include="XmlSerializer.cs" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">

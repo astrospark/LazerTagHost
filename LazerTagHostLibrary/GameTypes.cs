@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Globalization;
-using System.IO;
-using System.Text.RegularExpressions;
-using System.Threading;
 using System.Xml;
 using System.Collections.Generic;
 
@@ -93,32 +89,7 @@ namespace LazerTagHostLibrary
 				var xmlDocument = new XmlDocument();
 				xmlDocument.Load(xmlFileName);
 
-				var fileInfoNode = xmlDocument.SelectSingleNode("/LazerSwarm/FileInfo");
-				if (fileInfoNode == null) throw new NullReferenceException("fileInfoNode");
-				if (fileInfoNode.Attributes == null) throw new NullReferenceException("fileInfoNode.Attributes");
-				var fileInfoVersionAttribute = fileInfoNode.Attributes["Version"];
-				if (fileInfoVersionAttribute == null) throw new NullReferenceException("versionAttribute");
-				var fileInfoVersion = new Version(fileInfoVersionAttribute.Value);
-				if (fileInfoVersion > new Version(1, 0))
-				{
-					throw new FileFormatException(string.Format("Unsupported FileInfo version ({0}).", fileInfoVersion));
-				}
-
-				var fileTypeNode = fileInfoNode.SelectSingleNode("./FileType");
-				if (fileTypeNode == null) throw new NullReferenceException("fileTypeNode");
-				var fileType = fileTypeNode.InnerText;
-				if (fileType != "GameTypes")
-				{
-					throw new FileFormatException(string.Format("Incorrect FileType ({0}). Expected \"GameTypes\".", fileType));
-				}
-
-				var fileTypeVersionNode = fileInfoNode.SelectSingleNode("./FileTypeVersion");
-				if (fileTypeVersionNode == null) throw new NullReferenceException("fileTypeVersionNode");
-				var fileTypeVersion = new Version(fileTypeVersionNode.InnerText);
-				if (fileTypeVersion > new Version(1, 0))
-				{
-					throw new FileFormatException(string.Format("Unsupported FileTypeVersion ({0}).", fileInfoVersion));
-				}
+				XmlSerializer.VerifyFileInfo(xmlDocument, "GameTypes", new Version(1, 0));
 
 				var gameTypeNodes = xmlDocument.SelectNodes("/LazerSwarm/GameTypes/GameType");
 				if (gameTypeNodes == null) throw new NullReferenceException("gameTypeNodes");
@@ -132,20 +103,20 @@ namespace LazerTagHostLibrary
 					gameTypeInfo.Type = TypeFromName(nameAttribute.Value);
 					gameTypeInfo.Name = nameAttribute.Value;
 
-					gameTypeInfo.DisplayName = GetNodeLocalizedText(gameTypeNode, "DisplayName");
-					gameTypeInfo.PacketType = (PacketType)GetNodeTextInt(gameTypeNode, "AnnounceGameCommandCode");
-					gameTypeInfo.TeamCount = GetNodeTextInt(gameTypeNode, "TeamCount");
-					gameTypeInfo.GameTimeStepMinutes = GetNodeTextInt(gameTypeNode, "GameTimeStepMinutes");
-					gameTypeInfo.HuntThePrey = GetNodeTextBool(gameTypeNode, "HuntThePrey");
-					gameTypeInfo.Zones = GetNodeTextBool(gameTypeNode, "Zones");
-					gameTypeInfo.NeutralizePlayersTaggedInZone = GetNodeTextBool(gameTypeNode, "NeutralizePlayersTaggedInZone");
-					gameTypeInfo.DefaultTeamTags = GetNodeTextBool(gameTypeNode, "DefaultTeamTags");
-					gameTypeInfo.DefaultMedicMode = GetNodeTextBool(gameTypeNode, "DefaultMedicMode");
-					gameTypeInfo.DefaultGameTimeMinutes = GetNodeTextInt(gameTypeNode, "DefaultGameTimeMinutes");
-					gameTypeInfo.DefaultReloads = GetNodeTextInt(gameTypeNode, "DefaultReloads");
-					gameTypeInfo.DefaultMega = GetNodeTextInt(gameTypeNode, "DefaultMega");
-					gameTypeInfo.DefaultShields = GetNodeTextInt(gameTypeNode, "DefaultShields");
-					gameTypeInfo.DefaultTags = GetNodeTextInt(gameTypeNode, "DefaultTags");
+					gameTypeInfo.DisplayName = XmlSerializer.GetNodeLocalizedText(gameTypeNode, "DisplayName");
+					gameTypeInfo.PacketType = (PacketType)XmlSerializer.GetNodeTextInt(gameTypeNode, "AnnounceGameCommandCode");
+					gameTypeInfo.TeamCount = XmlSerializer.GetNodeTextInt(gameTypeNode, "TeamCount");
+					gameTypeInfo.GameTimeStepMinutes = XmlSerializer.GetNodeTextInt(gameTypeNode, "GameTimeStepMinutes");
+					gameTypeInfo.HuntThePrey = XmlSerializer.GetNodeTextBool(gameTypeNode, "HuntThePrey");
+					gameTypeInfo.Zones = XmlSerializer.GetNodeTextBool(gameTypeNode, "Zones");
+					gameTypeInfo.NeutralizePlayersTaggedInZone = XmlSerializer.GetNodeTextBool(gameTypeNode, "NeutralizePlayersTaggedInZone");
+					gameTypeInfo.DefaultTeamTags = XmlSerializer.GetNodeTextBool(gameTypeNode, "DefaultTeamTags");
+					gameTypeInfo.DefaultMedicMode = XmlSerializer.GetNodeTextBool(gameTypeNode, "DefaultMedicMode");
+					gameTypeInfo.DefaultGameTimeMinutes = XmlSerializer.GetNodeTextInt(gameTypeNode, "DefaultGameTimeMinutes");
+					gameTypeInfo.DefaultReloads = XmlSerializer.GetNodeTextInt(gameTypeNode, "DefaultReloads");
+					gameTypeInfo.DefaultMega = XmlSerializer.GetNodeTextInt(gameTypeNode, "DefaultMega");
+					gameTypeInfo.DefaultShields = XmlSerializer.GetNodeTextInt(gameTypeNode, "DefaultShields");
+					gameTypeInfo.DefaultTags = XmlSerializer.GetNodeTextInt(gameTypeNode, "DefaultTags");
 
 					loadedGameTypes.Add(TypeFromName(gameTypeInfo.Name), gameTypeInfo);
 				}
@@ -157,72 +128,6 @@ namespace LazerTagHostLibrary
 			}
 
 			_gameTypesInfo = loadedGameTypes;
-		}
-
-		private static string GetNodeText(XmlNode parentNode, string nodeName)
-		{
-			var node = parentNode.SelectSingleNode(string.Format("./{0}", nodeName));
-			if (node == null) throw new NullReferenceException("node");
-			return node.InnerText;
-		}
-
-		private static string GetNodeLocalizedText(XmlNode parentNode, string nodeName, CultureInfo cultureInfo = null)
-		{
-			var node = parentNode.SelectSingleNode(string.Format("./{0}", nodeName));
-			if (node == null) throw new NullReferenceException("node");
-
-			var localizedTextNode = SelectLocalizedTextNode(node, cultureInfo);
-			if (localizedTextNode == null) throw new NullReferenceException("localizedTextNode");
-
-			return localizedTextNode.InnerText;
-		}
-
-		private static int GetNodeTextInt(XmlNode parentNode, string nodeName)
-		{
-			return StringToInt(GetNodeText(parentNode, nodeName));
-		}
-
-		private static bool GetNodeTextBool(XmlNode parentNode, string nodeName)
-		{
-			return Convert.ToBoolean(GetNodeText(parentNode, nodeName));
-		}
-
-		private static XmlNode SelectLocalizedTextNode(XmlNode parentNode, CultureInfo cultureInfo = null)
-		{
-			XmlNode localizedTextNode = null;
-			if (cultureInfo != null)
-			{
-				localizedTextNode = parentNode.SelectSingleNode(string.Format("./LocalizedText[@Culture='{0}']",
-				                                                              cultureInfo.Name));
-			}
-
-			// Fall back to CurrentUICulture
-			if (localizedTextNode == null)
-			{
-				localizedTextNode = parentNode.SelectSingleNode(string.Format("./LocalizedText[@Culture='{0}']",
-				                                                              Thread.CurrentThread.CurrentUICulture.Name));
-			}
-
-			// Fall back to first or only LocalizedText node
-			if (localizedTextNode == null)
-			{
-				localizedTextNode = parentNode.SelectSingleNode("./LocalizedText");
-			}
-
-			return localizedTextNode;
-		}
-
-		private static int StringToInt(string input)
-		{
-			var regex = new Regex(@"^\s*0x([0-9a-fA-F]{1,8})\s*$");
-			var match = regex.Match(input);
-			if (match.Success)
-			{
-				var hexChars = match.Captures[0].Value;
-				return Convert.ToInt32(hexChars, 16);
-			}
-
-			return Convert.ToInt32(input);
 		}
 	}
 
