@@ -53,11 +53,11 @@ namespace LazerTagHostLibrary
 
 		public bool Connect(string device)
 		{
-			if (string.IsNullOrWhiteSpace(device)) return false;
-
 			try
 			{
 				_queue = new ConcurrentQueue<byte[]>();
+
+				if (string.IsNullOrWhiteSpace(device)) return false;
 
 				_serialPort = new SerialPort(device, 115200)
 					{
