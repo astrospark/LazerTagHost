@@ -1240,8 +1240,6 @@ namespace LazerTagHostLibrary
                 }
             }
 
-			var now = DateTime.Now; // is this needed to avoid race conditions?
-
 			switch (HostingState)
 			{
 				case HostingStates.Idle:
@@ -1249,31 +1247,31 @@ namespace LazerTagHostLibrary
 				case HostingStates.Adding:
 					CheckAssignPlayerFailed();
 
-					if (now >= _nextAnnouncement)
+					if (DateTime.Now >= _nextAnnouncement)
 					{
 						var packet = PacketPacker.AnnounceGame(_gameDefinition);
 						TransmitPacket(packet);
 
-						_nextAnnouncement = now.AddMilliseconds(GameAnnouncementFrequencyMilliseconds);
+						_nextAnnouncement = DateTime.Now.AddMilliseconds(GameAnnouncementFrequencyMilliseconds);
 					}
 					break;
 				case HostingStates.AcknowledgePlayerAssignment:
-					if (now >= _stateChangeTimeout) ChangeState(HostingStates.Adding);
+					if (DateTime.Now >= _stateChangeTimeout) ChangeState(HostingStates.Adding);
 					break;
 				case HostingStates.Countdown:
 				case HostingStates.ResendCountdown:
 					// TODO: Make ResendCountdown work better with zone games
-					if (HostingState == HostingStates.ResendCountdown && now >= _resendCountdownPlayingStateChangeTimeout)
+					if (HostingState == HostingStates.ResendCountdown && DateTime.Now >= _resendCountdownPlayingStateChangeTimeout)
 					{
 						ChangeState(HostingStates.Summary);
 					}
-					else if (now >= _stateChangeTimeout)
+					else if (DateTime.Now >= _stateChangeTimeout)
 					{
 						ChangeState(HostingStates.Playing);
 					}
-					else if (now >= _nextAnnouncement)
+					else if (DateTime.Now >= _nextAnnouncement)
 					{
-						var remainingSeconds = (byte) ((_stateChangeTimeout - now).TotalSeconds);
+						var remainingSeconds = (byte)((_stateChangeTimeout - DateTime.Now).TotalSeconds);
 
 						// There does not appear to be a reason to tell the gun the number of players
 						// ahead of time.  It only prevents those players from joining midgame.  The
@@ -1288,15 +1286,15 @@ namespace LazerTagHostLibrary
 
 						HostDebugWriteLine("T-{0}", remainingSeconds);
 
-						_nextAnnouncement = now.AddSeconds(1);
+						_nextAnnouncement = DateTime.Now.AddSeconds(1);
 					}
 					break;
 				case HostingStates.Playing:
-					if (now >= _stateChangeTimeout)
+					if (DateTime.Now >= _stateChangeTimeout)
 					{
 						ChangeState(HostingStates.Summary);
 					}
-					else if (now >= _nextAnnouncement)
+					else if (DateTime.Now >= _nextAnnouncement)
 					{
 						switch (_gameDefinition.GameType)
 						{
@@ -1304,17 +1302,17 @@ namespace LazerTagHostLibrary
 							case GameType.OwnTheZoneTwoTeams:
 							case GameType.OwnTheZoneThreeTeams:
 								TransmitSignature(PacketPacker.ZoneBeacon(0, ZoneType.ContestedZone));
-								_nextAnnouncement = now.AddMilliseconds(500);
+								_nextAnnouncement = DateTime.Now.AddMilliseconds(500);
 								break;
 							case GameType.Respawn:
 								TransmitSignature(PacketPacker.ZoneBeacon(0, ZoneType.TeamZone));
-								_nextAnnouncement = now.AddMilliseconds(500);
+								_nextAnnouncement = DateTime.Now.AddMilliseconds(500);
 								break;
 						}
 					}
 					break;
 				case HostingStates.Summary:
-					if (now >= _nextAnnouncement)
+					if (DateTime.Now >= _nextAnnouncement)
 					{
 						var undebriefed = new List<Player>();
 						foreach (var player in _players)
@@ -1343,13 +1341,13 @@ namespace LazerTagHostLibrary
 						var packet = PacketPacker.RequestTagReport(GameDefinition.GameId, nextDebriefPlayer.TeamPlayerId);
 						TransmitPacket(packet);
 
-						_nextAnnouncement = now.AddSeconds(RequestTagReportFrequencySeconds);
+						_nextAnnouncement = DateTime.Now.AddSeconds(RequestTagReportFrequencySeconds);
 					}
 					break;
 				case HostingStates.GameOver:
-					if (now >= _nextAnnouncement)
+					if (DateTime.Now >= _nextAnnouncement)
 					{
-						_nextAnnouncement = now.AddSeconds(GameOverAnnouncementFrequencySeconds);
+						_nextAnnouncement = DateTime.Now.AddSeconds(GameOverAnnouncementFrequencySeconds);
 
 						var team = Teams.Team(_rankReportTeamNumber);
 
