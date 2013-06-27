@@ -1243,161 +1243,134 @@ namespace LazerTagHostLibrary
 			var now = DateTime.Now; // is this needed to avoid race conditions?
 
 			switch (HostingState)
-	        {
-		        case HostingStates.Idle:
-			        {
-				        break;
-			        }
-		        case HostingStates.Adding:
-			        {
-						CheckAssignPlayerFailed();
+			{
+				case HostingStates.Idle:
+					break;
+				case HostingStates.Adding:
+					CheckAssignPlayerFailed();
 
-						if (now >= _nextAnnouncement)
-				        {
-					        var packet = PacketPacker.AnnounceGame(_gameDefinition);
-							TransmitPacket(packet);
-
-					        _nextAnnouncement = now.AddMilliseconds(GameAnnouncementFrequencyMilliseconds);
-				        }
-				        break;
-			        }
-				case HostingStates.AcknowledgePlayerAssignment:
-			        {
-						if (now >= _stateChangeTimeout) ChangeState(HostingStates.Adding);
-				        break;
-			        }
-		        case HostingStates.Countdown:
-				case HostingStates.ResendCountdown:
+					if (now >= _nextAnnouncement)
 					{
-						if (HostingState == HostingStates.ResendCountdown && now >= _resendCountdownPlayingStateChangeTimeout)
+						var packet = PacketPacker.AnnounceGame(_gameDefinition);
+						TransmitPacket(packet);
+
+						_nextAnnouncement = now.AddMilliseconds(GameAnnouncementFrequencyMilliseconds);
+					}
+					break;
+				case HostingStates.AcknowledgePlayerAssignment:
+					if (now >= _stateChangeTimeout) ChangeState(HostingStates.Adding);
+					break;
+				case HostingStates.Countdown:
+				case HostingStates.ResendCountdown:
+					// TODO: Make ResendCountdown work better with zone games
+					if (HostingState == HostingStates.ResendCountdown && now >= _resendCountdownPlayingStateChangeTimeout)
+					{
+						ChangeState(HostingStates.Summary);
+					}
+					else if (now >= _stateChangeTimeout)
+					{
+						ChangeState(HostingStates.Playing);
+					}
+					else if (now >= _nextAnnouncement)
+					{
+						var remainingSeconds = (byte) ((_stateChangeTimeout - now).TotalSeconds);
+
+						// There does not appear to be a reason to tell the gun the number of players
+						// ahead of time.  It only prevents those players from joining midgame.  The
+						// score report is bitmasked and only reports non-zero scores.
+						const int playerCountTeam1 = 8;
+						var playerCountTeam2 = (GameDefinition.IsTeamGame || TeamCount >= 2) ? 8 : 0;
+						var playerCountTeam3 = (GameDefinition.IsTeamGame || TeamCount >= 3) ? 8 : 0;
+
+						var packet = PacketPacker.Countdown(GameDefinition.GameId, remainingSeconds, playerCountTeam1, playerCountTeam2,
+						                                    playerCountTeam3);
+						TransmitPacket(packet);
+
+						HostDebugWriteLine("T-{0}", remainingSeconds);
+
+						_nextAnnouncement = now.AddSeconds(1);
+					}
+					break;
+				case HostingStates.Playing:
+					if (now >= _stateChangeTimeout)
+					{
+						ChangeState(HostingStates.Summary);
+					}
+					else if (now >= _nextAnnouncement)
+					{
+						switch (_gameDefinition.GameType)
 						{
-							ChangeState(HostingStates.Summary);
+							case GameType.OwnTheZone:
+							case GameType.OwnTheZoneTwoTeams:
+							case GameType.OwnTheZoneThreeTeams:
+								TransmitSignature(PacketPacker.ZoneBeacon(0, ZoneType.ContestedZone));
+								_nextAnnouncement = now.AddMilliseconds(500);
+								break;
+							case GameType.Respawn:
+								TransmitSignature(PacketPacker.ZoneBeacon(0, ZoneType.TeamZone));
+								_nextAnnouncement = now.AddMilliseconds(500);
+								break;
 						}
-						else if (now >= _stateChangeTimeout)
+					}
+					break;
+				case HostingStates.Summary:
+					if (now >= _nextAnnouncement)
+					{
+						var undebriefed = new List<Player>();
+						foreach (var player in _players)
 						{
-							ChangeState(HostingStates.Playing);
+							if (!player.AllTagReportsReceived()) undebriefed.Add(player);
 						}
-						else if (now >= _nextAnnouncement)
+
+						Player nextDebriefPlayer = null;
+						if (undebriefed.Count > 0)
 						{
-							var remainingSeconds = (byte) ((_stateChangeTimeout - now).TotalSeconds);
-
-							// There does not appear to be a reason to tell the gun the number of players
-							// ahead of time.  It only prevents those players from joining midgame.  The
-							// score report is bitmasked and only reports non-zero scores.
-							const int playerCountTeam1 = 8;
-							var playerCountTeam2 = (GameDefinition.IsTeamGame || TeamCount >= 2) ? 8 : 0;
-							var playerCountTeam3 = (GameDefinition.IsTeamGame || TeamCount >= 3) ? 8 : 0;
-
-							var packet = PacketPacker.Countdown(GameDefinition.GameId, remainingSeconds, playerCountTeam1, playerCountTeam2,
-							                                    playerCountTeam3);
-							TransmitPacket(packet);
-
-							HostDebugWriteLine("T-{0}", remainingSeconds);
-
-							_nextAnnouncement = now.AddSeconds(1);
+							_debriefPlayerSequence = _debriefPlayerSequence < Int32.MaxValue ? _debriefPlayerSequence + 1 : 0;
+							nextDebriefPlayer = undebriefed[_debriefPlayerSequence%undebriefed.Count];
 						}
-						break;
-			        }
-		        case HostingStates.Playing:
-			        {
-						if (now >= _stateChangeTimeout)
-				        {
-							ChangeState(HostingStates.Summary);
-				        }
-						else if (now >= _nextAnnouncement)
-				        {
-					        switch (_gameDefinition.GameType)
-					        {
-								case GameType.OwnTheZone:
-								case GameType.OwnTheZoneTwoTeams:
-								case GameType.OwnTheZoneThreeTeams:
-							        TransmitSignature(PacketPacker.ZoneBeacon(0, ZoneType.ContestedZone));
-									_nextAnnouncement = now.AddMilliseconds(500);
-							        break;
-								case GameType.Respawn:
-									TransmitSignature(PacketPacker.ZoneBeacon(0, ZoneType.TeamZone));
-									_nextAnnouncement = now.AddMilliseconds(500);
-									break;
-							}
 
-							// TODO: Make this configurable and re-enable it.
-							//// Keep sending out a countdown for taggers that may have missed it
-							//var remainingSeconds = (byte)(((_stateChangeTimeout - now).Seconds % 5) + 1);
-							//var playerCountTeam1 = 8;
-							//var playerCountTeam2 = (GameDefinition.IsTeamGame || TeamCount >= 2) ? 8 : 0;
-							//var playerCountTeam3 = (GameDefinition.IsTeamGame || TeamCount >= 3) ? 8 : 0;
-							//var packet = PacketPacker.Countdown(GameDefinition.GameId, remainingSeconds, playerCountTeam1, playerCountTeam2,
-							//                                    playerCountTeam3);
-							//TransmitPacket(packet);
-							//if (_nextAnnouncement < now || _nextAnnouncement > now.AddMilliseconds(1000))
-							//{
-							//    _nextAnnouncement = now.AddSeconds(1);
-							//}
-				        }
-				        break;
-			        }
-		        case HostingStates.Summary:
-			        {
-				        if (now >= _nextAnnouncement)
-				        {
-					        var undebriefed = new List<Player>();
-					        foreach (var player in _players)
-					        {
-						        if (!player.AllTagReportsReceived()) undebriefed.Add(player);
-					        }
+						if (nextDebriefPlayer == null)
+						{
+							HostDebugWriteLine("All players debriefed");
 
-					        Player nextDebriefPlayer = null;
-					        if (undebriefed.Count > 0)
-					        {
-						        _debriefPlayerSequence = _debriefPlayerSequence < Int32.MaxValue ? _debriefPlayerSequence + 1 : 0;
-						        nextDebriefPlayer = undebriefed[_debriefPlayerSequence%undebriefed.Count];
-					        }
+							CalculateScores();
+							PrintScoreReport();
 
-					        if (nextDebriefPlayer == null)
-					        {
-						        HostDebugWriteLine("All players debriefed");
+							ChangeState(HostingStates.GameOver);
+							break;
+						}
 
-						        CalculateScores();
-						        PrintScoreReport();
+						var packet = PacketPacker.RequestTagReport(GameDefinition.GameId, nextDebriefPlayer.TeamPlayerId);
+						TransmitPacket(packet);
 
-						        ChangeState(HostingStates.GameOver);
-						        break;
-					        }
+						_nextAnnouncement = now.AddSeconds(RequestTagReportFrequencySeconds);
+					}
+					break;
+				case HostingStates.GameOver:
+					if (now >= _nextAnnouncement)
+					{
+						_nextAnnouncement = now.AddSeconds(GameOverAnnouncementFrequencySeconds);
 
-					        var packet = PacketPacker.RequestTagReport(GameDefinition.GameId, nextDebriefPlayer.TeamPlayerId);
-							TransmitPacket(packet);
+						var team = Teams.Team(_rankReportTeamNumber);
 
-					        _nextAnnouncement = now.AddSeconds(RequestTagReportFrequencySeconds);
-				        }
-				        break;
-			        }
-		        case HostingStates.GameOver:
-			        {
-				        if (now >= _nextAnnouncement)
-				        {
-					        _nextAnnouncement = now.AddSeconds(GameOverAnnouncementFrequencySeconds);
+						_rankReportTeamNumber++;
+						var maxTeamNumber = GameDefinition.IsTeamGame ? _gameDefinition.TeamCount : 3;
+						if (_rankReportTeamNumber > maxTeamNumber) _rankReportTeamNumber = 1;
 
-							var team = Teams.Team(_rankReportTeamNumber);
+						if (team == null) break;
 
-							_rankReportTeamNumber++;
-							var maxTeamNumber = GameDefinition.IsTeamGame ? _gameDefinition.TeamCount : 3;
-							if (_rankReportTeamNumber > maxTeamNumber) _rankReportTeamNumber = 1;
+						var playerRanks = new int[8];
+						foreach (var player in team.Players)
+						{
+							playerRanks[player.TeamPlayerId.TeamPlayerNumber - 1] = player.Rank;
+						}
 
-					        if (team == null) break;
-
-							var playerRanks = new int[8];
-						    foreach (var player in team.Players)
-						    {
-							    playerRanks[player.TeamPlayerId.TeamPlayerNumber - 1] = player.Rank;
-						    }
-
-							var packet = PacketPacker.RankReport(GameDefinition.GameId, team.Number, team.Rank, playerRanks);
-					        TransmitPacket(packet);
-				        }
-				        break;
-			        }
-	        }
-        }
+						var packet = PacketPacker.RankReport(GameDefinition.GameId, team.Number, team.Rank, playerRanks);
+						TransmitPacket(packet);
+					}
+					break;
+			}
+		}
 
 	    private void CheckAssignPlayerFailed()
 	    {
