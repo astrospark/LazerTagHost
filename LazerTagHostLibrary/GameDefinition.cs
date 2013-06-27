@@ -5,6 +5,7 @@
 		public GameDefinition()
 		{
 			CountdownTimeSeconds = 30;
+			ResendCountdownTimeSeconds = 10;
 		}
 
 		public GameType GameType
@@ -131,5 +132,6 @@
 		}
 
 		public int CountdownTimeSeconds { get; set; }
+		public int ResendCountdownTimeSeconds { get; set; }
 	}
 }

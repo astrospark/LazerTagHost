@@ -10,7 +10,7 @@ namespace LazerTagHostLibrary
     public interface IHostChangedListener
     {
         void PlayerListChanged(List<Player> players);
-        void GameStateChanged(HostGun.HostingState state);
+        void GameStateChanged(HostGun.HostingStates state);
     }
 
     public class HostGun
@@ -30,13 +30,14 @@ namespace LazerTagHostLibrary
 		    public DateTime LastAssignPlayerFailSendTime;
 	    };
 
-        public enum HostingState
+        public enum HostingStates
 		{
             Idle,
             Adding,
 			AcknowledgePlayerAssignment,
             Countdown,
-            Playing,
+			ResendCountdown,
+			Playing,
             Summary,
             GameOver,
         };
@@ -82,7 +83,7 @@ namespace LazerTagHostLibrary
 		    get { return _gameDefinition; }
 	    }
 
-	    private HostingState _hostingState = HostingState.Idle;
+	    public HostingStates HostingState;
 
         private readonly Dictionary<UInt16, JoinState> _joinStates = new Dictionary<ushort, JoinState>();
 
@@ -93,6 +94,7 @@ namespace LazerTagHostLibrary
 		private int _rankReportTeamNumber;
 
 	    private Packet _incomingPacket;
+	    private DateTime _resendCountdownPlayingStateChangeTimeout;
 
 	    public void SetGameStartCountdownTime(int countdownTimeSeconds)
 		{
@@ -294,14 +296,14 @@ namespace LazerTagHostLibrary
 				}
 	        }
 
-	        switch (_hostingState)
+	        switch (HostingState)
 	        {
-		        case HostingState.Idle:
+		        case HostingStates.Idle:
 			        {
 				        return true;
 			        }
-		        case HostingState.Adding:
-				case HostingState.AcknowledgePlayerAssignment:
+		        case HostingStates.Adding:
+				case HostingStates.AcknowledgePlayerAssignment:
 					{
 				        if (packet.Data.Count < 2) return false;
 
@@ -320,7 +322,7 @@ namespace LazerTagHostLibrary
 								return false;
 						}
 			        }
-		        case HostingState.Summary:
+		        case HostingStates.Summary:
 			        {
 						switch (packet.Type)
 				        {
@@ -388,7 +390,7 @@ namespace LazerTagHostLibrary
 
 		    SendPlayerAssignment(player.TeamPlayerId);
 
-			ChangeState(DateTime.Now, HostingState.AcknowledgePlayerAssignment);
+			ChangeState(HostingStates.AcknowledgePlayerAssignment);
 
 			return true;
 		}
@@ -416,7 +418,7 @@ namespace LazerTagHostLibrary
 			HostDebugWriteLine("Confirmed player {0} for game 0x{1:X2}.",
 			                   player.TeamPlayerId.ToString(_gameDefinition.IsTeamGame), gameId);
 
-			if (_joinStates.Count < 1) ChangeState(DateTime.Now, HostingState.Adding);
+			if (_joinStates.Count < 1) ChangeState(HostingStates.Adding);
 
 			if (_listener != null) _listener.PlayerListChanged(Players.ToList());
 
@@ -968,60 +970,75 @@ namespace LazerTagHostLibrary
 			TransmitPacket(packet);
 	    }
 
-        private bool ChangeState(DateTime now, HostingState state)
+        private bool ChangeState(HostingStates state)
 		{
-            switch (state)
-			{
-				case HostingState.Idle:
-					_players.Clear();
-					break;
-				case HostingState.Countdown:
-					if (_hostingState != HostingState.Adding) return false;
-					HostDebugWriteLine("Starting countdown");
-					_stateChangeTimeout = now.AddSeconds(_gameDefinition.CountdownTimeSeconds);
-					break;
-				case HostingState.Adding:
-					HostDebugWriteLine("Joining players");
+	        switch (state)
+	        {
+		        case HostingStates.Idle:
+			        _players.Clear();
+			        break;
+		        case HostingStates.Countdown:
+			        if (HostingState != HostingStates.Adding) return false;
+			        HostDebugWriteLine("Starting countdown");
+			        _stateChangeTimeout = DateTime.Now.AddSeconds(_gameDefinition.CountdownTimeSeconds);
+			        break;
+		        case HostingStates.ResendCountdown:
+			        if (HostingState != HostingStates.Playing) return false;
+			        HostDebugWriteLine("Resending countdown");
+			        _resendCountdownPlayingStateChangeTimeout = _stateChangeTimeout;
+			        _stateChangeTimeout = DateTime.Now.AddSeconds(_gameDefinition.ResendCountdownTimeSeconds);
+			        break;
+		        case HostingStates.Adding:
+			        HostDebugWriteLine("Joining players");
 
-					if (_hostingState != HostingState.AcknowledgePlayerAssignment)
-					{
-						Teams.Clear();
-						if (_gameDefinition.IsTeamGame)
-						{
-							for (var teamNumber = 1; teamNumber <= _gameDefinition.TeamCount; teamNumber++)
-							{
-								Teams.Add(new Team(teamNumber));
-							}
-						}
-						else
-						{
-							Teams.Add(new Team(1));
-						}
+			        if (HostingState != HostingStates.AcknowledgePlayerAssignment)
+			        {
+				        Teams.Clear();
+				        if (_gameDefinition.IsTeamGame)
+				        {
+					        for (var teamNumber = 1; teamNumber <= _gameDefinition.TeamCount; teamNumber++)
+					        {
+						        Teams.Add(new Team(teamNumber));
+					        }
+				        }
+				        else
+				        {
+					        Teams.Add(new Team(1));
+				        }
 
-						_joinStates.Clear();
-					}
-					break;
-				case HostingState.AcknowledgePlayerAssignment:
-					HostDebugWriteLine("Waiting for AcknowledgePlayerAssignment packet.");
-					_stateChangeTimeout = now.AddSeconds(AcknowledgePlayerAssignmentTimeoutSeconds);
-					break;
-				case HostingState.Playing:
-					HostDebugWriteLine("Starting Game");
-					_stateChangeTimeout = now.AddMinutes(_gameDefinition.GameTimeMinutes);
-					break;
-				case HostingState.Summary:
-					HostDebugWriteLine("Debriefing");
-					break;
-				case HostingState.GameOver:
-					HostDebugWriteLine("Debrief Done");
-					_rankReportTeamNumber = 1;
-					break;
-				default:
-					return false;
-            }
+				        _joinStates.Clear();
+			        }
+			        break;
+		        case HostingStates.AcknowledgePlayerAssignment:
+			        HostDebugWriteLine("Waiting for AcknowledgePlayerAssignment packet.");
+			        _stateChangeTimeout = DateTime.Now.AddSeconds(AcknowledgePlayerAssignmentTimeoutSeconds);
+			        break;
+		        case HostingStates.Playing:
+			        switch (HostingState)
+			        {
+				        case HostingStates.Countdown:
+					        HostDebugWriteLine("Starting Game");
+					        _stateChangeTimeout = DateTime.Now.AddMinutes(_gameDefinition.GameTimeMinutes);
+					        break;
+				        case HostingStates.ResendCountdown:
+					        HostDebugWriteLine("Continuing Game");
+					        _stateChangeTimeout = _resendCountdownPlayingStateChangeTimeout;
+					        break;
+			        }
+			        break;
+		        case HostingStates.Summary:
+			        HostDebugWriteLine("Debriefing");
+			        break;
+		        case HostingStates.GameOver:
+			        HostDebugWriteLine("Debrief Done");
+			        _rankReportTeamNumber = 1;
+			        break;
+		        default:
+			        return false;
+	        }
 
-            _hostingState = state;
-            _nextAnnouncement = now;
+	        HostingState = state;
+			_nextAnnouncement = DateTime.Now;
 
             if (_listener != null) {
                 _listener.GameStateChanged(state);
@@ -1033,17 +1050,17 @@ namespace LazerTagHostLibrary
 #region PublicInterface
         public void StartServer(GameDefinition gameDefinition)
 		{
-            if (_hostingState != HostingState.Idle) return;
+            if (HostingState != HostingStates.Idle) return;
 
 			_gameDefinition = gameDefinition;
 			_gameDefinition.GameId = GenerateRandomId();
 
-            ChangeState(DateTime.Now, HostingState.Adding);
+            ChangeState(HostingStates.Adding);
         }
 
         public void EndGame()
 		{
-            ChangeState(DateTime.Now, HostingState.Idle);
+            ChangeState(HostingStates.Idle);
 	        _stateChangeTimeout = new DateTime(0);
 		}
 
@@ -1052,57 +1069,60 @@ namespace LazerTagHostLibrary
 			_stateChangeTimeout = _stateChangeTimeout.AddSeconds(seconds);
         }
 
-	    [Obsolete("Pause() is no longer supported.", true)]
-	    public void Pause()
-	    {
-	    }
-
 	    public void Next()
 		{
-            switch (_hostingState)
+            switch (HostingState)
 			{
-				case HostingState.Adding:
-					ChangeState(DateTime.Now, HostingState.Countdown);
+				case HostingStates.Adding:
+					ChangeState(HostingStates.Countdown);
 					break;
-				case HostingState.Playing:
-					ChangeState(DateTime.Now, HostingState.Summary);
+				case HostingStates.Playing:
+					ChangeState(HostingStates.Summary);
 					break;
-				case HostingState.Summary:
+				case HostingStates.Summary:
 					foreach (var player in Players)
 					{
 						if (!player.AllTagReportsReceived()) DropPlayer(player.TeamPlayerId);
 					}
-					ChangeState(DateTime.Now, HostingState.GameOver);
+					ChangeState(HostingStates.GameOver);
 					break;
-				case HostingState.Idle:
-				case HostingState.AcknowledgePlayerAssignment:
-				case HostingState.Countdown:
-				case HostingState.GameOver:
+				case HostingStates.Idle:
+				case HostingStates.AcknowledgePlayerAssignment:
+				case HostingStates.Countdown:
+				case HostingStates.ResendCountdown:
+				case HostingStates.GameOver:
 				default:
-					HostDebugWriteLine("Next cannot be used while in the {0} hosting state.", _hostingState);
+					HostDebugWriteLine("Next cannot be used while in the {0} hosting state.", HostingState);
 					break;
             }
         }
 
-        public bool StartGame()
+        public bool StartCountdown()
 		{
-            return ChangeState(DateTime.Now, HostingState.Countdown);
+            return ChangeState(HostingStates.Countdown);
         }
+
+		public void ResendCountdown()
+		{
+			ChangeState(HostingStates.ResendCountdown);
+		}
 
         public string GetGameStateText()
         {
-            switch (_hostingState)
+            switch (HostingState)
 			{
-				case HostingState.Adding:
-				case HostingState.AcknowledgePlayerAssignment:
+				case HostingStates.Adding:
+				case HostingStates.AcknowledgePlayerAssignment:
 					return "Adding Players";
-				case HostingState.Countdown:
+				case HostingStates.Countdown:
 					return "Countdown to Game Start";
-				case HostingState.Playing:
+				case HostingStates.ResendCountdown:
+					return "Resending Countdown";
+				case HostingStates.Playing:
 					return "Game in Progress";
-				case HostingState.Summary:
+				case HostingStates.Summary:
 					return "Debriefing Players";
-				case HostingState.GameOver:
+				case HostingStates.GameOver:
 					return "Game Over";
 				default:
 					return "Not In a Game";
@@ -1113,10 +1133,10 @@ namespace LazerTagHostLibrary
 	    {
 			string countdown;
 		    var timeRemaining = (_stateChangeTimeout - DateTime.Now).ToString(@"m\:ss");
-		    switch (_hostingState)
+		    switch (HostingState)
 		    {
-			    case HostingState.Adding:
-			    case HostingState.AcknowledgePlayerAssignment:
+			    case HostingStates.Adding:
+			    case HostingStates.AcknowledgePlayerAssignment:
 				    var needed = (MinimumPlayerCount - _players.Count);
 				    if (needed > 0)
 				    {
@@ -1127,16 +1147,19 @@ namespace LazerTagHostLibrary
 					    countdown = "Ready to start countdown";
 				    }
 				    break;
-			    case HostingState.Countdown:
+			    case HostingStates.Countdown:
 				    countdown = string.Format("{0} until game start", timeRemaining);
 				    break;
-			    case HostingState.Playing:
+				case HostingStates.ResendCountdown:
+					countdown = string.Format("{0}", timeRemaining);
+					break;
+				case HostingStates.Playing:
 				    countdown = string.Format("{0} until game end", timeRemaining);
 				    break;
-			    case HostingState.Summary:
+			    case HostingStates.Summary:
 				    countdown = "Waiting for all players to check in";
 				    break;
-			    case HostingState.GameOver:
+			    case HostingStates.GameOver:
 				    countdown = "All players may now receive scores";
 				    break;
 			    default:
@@ -1170,26 +1193,26 @@ namespace LazerTagHostLibrary
             }
 
 			var changed = false;
-			switch (GetGameState())
+			switch (HostingState)
 			{
-
-				case HostingState.Adding:
-				case HostingState.AcknowledgePlayerAssignment:
-				case HostingState.Countdown:
+				case HostingStates.Adding:
+				case HostingStates.AcknowledgePlayerAssignment:
+				case HostingStates.Countdown:
 					_players.Remove(player.TeamPlayerId);
 					changed = true;
 					break;
-				case HostingState.Playing:
-				case HostingState.Summary:
+				case HostingStates.Playing:
+				case HostingStates.ResendCountdown:
+				case HostingStates.Summary:
 					if (player.AllTagReportsReceived()) return;
 					player.Dropped = true;
 					player.Survived = false;
 					changed = true;
 					break;
-				case HostingState.Idle:
-				case HostingState.GameOver:
+				case HostingStates.Idle:
+				case HostingStates.GameOver:
 				default:
-					HostDebugWriteLine("Players cannot be dropped while in the {0} hosting state.", _hostingState);
+					HostDebugWriteLine("Players cannot be dropped while in the {0} hosting state.", HostingState);
 					break;
 			}
 
@@ -1219,17 +1242,17 @@ namespace LazerTagHostLibrary
 
 			var now = DateTime.Now; // is this needed to avoid race conditions?
 
-			switch (_hostingState)
+			switch (HostingState)
 	        {
-		        case HostingState.Idle:
+		        case HostingStates.Idle:
 			        {
 				        break;
 			        }
-		        case HostingState.Adding:
+		        case HostingStates.Adding:
 			        {
 						CheckAssignPlayerFailed();
-						
-						if (now.CompareTo(_nextAnnouncement) > 0)
+
+						if (now >= _nextAnnouncement)
 				        {
 					        var packet = PacketPacker.AnnounceGame(_gameDefinition);
 							TransmitPacket(packet);
@@ -1238,21 +1261,23 @@ namespace LazerTagHostLibrary
 				        }
 				        break;
 			        }
-				case HostingState.AcknowledgePlayerAssignment:
+				case HostingStates.AcknowledgePlayerAssignment:
 			        {
-						if (now > _stateChangeTimeout)
-						{
-							ChangeState(now, HostingState.Adding);
-						}
+						if (now >= _stateChangeTimeout) ChangeState(HostingStates.Adding);
 				        break;
 			        }
-		        case HostingState.Countdown:
-			        {
-						if (_stateChangeTimeout < now)
-				        {
-							ChangeState(now, HostingState.Playing);
-				        }
-						else if (_nextAnnouncement < now)
+		        case HostingStates.Countdown:
+				case HostingStates.ResendCountdown:
+					{
+						if (HostingState == HostingStates.ResendCountdown && now >= _resendCountdownPlayingStateChangeTimeout)
+						{
+							ChangeState(HostingStates.Summary);
+						}
+						else if (now >= _stateChangeTimeout)
+						{
+							ChangeState(HostingStates.Playing);
+						}
+						else if (now >= _nextAnnouncement)
 						{
 							var remainingSeconds = (byte) ((_stateChangeTimeout - now).TotalSeconds);
 
@@ -1265,19 +1290,19 @@ namespace LazerTagHostLibrary
 
 							var packet = PacketPacker.Countdown(GameDefinition.GameId, remainingSeconds, playerCountTeam1, playerCountTeam2,
 							                                    playerCountTeam3);
-					        TransmitPacket(packet);
+							TransmitPacket(packet);
 
 							HostDebugWriteLine("T-{0}", remainingSeconds);
 
 							_nextAnnouncement = now.AddSeconds(1);
 						}
-				        break;
+						break;
 			        }
-		        case HostingState.Playing:
+		        case HostingStates.Playing:
 			        {
-						if (now > _stateChangeTimeout)
+						if (now >= _stateChangeTimeout)
 				        {
-							ChangeState(now, HostingState.Summary);
+							ChangeState(HostingStates.Summary);
 				        }
 						else if (now >= _nextAnnouncement)
 				        {
@@ -1311,9 +1336,9 @@ namespace LazerTagHostLibrary
 				        }
 				        break;
 			        }
-		        case HostingState.Summary:
+		        case HostingStates.Summary:
 			        {
-				        if (now > _nextAnnouncement)
+				        if (now >= _nextAnnouncement)
 				        {
 					        var undebriefed = new List<Player>();
 					        foreach (var player in _players)
@@ -1335,7 +1360,7 @@ namespace LazerTagHostLibrary
 						        CalculateScores();
 						        PrintScoreReport();
 
-						        ChangeState(now, HostingState.GameOver);
+						        ChangeState(HostingStates.GameOver);
 						        break;
 					        }
 
@@ -1346,9 +1371,9 @@ namespace LazerTagHostLibrary
 				        }
 				        break;
 			        }
-		        case HostingState.GameOver:
+		        case HostingStates.GameOver:
 			        {
-				        if (now > _nextAnnouncement)
+				        if (now >= _nextAnnouncement)
 				        {
 					        _nextAnnouncement = now.AddSeconds(GameOverAnnouncementFrequencySeconds);
 
@@ -1423,7 +1448,8 @@ namespace LazerTagHostLibrary
 
         public HostGun(string device, IHostChangedListener listener)
 		{
-            _serial = new LazerTagSerial();
+	        HostingState = HostingStates.Idle;
+	        _serial = new LazerTagSerial();
 	        _serial.IoError += Serial_IoError;
 	        _serial.Connect(device);
             _listener = listener;
@@ -1441,16 +1467,11 @@ namespace LazerTagHostLibrary
             _serial.Disconnect();
 	        return _serial.Connect(device);
 		}
-
-        public HostingState GetGameState()
-		{
-            return _hostingState;
-        }
 #endregion
 
 	    public void SendPlayerAssignment(TeamPlayerId teamPlayerId)
 	    {
-		    if (_hostingState != HostingState.Adding && _hostingState != HostingState.AcknowledgePlayerAssignment) return;
+		    if (HostingState != HostingStates.Adding && HostingState != HostingStates.AcknowledgePlayerAssignment) return;
 
 		    var gameId = _gameDefinition.GameId;
 			var player = Players.Player(teamPlayerId);
