@@ -13,11 +13,17 @@ namespace LazerTagHostLibrary
     public class LazerTagSerial
     {
 		private const int InterSignatureDelayMilliseconds = 50;
-		
+
+	    private string _portName;
 		private SerialPort _serialPort;
 	    private string _readBuffer; 
-	    private BlockingCollection<byte[]> _writeQueue;
+	    private readonly BlockingCollection<byte[]> _writeQueue;
 		private Thread _writeThread;
+
+		public LazerTagSerial()
+		{
+			_writeQueue = new BlockingCollection<byte[]>();
+		}
 
 		static public List<string> GetSerialPorts()
 		{
@@ -50,20 +56,19 @@ namespace LazerTagHostLibrary
 			return serialPorts;
 		}
 
-		public bool Connect(string device)
+		public bool Connect(string portName)
 		{
 			try
 			{
-				_readBuffer = string.Empty;
-				_writeQueue = new BlockingCollection<byte[]>();
+				if (string.IsNullOrWhiteSpace(portName)) return false;
+				_portName = portName;
 
-				if (string.IsNullOrWhiteSpace(device)) return false;
-
-				_serialPort = new SerialPort(device, 115200)
+				_serialPort = new SerialPort(_portName, 115200)
 					{
 						Parity = Parity.None,
 						StopBits = StopBits.One,
 					};
+				_serialPort.PinChanged += SerialPinChanged;
 				_serialPort.DataReceived += SerialDataReceived;
 				_serialPort.Open();
 
@@ -81,11 +86,24 @@ namespace LazerTagHostLibrary
 
 			return true;
 		}
-	
-        public void Disconnect()
+
+	    private static void SerialPinChanged(object sender, SerialPinChangedEventArgs e)
+	    {
+		    Debug.WriteLine("SerialPinChanged(): {0}", e.EventType);
+	    }
+
+	    public void Disconnect()
         {
 	        if (_serialPort == null || !_serialPort.IsOpen) return;
-			_serialPort.Close();
+
+			try
+		    {
+			    _serialPort.Close();
+		    }
+		    catch (IOException)
+		    {
+		    }
+
             _serialPort = null;
 		}
 
@@ -120,7 +138,12 @@ namespace LazerTagHostLibrary
 		}
 
 	    public void Enqueue(byte[] bytes)
-		{
+	    {
+		    if (_serialPort == null || !_serialPort.IsOpen)
+		    {
+			    if (!Connect(_portName)) return;
+		    }
+				
 			_writeQueue.Add(bytes);
 		}
 
@@ -141,10 +164,12 @@ namespace LazerTagHostLibrary
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine(ex.ToString());
+				Debug.WriteLine(ex.ToString());
 				OnIoError(new IoErrorEventArgs(null, ex));
+				Disconnect();
 			}
-        }
+			Debug.WriteLine("LazerTagSerial.WriteThread() exiting.");
+		}
 
 	    public class IoErrorEventArgs : EventArgs
 	    {
