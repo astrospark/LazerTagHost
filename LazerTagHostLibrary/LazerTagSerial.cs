@@ -4,6 +4,8 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Ports;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace LazerTagHostLibrary
@@ -13,8 +15,9 @@ namespace LazerTagHostLibrary
 		private const int InterSignatureDelayMilliseconds = 50;
 		
 		private SerialPort _serialPort;
-	    private ConcurrentQueue<byte[]> _queue;
-		private Thread _workerThread;
+	    private string _readBuffer; 
+	    private BlockingCollection<byte[]> _writeQueue;
+		private Thread _writeThread;
 
 		static public List<string> GetSerialPorts()
 		{
@@ -24,11 +27,7 @@ namespace LazerTagHostLibrary
 			{
 				var directoryInfo = new DirectoryInfo("/dev");
 				var deviceNodes = directoryInfo.GetFiles("ttyUSB*");
-
-				foreach (var deviceNode in deviceNodes)
-				{
-					serialPorts.Add(deviceNode.FullName);
-				}
+				serialPorts.AddRange(deviceNodes.Select(deviceNode => deviceNode.FullName));
 			}
 			catch (DirectoryNotFoundException)
 			{
@@ -55,7 +54,8 @@ namespace LazerTagHostLibrary
 		{
 			try
 			{
-				_queue = new ConcurrentQueue<byte[]>();
+				_readBuffer = string.Empty;
+				_writeQueue = new BlockingCollection<byte[]>();
 
 				if (string.IsNullOrWhiteSpace(device)) return false;
 
@@ -63,15 +63,15 @@ namespace LazerTagHostLibrary
 					{
 						Parity = Parity.None,
 						StopBits = StopBits.One,
-						ReadTimeout = 1,
 					};
+				_serialPort.DataReceived += SerialDataReceived;
 				_serialPort.Open();
 
-				_workerThread = new Thread(WriteThread)
+				_writeThread = new Thread(WriteThread)
 					{
 						IsBackground = true
 					};
-				_workerThread.Start();
+				_writeThread.Start();
 			}
 			catch (Exception ex)
 			{
@@ -89,29 +89,39 @@ namespace LazerTagHostLibrary
             _serialPort = null;
 		}
 
-		// TODO: Make this asynchronous
-        public string Read()
-        {
-	        if (_serialPort == null || !_serialPort.IsOpen) return null; // throw new IOException();
-	        if (_serialPort.BytesToRead < 1) return null;
-	        try
-	        {
-		        return _serialPort.ReadLine();
-	        }
-	        catch (TimeoutException)
-	        {
-		        return null;
-	        }
-        }
+	    private void SerialDataReceived(object sender, SerialDataReceivedEventArgs e)
+	    {
+		    if (sender != _serialPort) return;
+		    _readBuffer += _serialPort.ReadExisting();
 
-		public void Enqueue(UInt16 data, UInt16 bitCount, bool isBeacon = false)
+			foreach (var line in SplitBufferLines(_readBuffer, out _readBuffer))
+			{
+				OnDataReceived(new DataReceivedEventArgs(line));
+			}
+	    }
+
+		private static IEnumerable<string> SplitBufferLines(string buffer, out string remainingBuffer)
 		{
-			var signatureData = new[]
-				{
-					(byte) ((isBeacon ? 0x01 : 0x00 << 5) | ((bitCount & 0xf) << 1) | ((data >> 8) & 0x1)),
-					(byte) (data & 0xff)
-				};
-			_queue.Enqueue(signatureData);
+			var lines = new List<string>();
+			var match = Regex.Match(buffer, @"(.+?)(\r?\n|\r)");
+			var lastMatchPosition = 0;
+			while (match.Success)
+			{
+				if (match.Groups.Count < 2) continue;
+				lines.Add(match.Groups[1].Value);
+
+				lastMatchPosition = match.Index + match.Length;
+				match = match.NextMatch();
+			}
+
+			remainingBuffer = buffer.Substring(lastMatchPosition);
+
+			return lines;
+		}
+
+	    public void Enqueue(byte[] bytes)
+		{
+			_writeQueue.Add(bytes);
 		}
 
 		private void WriteThread()
@@ -120,20 +130,13 @@ namespace LazerTagHostLibrary
 			{
 				while (_serialPort != null && _serialPort.IsOpen)
 				{
-					byte[] signatureData;
-					if (_queue.TryDequeue(out signatureData))
-					{
-						if (signatureData.Length != 2) continue;
+					var data = _writeQueue.Take();
 
-						_serialPort.Write(signatureData, 0, signatureData.Length);
-						_serialPort.BaseStream.Flush();
+					_serialPort.Write(data, 0, data.Length);
+					_serialPort.BaseStream.Flush();
 
-						Thread.Sleep(InterSignatureDelayMilliseconds);
-					}
-					else
-					{
-						Thread.Sleep(0);
-					}
+					// TODO: Move this to the device firmware
+					Thread.Sleep(InterSignatureDelayMilliseconds);
 				}
 			}
 			catch (Exception ex)
@@ -161,7 +164,26 @@ namespace LazerTagHostLibrary
 
 		protected virtual void OnIoError(IoErrorEventArgs e)
 		{
-			IoError(this, e);
+			if (IoError != null) IoError(this, e);
 		}
+
+	    public delegate void DataReceivedEventHandler(object sender, DataReceivedEventArgs e);
+
+	    public event DataReceivedEventHandler DataReceived;
+
+		protected virtual void OnDataReceived(DataReceivedEventArgs e)
+		{
+			if (DataReceived != null) DataReceived(this, e);
+		}
+
+	    public class DataReceivedEventArgs : EventArgs
+	    {
+			public DataReceivedEventArgs(string data)
+			{
+				Data = data;
+			}
+
+			public string Data { get; set; }
+	    }
 	}
 }

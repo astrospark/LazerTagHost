@@ -4,7 +4,7 @@ namespace LazerTagHostLibrary
 {
 	public class Signature : IEquatable<Signature>
 	{
-		public Signature(SignatureType type, UInt16 data, UInt16 bitCount = 8)
+		public Signature(SignatureType type, UInt16 data, byte bitCount = 8)
 		{
 			Type = type;
 			var mask = (UInt16) (Math.Pow(2, bitCount) - 1);
@@ -14,7 +14,7 @@ namespace LazerTagHostLibrary
 
 		public SignatureType Type { get; set; }
 		public UInt16 Data { get; set; }
-		public UInt16 BitCount { get; set; }
+		public byte BitCount { get; set; }
 
 		public static bool operator ==(Signature first, Signature second)
 		{

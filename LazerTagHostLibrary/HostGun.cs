@@ -631,11 +631,11 @@ namespace LazerTagHostLibrary
 			}
 		}
 
-	    private void ProcessDataSignature(UInt16 data,UInt16 bitCount)
+	    private void ProcessDataSignature(UInt16 data, byte bitCount)
 	    {
-			if (bitCount == 9)
+		    if (bitCount == 9)
 		    {
-				if ((data & 0x100) == 0) // packet type
+			    if ((data & 0x100) == 0) // packet type
 			    {
 				    _incomingPacket = new Packet
 					    {
@@ -644,58 +644,58 @@ namespace LazerTagHostLibrary
 			    }
 			    else // checksum
 			    {
-					if (_incomingPacket == null)
-					{
-						HostDebugWriteLine("Stray checksum signature received.");
-						return;
-					}
+				    if (_incomingPacket == null)
+				    {
+					    HostDebugWriteLine("Stray checksum signature received.");
+					    return;
+				    }
 
-					if (!(_incomingPacket.PacketTypeSignatureValid && _incomingPacket.DataValid))
-					{
-						HostDebugWriteLine("Checksum received for invalid packet: {0}", _incomingPacket);
-						_incomingPacket = null;
-						return;
-					}
+				    if (!(_incomingPacket.PacketTypeSignatureValid && _incomingPacket.DataValid))
+				    {
+					    HostDebugWriteLine("Checksum received for invalid packet: {0}", _incomingPacket);
+					    _incomingPacket = null;
+					    return;
+				    }
 
 				    _incomingPacket.Checksum = new Signature(SignatureType.Checksum, data);
 
-					if (_incomingPacket.ChecksumValid)
-					{
-						HostDebugWriteLine("RX {0}: {1}", GetPacketTypeName(_incomingPacket.Type), _incomingPacket);
+				    if (_incomingPacket.ChecksumValid)
+				    {
+					    HostDebugWriteLine("RX {0}: {1}", GetPacketTypeName(_incomingPacket.Type), _incomingPacket);
 
-						if (!ProcessPacket(_incomingPacket))
+					    if (!ProcessPacket(_incomingPacket))
 					    {
-							HostDebugWriteLine("ProcessCommandSequence() failed: {0}", _incomingPacket);
+						    HostDebugWriteLine("ProcessCommandSequence() failed: {0}", _incomingPacket);
 					    }
 				    }
 				    else
-					{
-						HostDebugWriteLine("Invalid checksum received. {0}", _incomingPacket);
-					}
+				    {
+					    HostDebugWriteLine("Invalid checksum received. {0}", _incomingPacket);
+				    }
 
-					_incomingPacket = null;
+				    _incomingPacket = null;
 			    }
 		    }
-			else if (bitCount == 8) // data
+		    else if (bitCount == 8) // data
 		    {
-				if (_incomingPacket == null || !_incomingPacket.PacketTypeSignatureValid)
-				{
-					HostDebugWriteLine("Stray data packet received. 0x{0:X2} ({1})", data, bitCount);
-					_incomingPacket = null;
-					return;
-				}
+			    if (_incomingPacket == null || !_incomingPacket.PacketTypeSignatureValid)
+			    {
+				    HostDebugWriteLine("Stray data packet received. 0x{0:X2} ({1})", data, bitCount);
+				    _incomingPacket = null;
+				    return;
+			    }
 
 			    _incomingPacket.Data.Add(new Signature(SignatureType.Data, data));
 		    }
-			else if (bitCount == 7) // tag
-			{
-				_incomingPacket = null;
-				ProcessTag(new Signature(SignatureType.Tag, data, bitCount));
-			}
+		    else if (bitCount == 7) // tag
+		    {
+			    _incomingPacket = null;
+			    ProcessTag(new Signature(SignatureType.Tag, data, bitCount));
+		    }
 		    else
 		    {
-				HostDebugWriteLine("Stray data packet received. 0x{0:X2} ({1})", data, bitCount);
-			}
+			    HostDebugWriteLine("Stray data packet received. 0x{0:X2} ({1})", data, bitCount);
+		    }
 	    }
 
 	    private void ProcessSignature(string command, IList<string> parameters)
@@ -703,7 +703,7 @@ namespace LazerTagHostLibrary
 	        if (parameters.Count != 2) return;
 
 	        var data = UInt16.Parse(parameters[0], NumberStyles.AllowHexSpecifier);
-	        var bitCount = UInt16.Parse(parameters[1]);
+	        var bitCount = byte.Parse(parameters[1]);
 
             switch (command)
 			{
@@ -719,30 +719,9 @@ namespace LazerTagHostLibrary
         }
 
 #region SerialProtocol
-
 		private void TransmitSignature(Signature signature)
 		{
-			switch (signature.Type)
-			{
-				case SignatureType.Beacon:
-					_serial.Enqueue(signature.Data, signature.BitCount, true);
-					break;
-				case SignatureType.Tag:
-					_serial.Enqueue(signature.Data, signature.BitCount);
-					break;
-				case SignatureType.PacketType:
-					_serial.Enqueue((UInt16)(signature.Data & ~0x100), 9);
-					break;
-				case SignatureType.Data:
-					_serial.Enqueue(signature.Data, signature.BitCount);
-					break;
-				case SignatureType.Checksum:
-					_serial.Enqueue((UInt16)(signature.Data | 0x100), 9);
-					break;
-				default:
-					HostDebugWriteLine("TransmitSignature() - Unknown SignatureType.");
-					break;
-			}
+			_serial.Enqueue(EncodeSignature(signature));
 		}
 
 		private void TransmitSignature(IEnumerable<Signature> signatures)
@@ -751,6 +730,37 @@ namespace LazerTagHostLibrary
 			{
 				TransmitSignature(signature);
 			}
+		}
+
+		private static byte[] EncodeSignature(Signature signature)
+		{
+			if (signature == null) throw new ArgumentException("signature");
+
+			var isBeacon = signature.Type == SignatureType.Beacon;
+			UInt16 data;
+			byte bitCount;
+
+			switch (signature.Type)
+			{
+				case SignatureType.PacketType:
+					data = (UInt16)(signature.Data & ~0x100);
+					bitCount = 9;
+					break;
+				case SignatureType.Checksum:
+					data = (UInt16)(signature.Data | 0x100);
+					bitCount = 9;
+					break;
+				default:
+					data = signature.Data;
+					bitCount = signature.BitCount;
+					break;
+			}
+
+			return new[]
+				{
+					(byte) ((isBeacon ? 0x01 : 0x00 << 5) | ((bitCount & 0xf) << 1) | ((data >> 8) & 0x1)),
+					(byte) (data & 0xff)
+				};
 		}
 
 		private void TransmitPacket(Packet packet)
@@ -1220,26 +1230,7 @@ namespace LazerTagHostLibrary
         }
 
         public void Update()
-		{
-            if (_serial != null)
-			{
-                var input = _serial.Read();
-                if (input != null)
-                {
-	                var parts = input.Split(new[] {':'}, 2, StringSplitOptions.RemoveEmptyEntries);
-	                if (parts.Count() == 2)
-					{
-		                var command = parts[0].Trim();
-						var parameters = parts[1].Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries);
-						for (var i = 0; i < parameters.Count(); i++)
-						{
-							parameters[i] = parameters[i].Trim();
-						}
-						ProcessSignature(command, parameters);
-                    }
-                }
-            }
-
+        {
 			switch (HostingState)
 			{
 				case HostingStates.Idle:
@@ -1421,12 +1412,30 @@ namespace LazerTagHostLibrary
 		{
 	        HostingState = HostingStates.Idle;
 	        _serial = new LazerTagSerial();
-	        _serial.IoError += Serial_IoError;
+			_serial.DataReceived += Serial_DataReceived;
+			_serial.IoError += Serial_IoError;
 	        _serial.Connect(device);
             _listener = listener;
 		}
 
-		public event LazerTagSerial.IoErrorEventHandler IoError;
+	    private void Serial_DataReceived(object sender, LazerTagSerial.DataReceivedEventArgs e)
+	    {
+			if (e.Data == null) return;
+
+			var parts = e.Data.Split(new[] { ':' }, 2, StringSplitOptions.RemoveEmptyEntries);
+			if (parts.Count() == 2)
+			{
+				var command = parts[0].Trim();
+				var parameters = parts[1].Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+				for (var i = 0; i < parameters.Count(); i++)
+				{
+					parameters[i] = parameters[i].Trim();
+				}
+				ProcessSignature(command, parameters);
+			}
+		}
+
+	    public event LazerTagSerial.IoErrorEventHandler IoError;
 		
 		private void Serial_IoError(object sender, LazerTagSerial.IoErrorEventArgs e)
 	    {
