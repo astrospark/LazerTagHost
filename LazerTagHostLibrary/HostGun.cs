@@ -7,12 +7,6 @@ using System.Text;
 
 namespace LazerTagHostLibrary
 {
-    public interface IHostChangedListener
-    {
-        void PlayerListChanged(List<Player> players);
-        void GameStateChanged(HostGun.HostingStates state);
-    }
-
     public class HostGun
     {
 		private static void HostDebugWriteLine(string format, params object[] arguments)
@@ -87,7 +81,6 @@ namespace LazerTagHostLibrary
 
         private readonly Dictionary<UInt16, JoinState> _joinStates = new Dictionary<ushort, JoinState>();
 
-        private IHostChangedListener _listener;
         private DateTime _stateChangeTimeout;
         private DateTime _nextAnnouncement;
 	    private int _debriefPlayerSequence;
@@ -420,7 +413,7 @@ namespace LazerTagHostLibrary
 
 			if (_joinStates.Count < 1) ChangeState(HostingStates.Adding);
 
-			if (_listener != null) _listener.PlayerListChanged(Players.ToList());
+			OnPlayerListChanged(new PlayerListChangedEventArgs(Players));
 
 			return true;
 		}
@@ -477,6 +470,8 @@ namespace LazerTagHostLibrary
 			player.TagSummaryReceived = true;
 
 			HostDebugWriteLine("Received tag summary from {0}.", player.DisplayName);
+
+			OnPlayerListChanged(new PlayerListChangedEventArgs(Players));
 
 			return true;
 		}
@@ -542,7 +537,7 @@ namespace LazerTagHostLibrary
 				packetIndex++;
 			}
 
-			if (_listener != null) _listener.PlayerListChanged(Players.ToList());
+			OnPlayerListChanged(new PlayerListChangedEventArgs(Players));
 
 			return true;
 		}
@@ -981,19 +976,21 @@ namespace LazerTagHostLibrary
 	    }
 
         private bool ChangeState(HostingStates state)
-		{
+        {
+	        var previousState = HostingState;
+
 	        switch (state)
 	        {
 		        case HostingStates.Idle:
 			        _players.Clear();
 			        break;
 		        case HostingStates.Countdown:
-			        if (HostingState != HostingStates.Adding) return false;
+					if (previousState != HostingStates.Adding) return false;
 			        HostDebugWriteLine("Starting countdown");
 			        _stateChangeTimeout = DateTime.Now.AddSeconds(_gameDefinition.CountdownTimeSeconds);
 			        break;
 		        case HostingStates.ResendCountdown:
-			        if (HostingState != HostingStates.Playing) return false;
+					if (previousState != HostingStates.Playing) return false;
 			        HostDebugWriteLine("Resending countdown");
 			        _resendCountdownPlayingStateChangeTimeout = _stateChangeTimeout;
 			        _stateChangeTimeout = DateTime.Now.AddSeconds(_gameDefinition.ResendCountdownTimeSeconds);
@@ -1001,7 +998,7 @@ namespace LazerTagHostLibrary
 		        case HostingStates.Adding:
 			        HostDebugWriteLine("Joining players");
 
-			        if (HostingState != HostingStates.AcknowledgePlayerAssignment)
+					if (previousState != HostingStates.AcknowledgePlayerAssignment)
 			        {
 				        Teams.Clear();
 				        if (_gameDefinition.IsTeamGame)
@@ -1024,7 +1021,7 @@ namespace LazerTagHostLibrary
 			        _stateChangeTimeout = DateTime.Now.AddSeconds(AcknowledgePlayerAssignmentTimeoutSeconds);
 			        break;
 		        case HostingStates.Playing:
-			        switch (HostingState)
+					switch (previousState)
 			        {
 				        case HostingStates.Countdown:
 					        HostDebugWriteLine("Starting Game");
@@ -1050,10 +1047,8 @@ namespace LazerTagHostLibrary
 	        HostingState = state;
 			_nextAnnouncement = DateTime.Now;
 
-            if (_listener != null) {
-                _listener.GameStateChanged(state);
-            }
-
+	        OnHostingStateChanged(new HostingStateChangedEventArgs(previousState, state));
+		
             return true;
         }
 
@@ -1226,8 +1221,8 @@ namespace LazerTagHostLibrary
 					break;
 			}
 
-			if (_listener != null && changed) _listener.PlayerListChanged(Players.ToList());
-        }
+			OnPlayerListChanged(new PlayerListChangedEventArgs(Players));
+		}
 
         public void Update()
         {
@@ -1403,19 +1398,13 @@ namespace LazerTagHostLibrary
 		    }
 	    }
 
-	    public void AddListener(IHostChangedListener listener)
-		{
-            _listener = listener;
-        }
-
-        public HostGun(string device, IHostChangedListener listener)
+        public HostGun(string portName)
 		{
 	        HostingState = HostingStates.Idle;
 	        _serial = new LazerTagSerial();
 			_serial.DataReceived += Serial_DataReceived;
 			_serial.IoError += Serial_IoError;
-	        _serial.Connect(device);
-            _listener = listener;
+	        _serial.Connect(portName);
 		}
 
 	    private void Serial_DataReceived(object sender, LazerTagSerial.DataReceivedEventArgs e)
@@ -1435,12 +1424,54 @@ namespace LazerTagHostLibrary
 			}
 		}
 
+	    #region Events
+	    public class PlayerListChangedEventArgs : EventArgs
+	    {
+		    public PlayerListChangedEventArgs(IEnumerable<Player> players)
+		    {
+			    Players = players;
+		    }
+
+		    public IEnumerable<Player> Players { get; set; }
+	    }
+
+	    public delegate void PlayerListChangedEventHandler(object sender, PlayerListChangedEventArgs e);
+
+	    public event PlayerListChangedEventHandler PlayerListChanged;
+
+	    protected virtual void OnPlayerListChanged(PlayerListChangedEventArgs e)
+	    {
+		    if (PlayerListChanged != null) PlayerListChanged(this, e);
+	    }
+
+	    public class HostingStateChangedEventArgs : EventArgs
+	    {
+		    public HostingStateChangedEventArgs(HostingStates previousState, HostingStates state)
+		    {
+			    PreviousState = previousState;
+			    State = state;
+		    }
+
+		    public HostingStates PreviousState { get; set; }
+		    public HostingStates State { get; set; }
+	    }
+
+	    public delegate void HostingStateChangedEventHandler(object sender, HostingStateChangedEventArgs e);
+
+	    public event HostingStateChangedEventHandler HostingStateChanged;
+
+	    protected virtual void OnHostingStateChanged(HostingStateChangedEventArgs e)
+	    {
+		    if (HostingStateChanged != null) HostingStateChanged(this, e);
+	    }
+
 	    public event LazerTagSerial.IoErrorEventHandler IoError;
-		
-		private void Serial_IoError(object sender, LazerTagSerial.IoErrorEventArgs e)
+
+	    private void Serial_IoError(object sender, LazerTagSerial.IoErrorEventArgs e)
 	    {
 		    IoError(sender, e);
 	    }
+	    #endregion
 
 	    public bool SetDevice(string device)
 		{
