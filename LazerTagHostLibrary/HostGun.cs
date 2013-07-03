@@ -1221,8 +1221,8 @@ namespace LazerTagHostLibrary
 					break;
 			}
 
-			OnPlayerListChanged(new PlayerListChangedEventArgs(Players));
-		}
+	        if (changed) OnPlayerListChanged(new PlayerListChangedEventArgs(Players));
+        }
 
         public void Update()
         {

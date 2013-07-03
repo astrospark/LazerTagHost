@@ -214,7 +214,7 @@ namespace LazerTagHostLibrary
 
 		public static TeamPlayerId FromPacked34(UInt16 value)
 		{
-			return new TeamPlayerId { Packed34 = value };
+			return new TeamPlayerId {Packed34 = value};
 		}
 
 		public static TeamPlayerId FromPacked44(UInt16 value)
@@ -246,7 +246,7 @@ namespace LazerTagHostLibrary
 		public override bool Equals(object obj)
 		{
 			if (ReferenceEquals(null, obj)) return false;
-			return obj is TeamPlayerId && Equals((TeamPlayerId)obj);
+			return obj is TeamPlayerId && Equals((TeamPlayerId) obj);
 		}
 
 		public override int GetHashCode()
