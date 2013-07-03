@@ -62,11 +62,13 @@
     <Compile Include="GameDefinition.cs" />
     <Compile Include="GameTypes.cs" />
     <Compile Include="HexCodedDecimal.cs" />
+    <Compile Include="ScoredObject.cs" />
     <Compile Include="Packet.cs" />
     <Compile Include="Player.cs" />
     <Compile Include="HostGun.cs" />
     <Compile Include="LazerTagSerial.cs" />
     <Compile Include="PacketPacker.cs" />
+    <Compile Include="Rank.cs" />
     <Compile Include="Signature.cs" />
     <Compile Include="Team.cs" />
     <Compile Include="Tools.cs" />

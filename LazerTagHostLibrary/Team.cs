@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace LazerTagHostLibrary
 {
-	public class Team
+	public class Team : ScoredObject
 	{
 		public Team(int teamNumber)
 		{
@@ -19,8 +19,7 @@ namespace LazerTagHostLibrary
 		}
 
 		public int Number { get; set; }
-		public int Score { get; set; }
-		public int Rank { get; set; }
+
 	}
 
 	public class TeamCollection: ICollection<Team>
@@ -29,13 +28,7 @@ namespace LazerTagHostLibrary
 
 		public void CalculateRanks()
 		{
-			var sortedTeams = (from t in _teams select t).OrderByDescending(t => t.Score);
-			var rank = 1;
-			foreach (var team in sortedTeams)
-			{
-				team.Rank = rank;
-				rank++;
-			}
+			ScoredObject.CalculateRanks(this);
 		}
 
 		public Team Team(int teamNumber)

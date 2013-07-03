@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace LazerTagHostLibrary
 {
-	public class Player
+	public class Player : ScoredObject
 	{
 		private readonly HostGun _hostGun;
 		public byte TaggerId { get; set; }
@@ -36,9 +36,6 @@ namespace LazerTagHostLibrary
 		}
 
 		public TimeSpan ZoneTime;
-
-		public int Score { get; set; }
-		public int Rank { get; set; } // 1-24
 
 		// TODO: Remove this and handle it in the UI layer
 		public string Name { get; set; }
@@ -80,13 +77,7 @@ namespace LazerTagHostLibrary
 
 		public void CalculateRanks()
 		{
-			var sortedPlayers = (from p in _players select p).OrderByDescending(p => p.Score);
-			var rank = 1;
-			foreach (var player in sortedPlayers)
-			{
-				player.Rank = rank;
-				rank++;
-			}
+			ScoredObject.CalculateRanks(this);
 		}
 
 		public Player Player(TeamPlayerId teamPlayerId)
