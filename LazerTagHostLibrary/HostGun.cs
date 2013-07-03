@@ -79,6 +79,8 @@ namespace LazerTagHostLibrary
 
 	    public HostingStates HostingState;
 
+		public bool AllowLateJoins { get; set; } // TODO: Implement
+
         private readonly Dictionary<UInt16, JoinState> _joinStates = new Dictionary<ushort, JoinState>();
 
         private DateTime _stateChangeTimeout;
