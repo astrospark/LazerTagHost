@@ -263,7 +263,7 @@ namespace LazerTagHostLibrary
 		{
 			if (teamGame)
 			{
-				return string.Format("{0}:{1}", TeamNumber, TeamPlayerNumber);
+				return string.Format("T{0}:P{1}", TeamNumber, TeamPlayerNumber);
 			}
 			else
 			{
