@@ -19,7 +19,6 @@ namespace LazerTagHostLibrary
 		}
 
 		public int Number { get; set; }
-
 	}
 
 	public class TeamCollection: ICollection<Team>

@@ -78,6 +78,7 @@ namespace LazerTagHostLibrary
         private const int MinimumPlayerCount = 2;
         private const int RequestTagReportFrequencySeconds = 3;
         private const int GameOverAnnouncementFrequencySeconds = 3;
+	    private const int ZoneBeaconFrequencyMilliseconds = 500;
         
         private GameDefinition _gameDefinition;
 	    public GameDefinition GameDefinition
@@ -1298,11 +1299,11 @@ namespace LazerTagHostLibrary
 							case GameType.OwnTheZoneTwoTeams:
 							case GameType.OwnTheZoneThreeTeams:
 								TransmitSignature(PacketPacker.ZoneBeacon(0, ZoneType.ContestedZone));
-								_nextAnnouncement = DateTime.Now.AddMilliseconds(500);
+								_nextAnnouncement = DateTime.Now.AddMilliseconds(ZoneBeaconFrequencyMilliseconds);
 								break;
 							case GameType.Respawn:
 								TransmitSignature(PacketPacker.ZoneBeacon(0, ZoneType.TeamZone));
-								_nextAnnouncement = DateTime.Now.AddMilliseconds(500);
+								_nextAnnouncement = DateTime.Now.AddMilliseconds(ZoneBeaconFrequencyMilliseconds);
 								break;
 						}
 					}
