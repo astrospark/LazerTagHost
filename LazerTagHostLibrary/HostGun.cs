@@ -764,7 +764,7 @@ namespace LazerTagHostLibrary
 
 			return new[]
 				{
-					(byte) ((isBeacon ? 0x01 : 0x00 << 5) | ((bitCount & 0xf) << 1) | ((data >> 8) & 0x1)),
+					(byte) ((isBeacon ? 1 : 0 << 5) | ((bitCount & 0xf) << 1) | ((data >> 8) & 0x1)),
 					(byte) (data & 0xff)
 				};
 		}
