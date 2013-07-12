@@ -11,7 +11,15 @@ namespace LazerTagHostLibrary
     {
 		private static void HostDebugWriteLine(string format, params object[] arguments)
 	    {
-			Console.WriteLine("{0}: {1}", DateTime.Now, String.Format(format, arguments));
+			try
+			{
+				Console.WriteLine("{0}: {1}", DateTime.Now, String.Format(format, arguments));
+			}
+			catch (FormatException ex)
+			{
+				Console.WriteLine(ex);
+				Console.WriteLine("Format string: {0}", format);
+			}
 		}
 
 	    private class JoinState
@@ -622,7 +630,7 @@ namespace LazerTagHostLibrary
 								}
 						}
 
-						HostDebugWriteLine("Recieved {0} {1}. {3} tags remaining.{4}", teamText, typeText, tagsText, shieldText);
+						HostDebugWriteLine("Recieved {0} {1}. {2} tags remaining.{3}", teamText, typeText, tagsText, shieldText);
 						break;
 					}
 			}
