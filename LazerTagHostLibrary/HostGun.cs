@@ -211,10 +211,10 @@ namespace LazerTagHostLibrary
         {
             foreach (var player in _players)
             {
-	            HostDebugWriteLine(String.Format("{0} (0x{1:X2})", player.DisplayName, player.TaggerId));
+	            HostDebugWriteLine("{0} (0x{1:X2})", player.DisplayName, player.TaggerId);
 				if (_gameDefinition.IsTeamGame)
 				{
-					HostDebugWriteLine(String.Format("\tPlayer Rank: {0}, Team Rank: {1}, Score: {2}", player.Rank, player.Team.Rank, player.Score));
+					HostDebugWriteLine("\tPlayer Rank: {0}, Team Rank: {1}, Score: {2}", player.Rank, player.Team.Rank, player.Score);
 					for (var teamNumber = 1; teamNumber <= 3; teamNumber++)
 					{
 						var taggedByPlayerCounts = new int[8];
@@ -223,19 +223,19 @@ namespace LazerTagHostLibrary
 							var teamPlayerId = new TeamPlayerId(teamNumber, playerNumber);
 							taggedByPlayerCounts[playerNumber - 1] = player.TaggedByPlayerCounts[teamPlayerId.PlayerNumber - 1];
 						}
-						HostDebugWriteLine(String.Format("\tTags taken from team {0}: {1}", teamNumber,String.Join(", ", taggedByPlayerCounts)));
+						HostDebugWriteLine("\tTags taken from team {0}: {1}", teamNumber, String.Join(", ", taggedByPlayerCounts));
 					}
 				}
 				else
 				{
-					HostDebugWriteLine(String.Format("\tPlayer Rank: {0}, Score: {1}", player.Rank, player.Score));
+					HostDebugWriteLine("\tPlayer Rank: {0}, Score: {1}", player.Rank, player.Score);
 					var taggedByPlayerCounts = new int[24];
 					for (var playerNumber = 1; playerNumber <= 24; playerNumber++)
 					{
 						var teamPlayerId = new TeamPlayerId(playerNumber);
 						taggedByPlayerCounts[playerNumber - 1] = player.TaggedByPlayerCounts[teamPlayerId.PlayerNumber - 1];
 					}
-					HostDebugWriteLine(String.Format("\tTags taken from players: {0}", String.Join(", ", taggedByPlayerCounts)));
+					HostDebugWriteLine("\tTags taken from players: {0}", String.Join(", ", taggedByPlayerCounts));
 				}
             }
         }
