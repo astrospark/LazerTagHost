@@ -46,26 +46,25 @@ namespace LazerTagHostLibrary
 			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.Reloads)));
 			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.Shields)));
 			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.Mega)));
-			
-			var flags1 =
-		        (byte) ((gameDefinition.ExtendedTagging ? 1 : 0) << 7 |
-		                (gameDefinition.UnlimitedMega ? 1 : 0) << 6 |
-		                (gameDefinition.UnlimitedReloads ? 1 : 0) << 5 |
-		                (gameDefinition.TeamTags ? 1 : 0) << 4 |
-		                (gameDefinition.MedicMode ? 1 : 0) << 3 |
-		                (gameDefinition.RapidTags ? 1 : 0) << 2 |
-		                (gameDefinition.GameTypeInfo.HuntThePrey ? 1 : 0) << 1 |
-		                (gameDefinition.HuntDirection ? 1 : 0) << 0);
-			packet.Data.Add(new Signature(SignatureType.Data, flags1));
 
-			var flags2 =
-				(byte)((gameDefinition.GameTypeInfo.Zones ? 1 : 0) << 7 |
-						(gameDefinition.GameTypeInfo.TeamZones ? 1 : 0) << 6 |
-						(gameDefinition.GameTypeInfo.NeutralizePlayersTaggedInZone ? 1 : 0) << 5 |
-						(gameDefinition.GameTypeInfo.ZonesRevivePlayers ? 1 : 0) << 4 |
-						(gameDefinition.GameTypeInfo.HospitalZones ? 1 : 0) << 3 |
-						(gameDefinition.GameTypeInfo.ZonesTagPlayers ? 1 : 0) << 2 |
-						(gameDefinition.TeamCount & 0x03));
+	        var flags1 = (byte) ((gameDefinition.ExtendedTagging ? 1 : 0) << 7 |
+								 (gameDefinition.LimitedReloads ? 1 : 0) << 5 |
+								 (gameDefinition.LimitedMega ? 1 : 0) << 6 |
+	                             (gameDefinition.TeamTags ? 1 : 0) << 4 |
+	                             (gameDefinition.MedicMode ? 1 : 0) << 3 |
+	                             (gameDefinition.RapidTags ? 1 : 0) << 2 |
+	                             (gameDefinition.GameTypeInfo.HuntThePrey ? 1 : 0) << 1 |
+	                             (gameDefinition.HuntDirection ? 1 : 0) << 0);
+
+	        var flags2 = (byte) ((gameDefinition.GameTypeInfo.Zones ? 1 : 0) << 7 |
+	                             (gameDefinition.GameTypeInfo.TeamZones ? 1 : 0) << 6 |
+	                             (gameDefinition.GameTypeInfo.NeutralizePlayersTaggedInZone ? 1 : 0) << 5 |
+	                             (gameDefinition.GameTypeInfo.ZonesRevivePlayers ? 1 : 0) << 4 |
+	                             (gameDefinition.GameTypeInfo.HospitalZones ? 1 : 0) << 3 |
+	                             (gameDefinition.GameTypeInfo.ZonesTagPlayers ? 1 : 0) << 2 |
+	                             (gameDefinition.TeamCount & 0x03));
+			
+			packet.Data.Add(new Signature(SignatureType.Data, flags1));
 			packet.Data.Add(new Signature(SignatureType.Data, flags2));
 
 			if (gameDefinition.Name != null && gameDefinition.Name.Length == 4)

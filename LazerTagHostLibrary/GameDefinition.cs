@@ -6,6 +6,7 @@
 		{
 			CountdownTimeSeconds = 30;
 			ResendCountdownTimeSeconds = 10;
+			HuntDirection = true;
 		}
 
 		public GameType GameType
@@ -31,7 +32,7 @@
 			set
 			{
 				_reloads = value;
-				_unlimitedReloads = (_reloads == 0xff);
+				_limitedReloads = (_reloads != 0xff);
 			}
 		}
 
@@ -47,44 +48,44 @@
 			set
 			{
 				_mega = value;
-				UnlimitedMega = (_mega == 0xff);
+				LimitedMega = (_mega != 0xff);
 			}
 		}
 
 		public bool ExtendedTagging { get; set; }
 
-		private bool _unlimitedReloads;
-		public bool UnlimitedReloads
+		private bool _limitedReloads;
+		public bool LimitedReloads
 		{
-			get { return _unlimitedReloads; }
+			get { return _limitedReloads; }
 			set
 			{
-				_unlimitedReloads = value;
+				_limitedReloads = value;
 				if (value)
 				{
-					_reloads = 0xff;
+					if (_reloads == 0xff) _reloads = 99;
 				}
 				else
 				{
-					if (_reloads == 0xff) _reloads = 99;
+					_reloads = 0xff;
 				}
 			}
 		}
 
-		private bool _unlimitedMega;
-		public bool UnlimitedMega
+		private bool _limitedMega;
+		public bool LimitedMega
 		{
-			get { return _unlimitedMega; }
+			get { return _limitedMega; }
 			set
 			{
-				_unlimitedMega = value;
+				_limitedMega = value;
 				if (value)
 				{
-					_mega = 0xff;
+					if (_mega == 0xff) _mega = 99;
 				}
 				else
 				{
-					if (_mega == 0xff) _mega = 99;
+					_mega = 0xff;
 				}
 			}
 		}
