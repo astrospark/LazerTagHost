@@ -52,7 +52,7 @@ namespace LazerTagHostLibrary
 								 (gameDefinition.LimitedMega ? 1 : 0) << 5 |
 	                             (gameDefinition.TeamTags ? 1 : 0) << 4 |
 	                             (gameDefinition.MedicMode ? 1 : 0) << 3 |
-	                             (gameDefinition.RapidTags ? 1 : 0) << 2 |
+	                             (gameDefinition.SlowTags ? 1 : 0) << 2 |
 	                             (gameDefinition.GameTypeInfo.HuntThePrey ? 1 : 0) << 1 |
 	                             (gameDefinition.HuntDirection ? 1 : 0) << 0);
 
