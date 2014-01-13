@@ -48,8 +48,8 @@ namespace LazerTagHostLibrary
 			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.Mega)));
 
 	        var flags1 = (byte) ((gameDefinition.ExtendedTagging ? 1 : 0) << 7 |
-								 (gameDefinition.LimitedReloads ? 1 : 0) << 5 |
-								 (gameDefinition.LimitedMega ? 1 : 0) << 6 |
+								 (gameDefinition.LimitedReloads ? 1 : 0) << 6 |
+								 (gameDefinition.LimitedMega ? 1 : 0) << 5 |
 	                             (gameDefinition.TeamTags ? 1 : 0) << 4 |
 	                             (gameDefinition.MedicMode ? 1 : 0) << 3 |
 	                             (gameDefinition.RapidTags ? 1 : 0) << 2 |
