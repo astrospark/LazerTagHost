@@ -749,11 +749,11 @@ namespace LazerTagHostLibrary
 			switch (signature.Type)
 			{
 				case SignatureType.PacketType:
-					data = (UInt16)(signature.Data & ~0x100);
+					data = (UInt16) (signature.Data & ~0x100);
 					bitCount = 9;
 					break;
 				case SignatureType.Checksum:
-					data = (UInt16)(signature.Data | 0x100);
+					data = (UInt16) (signature.Data | 0x100);
 					bitCount = 9;
 					break;
 				default:
@@ -763,10 +763,10 @@ namespace LazerTagHostLibrary
 			}
 
 			return new[]
-				{
-					(byte) ((isBeacon ? 1 : 0 << 5) | ((bitCount & 0xf) << 1) | ((data >> 8) & 0x1)),
-					(byte) (data & 0xff)
-				};
+			{
+				(byte) (((isBeacon ? 1 : 0) << 5) | ((bitCount & 0xf) << 1) | ((data >> 8) & 0x1)),
+				(byte) (data & 0xff)
+			};
 		}
 
 		private void TransmitPacket(Packet packet)
