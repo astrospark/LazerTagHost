@@ -451,13 +451,8 @@ namespace LazerTagHostLibrary
 
 			var teamPlayerId = TeamPlayerId.FromPacked44(packet.Data[1].Data);
 			var tagsTaken = packet.Data[2].Data; // Hex Coded Decimal
-			var survivedSignature = packet.Data[3];
-			AssertUnknownBits("survivedSignature", survivedSignature, 0xef);
-			var survived = survivedSignature.Data;
-
-			var unknownSignature = packet.Data[4];
-			AssertUnknownBits("unknownSignature", unknownSignature, 0xff);
-
+			var surviveTimeMinutes = packet.Data[3].Data;
+			var surviveTimeSeconds = packet.Data[4].Data;
 			var zoneTimeMinutes = packet.Data[5].Data;
 			var zoneTimeSeconds = packet.Data[6].Data;
 
@@ -471,7 +466,8 @@ namespace LazerTagHostLibrary
 				return false;
 			}
 
-			player.Survived = (survived & 0x10) == 0x10;
+			player.SurviveTime = new TimeSpan(0, 0, HexCodedDecimal.ToDecimal(surviveTimeMinutes), HexCodedDecimal.ToDecimal(surviveTimeSeconds));
+			player.Survived = player.SurviveTime.TotalMinutes >= GameDefinition.GameTimeMinutes;
 			player.TagsTaken = HexCodedDecimal.ToDecimal(tagsTaken);
 			player.TeamTagReportsExpected[0] = (teamTagReports.Data & 0x2) != 0;
 			player.TeamTagReportsExpected[1] = (teamTagReports.Data & 0x4) != 0;
@@ -1222,6 +1218,7 @@ namespace LazerTagHostLibrary
 				case HostingStates.Summary:
 					if (player.AllTagReportsReceived()) return;
 					player.Dropped = true;
+					player.SurviveTime = new TimeSpan();
 					player.Survived = false;
 					changed = true;
 					break;

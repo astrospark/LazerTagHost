@@ -17,9 +17,10 @@ namespace LazerTagHostLibrary
 		public Team Team { get; set; }
 
 		public int TagsTaken = 0;
+		public TimeSpan SurviveTime { get; set; }
 		public bool Survived { get; set; }
-		public bool[] TeamTagReportsExpected = new[] {false, false, false};
-		public bool[] TeamTagReportsReceived = new[] {false, false, false};
+		public bool[] TeamTagReportsExpected = {false, false, false};
+		public bool[] TeamTagReportsReceived = {false, false, false};
 
 		private int[] _taggedPlayerCounts = new int[TeamPlayerId.MaximumPlayerNumber];
 		public int[] TaggedPlayerCounts
