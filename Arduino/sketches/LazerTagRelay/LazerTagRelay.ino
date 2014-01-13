@@ -29,6 +29,7 @@ void setup()
   Serial.println(LAZERTAG_IR_VERSION_FULL);
   Serial.println("Start");
   lazerTagReceive.enableIRIn();
+  lazerTagReceive.blink13(true);
 }
 
 void loop()
