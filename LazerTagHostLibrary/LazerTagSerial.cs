@@ -80,7 +80,7 @@ namespace LazerTagHostLibrary
 			}
 			catch (Exception ex)
 			{
-				Debug.WriteLine(ex);
+				Log.Add("Connect() failed.", ex);
 				return false;
 			}
 
@@ -89,7 +89,7 @@ namespace LazerTagHostLibrary
 
 	    private static void SerialPinChanged(object sender, SerialPinChangedEventArgs e)
 	    {
-		    Debug.WriteLine("SerialPinChanged(): {0}", e.EventType);
+		    Log.Add(Log.Severity.Debug, "SerialPinChanged(): {0}", e.EventType);
 	    }
 
 	    public void Disconnect()
@@ -164,12 +164,12 @@ namespace LazerTagHostLibrary
 			}
 			catch (Exception ex)
 			{
-				Debug.WriteLine(ex.ToString());
+				Log.Add("WriteThread() failed.", ex);
 				OnIoError(new IoErrorEventArgs(null, ex));
 				Disconnect();
 			}
-			Debug.WriteLine("LazerTagSerial.WriteThread() exiting.");
-		}
+			Log.Add(Log.Severity.Debug, "LazerTagSerial.WriteThread() exiting.");
+        }
 
 	    public class IoErrorEventArgs : EventArgs
 	    {

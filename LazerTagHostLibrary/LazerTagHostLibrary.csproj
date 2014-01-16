@@ -62,6 +62,7 @@
     <Compile Include="GameDefinition.cs" />
     <Compile Include="GameTypes.cs" />
     <Compile Include="HexCodedDecimal.cs" />
+    <Compile Include="Log.cs" />
     <Compile Include="ScoredObject.cs" />
     <Compile Include="Packet.cs" />
     <Compile Include="Player.cs" />

@@ -9,19 +9,6 @@ namespace LazerTagHostLibrary
 {
     public class HostGun
     {
-		private static void HostDebugWriteLine(string format, params object[] arguments)
-	    {
-			try
-			{
-				Console.WriteLine("{0}: {1}", DateTime.Now, String.Format(format, arguments));
-			}
-			catch (FormatException ex)
-			{
-				Console.WriteLine(ex);
-				Console.WriteLine("Format string: {0}", format);
-			}
-		}
-
 	    private class JoinState
 	    {
 		    public UInt16 GameId;
@@ -117,7 +104,7 @@ namespace LazerTagHostLibrary
 
 		    if (_players.Count >= TeamPlayerId.MaximumPlayerNumber)
 		    {
-			    HostDebugWriteLine("Cannot add player. The game is full.");
+			    Log.Add(Log.Severity.Information, "Cannot add player. The game is full.");
 			    return false;
 		    }
 
@@ -144,7 +131,7 @@ namespace LazerTagHostLibrary
 
 			    if (smallestTeamNumber == 0)
 			    {
-					HostDebugWriteLine("All teams are full.");
+					Log.Add(Log.Severity.Information, "All teams are full.");
 					return false;
 			    }
 
@@ -182,7 +169,7 @@ namespace LazerTagHostLibrary
 
 		    if (assignedPlayerNumber == 0)
 		    {
-			    HostDebugWriteLine("Unable to assign a player number.");
+			    Log.Add(Log.Severity.Warning, "Unable to assign a player number.");
 			    return false;
 		    }
 
@@ -204,17 +191,18 @@ namespace LazerTagHostLibrary
 	    private static void AssertUnknownBits(String name, Signature signature, byte mask)
         {
 	        if (((byte) (signature.Data & mask)) == 0) return;
-	        HostDebugWriteLine("Unknown bits set: \"{0}\", data: 0x{2:X2}, mask: 0x{3:X2}, unknown: 0x{1:X2}", name, (byte) (signature.Data & mask), (byte) signature.Data, mask);
+		    Log.Add(Log.Severity.Warning, "Unknown bits set: \"{0}\", data: 0x{2:X2}, mask: 0x{3:X2}, unknown: 0x{1:X2}",
+			    name, (byte) (signature.Data & mask), (byte) signature.Data, mask);
         }
         
         private void PrintScoreReport()
         {
             foreach (var player in _players)
             {
-	            HostDebugWriteLine("{0} (0x{1:X2})", player.DisplayName, player.TaggerId);
+	            Log.Add(Log.Severity.Information, "{0} (0x{1:X2})", player.DisplayName, player.TaggerId);
 				if (_gameDefinition.IsTeamGame)
 				{
-					HostDebugWriteLine("\tPlayer Rank: {0}, Team Rank: {1}, Score: {2}", player.Rank, player.Team.Rank, player.Score);
+					Log.Add(Log.Severity.Information, "\tPlayer Rank: {0}, Team Rank: {1}, Score: {2}", player.Rank, player.Team.Rank, player.Score);
 					for (var teamNumber = 1; teamNumber <= 3; teamNumber++)
 					{
 						var taggedByPlayerCounts = new int[8];
@@ -223,19 +211,19 @@ namespace LazerTagHostLibrary
 							var teamPlayerId = new TeamPlayerId(teamNumber, playerNumber);
 							taggedByPlayerCounts[playerNumber - 1] = player.TaggedByPlayerCounts[teamPlayerId.PlayerNumber - 1];
 						}
-						HostDebugWriteLine("\tTags taken from team {0}: {1}", teamNumber, String.Join(", ", taggedByPlayerCounts));
+						Log.Add(Log.Severity.Information, "\tTags taken from team {0}: {1}", teamNumber, String.Join(", ", taggedByPlayerCounts));
 					}
 				}
 				else
 				{
-					HostDebugWriteLine("\tPlayer Rank: {0}, Score: {1}", player.Rank, player.Score);
+					Log.Add(Log.Severity.Information, "\tPlayer Rank: {0}, Score: {1}", player.Rank, player.Score);
 					var taggedByPlayerCounts = new int[24];
 					for (var playerNumber = 1; playerNumber <= 24; playerNumber++)
 					{
 						var teamPlayerId = new TeamPlayerId(playerNumber);
 						taggedByPlayerCounts[playerNumber - 1] = player.TaggedByPlayerCounts[teamPlayerId.PlayerNumber - 1];
 					}
-					HostDebugWriteLine("\tTags taken from players: {0}", String.Join(", ", taggedByPlayerCounts));
+					Log.Add(Log.Severity.Information, "\tTags taken from players: {0}", String.Join(", ", taggedByPlayerCounts));
 				}
             }
         }
@@ -254,8 +242,7 @@ namespace LazerTagHostLibrary
 							var teamPlayerId2 = TeamPlayerId.FromPacked34(packet.Data[2].Data);
 							var tagsReceived = packet.Data[3].Data;
 							var replyText = isReply ? "replied to tag count request from" : "requested tag count from";
-							HostDebugWriteLine("Player {0} {1} player {2}. Player {0} received {3} tags from player {2}.", teamPlayerId1,
-							                   replyText, teamPlayerId2, tagsReceived);
+							Log.Add(Log.Severity.Information, "Player {0} {1} player {2}. Player {0} received {3} tags from player {2}.", teamPlayerId1, replyText, teamPlayerId2, tagsReceived);
 							break;
 						}
 					case PacketType.TextMessage:
@@ -270,7 +257,7 @@ namespace LazerTagHostLibrary
 								message.Append(Convert.ToChar(packet.Data[i].Data));
 								i++;
 							}
-							HostDebugWriteLine("Received Text Message: {0}", message); 
+							Log.Add(Log.Severity.Information, "Received Text Message: {0}", message); 
 							break;
 						}
 					case PacketType.SpecialAttack:
@@ -288,7 +275,7 @@ namespace LazerTagHostLibrary
 										break;
 								}
 							}
-							HostDebugWriteLine("Special Attack: {0} - {1}", type, packet.ToString());
+							Log.Add(Log.Severity.Information, "Special Attack: {0} - {1}", type, packet);
 							AssertUnknownBits("Special Attack Flags 1", packet.Data[1], 0xff);
 							AssertUnknownBits("Special Attack Flags 2", packet.Data[2], 0xff);
 							AssertUnknownBits("Special Attack Flags 3", packet.Data[3], 0xff);
@@ -321,7 +308,7 @@ namespace LazerTagHostLibrary
 							case PacketType.AcknowledgePlayerAssignment:
 								return ProcessAcknowledgePlayerAssignment(gameId, taggerId);
 							default:
-								HostDebugWriteLine("Wrong command.");
+						        Log.Add(Log.Severity.Warning, "Unexpected packet: {0}", packet);
 								return false;
 						}
 			        }
@@ -349,7 +336,7 @@ namespace LazerTagHostLibrary
 			// TODO: Handle multiple simultaneous games
 			if (gameId != GameDefinition.GameId)
 			{
-				HostDebugWriteLine("Wrong game ID.");
+				Log.Add(Log.Severity.Warning, "Wrong game ID.");
 				return false;
 			}
 
@@ -361,7 +348,7 @@ namespace LazerTagHostLibrary
 				{
 					if (checkPlayer.Confirmed)
 					{
-						HostDebugWriteLine("Tagger ID collision.");
+						Log.Add(Log.Severity.Warning, "Tagger ID collision.");
 						return false;
 					}
 
@@ -388,7 +375,7 @@ namespace LazerTagHostLibrary
 			_joinStates.Remove(taggerId);
 			_joinStates.Add(taggerId, joinState);
 
-			HostDebugWriteLine("Assigning tagger 0x{0:X2} to player {1} for game 0x{2:X2}.", taggerId,
+			Log.Add(Log.Severity.Information, "Assigning tagger 0x{0:X2} to player {1} for game 0x{2:X2}.", taggerId,
 				   player.TeamPlayerId.ToString(_gameDefinition.IsTeamGame), gameId);
 
 		    SendPlayerAssignment(player.TeamPlayerId);
@@ -403,14 +390,14 @@ namespace LazerTagHostLibrary
 			// TODO: Handle multiple simultaneous games
 			if (gameId != _gameDefinition.GameId)
 			{
-				HostDebugWriteLine("Wrong game ID.");
+				Log.Add(Log.Severity.Warning, "Wrong game ID.");
 				return false;
 			}
 
 			JoinState joinState;
 			if (!_joinStates.TryGetValue(taggerId, out joinState))
 			{
-				HostDebugWriteLine("Unable to find player to confirm");
+				Log.Add(Log.Severity.Warning, "Unable to find player to confirm");
 				return false;
 			}
 
@@ -418,7 +405,7 @@ namespace LazerTagHostLibrary
 			player.Confirmed = true;
 			_joinStates.Remove(taggerId);
 
-			HostDebugWriteLine("Confirmed player {0} for game 0x{1:X2}.",
+			Log.Add(Log.Severity.Information, "Confirmed player {0} for game 0x{1:X2}.",
 			                   player.TeamPlayerId.ToString(_gameDefinition.IsTeamGame), gameId);
 
 			if (_joinStates.Count < 1) ChangeState(HostingStates.Adding);
@@ -432,7 +419,7 @@ namespace LazerTagHostLibrary
 		{
 			if (packet.Type != PacketType.TagSummary)
 			{
-				HostDebugWriteLine("Wrong command.");
+				Log.Add(Log.Severity.Warning, "Unexpected packet: {0}", packet);
 				return false;
 			}
 
@@ -444,7 +431,7 @@ namespace LazerTagHostLibrary
 			var gameId = packet.Data[0].Data;
 			if (gameId != _gameDefinition.GameId)
 			{
-				HostDebugWriteLine("Wrong game ID.");
+				Log.Add(Log.Severity.Warning, "Wrong game ID.");
 				return false;
 			}
 
@@ -461,7 +448,7 @@ namespace LazerTagHostLibrary
 			var player = _players.Player(teamPlayerId);
 			if (player == null)
 			{
-				HostDebugWriteLine("Unable to find player for score report.");
+				Log.Add(Log.Severity.Warning, "Unable to find player for score report.");
 				return false;
 			}
 
@@ -475,7 +462,7 @@ namespace LazerTagHostLibrary
 
 			player.TagSummaryReceived = true;
 
-			HostDebugWriteLine("Received tag summary from {0}.", player.DisplayName);
+			Log.Add(Log.Severity.Information, "Received tag summary from {0}.", player.DisplayName);
 
 			OnPlayerListChanged(new PlayerListChangedEventArgs(Players));
 
@@ -489,7 +476,7 @@ namespace LazerTagHostLibrary
 			var gameId = packet.Data[0].Data;
 			if (gameId != _gameDefinition.GameId)
 			{
-				HostDebugWriteLine("Wrong game ID.");
+				Log.Add(Log.Severity.Warning, "Wrong game ID.");
 				return false;
 			}
 
@@ -503,14 +490,14 @@ namespace LazerTagHostLibrary
 
 			if (player.TagSummaryReceived && !player.TeamTagReportsExpected[taggedByTeamNumber - 1])
 			{
-				HostDebugWriteLine("A tag report from player {0} for team {1} was not expected.", player.TeamPlayerId,
-				                   taggedByTeamNumber);
+				Log.Add(Log.Severity.Warning, "A tag report from player {0} for team {1} was not expected.",
+					player.TeamPlayerId, taggedByTeamNumber);
 			}
 
 			if (player.TeamTagReportsReceived[taggedByTeamNumber - 1])
 			{
-				HostDebugWriteLine("A tag report from player {0} for team {1} was already received. Discarding.",
-				                   player.TeamPlayerId, taggedByTeamNumber);
+				Log.Add(Log.Severity.Warning, "A tag report from player {0} for team {1} was already received. Discarding.",
+					player.TeamPlayerId, taggedByTeamNumber);
 				return false;
 			}
 
@@ -528,7 +515,7 @@ namespace LazerTagHostLibrary
 
 				if (packet.Data.Count <= packetIndex)
 				{
-					HostDebugWriteLine("Ran off end of score report");
+					Log.Add(Log.Severity.Warning, "Ran off end of score report");
 					return false;
 				}
 
@@ -553,7 +540,8 @@ namespace LazerTagHostLibrary
 			var teamPlayerId = TeamPlayerId.FromPacked23((UInt16)((signature.Data >> 2) & 0x1f));
 			var strength = (signature.Data & 0x3) + 1;
 			var isTeamGame = GameDefinition != null && GameDefinition.IsTeamGame;
-			HostDebugWriteLine("Received shot from player {0} with {1} tags.", teamPlayerId.ToString(isTeamGame), strength);
+			Log.Add(Log.Severity.Debug, "Received shot from player {0} with {1} tags.", teamPlayerId.ToString(isTeamGame),
+				strength);
 		}
 
 	    private static void ProcessBeaconSignature(UInt16 data, UInt16 bitCount)
@@ -585,7 +573,7 @@ namespace LazerTagHostLibrary
 							typeText = "beacon";
 						}
 
-						HostDebugWriteLine("Received {0} {1}.{2}", teamText, typeText, tagsReceivedText);
+						Log.Add(Log.Severity.Debug, "Received {0} {1}.{2}", teamText, typeText, tagsReceivedText);
 						break;
 					}
 				case 9:
@@ -626,7 +614,7 @@ namespace LazerTagHostLibrary
 								}
 						}
 
-						HostDebugWriteLine("Recieved {0} {1}. {2} tags remaining.{3}", teamText, typeText, tagsText, shieldText);
+						Log.Add(Log.Severity.Debug, "Received {0} {1}. {2} tags remaining.{3}", teamText, typeText, tagsText, shieldText);
 						break;
 					}
 			}
@@ -647,13 +635,13 @@ namespace LazerTagHostLibrary
 			    {
 				    if (_incomingPacket == null)
 				    {
-					    HostDebugWriteLine("Stray checksum signature received.");
+					    Log.Add(Log.Severity.Debug, "Stray checksum signature received.");
 					    return;
 				    }
 
 				    if (!(_incomingPacket.PacketTypeSignatureValid && _incomingPacket.DataValid))
 				    {
-					    HostDebugWriteLine("Checksum received for invalid packet: {0}", _incomingPacket);
+					    Log.Add(Log.Severity.Debug, "Checksum received for invalid packet: {0}", _incomingPacket);
 					    _incomingPacket = null;
 					    return;
 				    }
@@ -662,16 +650,16 @@ namespace LazerTagHostLibrary
 
 				    if (_incomingPacket.ChecksumValid)
 				    {
-					    HostDebugWriteLine("RX {0}: {1}", GetPacketTypeName(_incomingPacket.Type), _incomingPacket);
+					    Log.Add(Log.Severity.Debug, "RX {0}: {1}", GetPacketTypeName(_incomingPacket.Type), _incomingPacket);
 
 					    if (!ProcessPacket(_incomingPacket))
 					    {
-						    HostDebugWriteLine("ProcessCommandSequence() failed: {0}", _incomingPacket);
+							Log.Add(Log.Severity.Warning, "ProcessPacket() failed: {0}", _incomingPacket);
 					    }
 				    }
 				    else
 				    {
-					    HostDebugWriteLine("Invalid checksum received. {0}", _incomingPacket);
+					    Log.Add(Log.Severity.Debug, "Invalid checksum received. {0}", _incomingPacket);
 				    }
 
 				    _incomingPacket = null;
@@ -681,7 +669,7 @@ namespace LazerTagHostLibrary
 		    {
 			    if (_incomingPacket == null || !_incomingPacket.PacketTypeSignatureValid)
 			    {
-				    HostDebugWriteLine("Stray data packet received. 0x{0:X2} ({1})", data, bitCount);
+				    Log.Add(Log.Severity.Debug, "Stray data packet received. 0x{0:X2} ({1})", data, bitCount);
 				    _incomingPacket = null;
 				    return;
 			    }
@@ -695,7 +683,7 @@ namespace LazerTagHostLibrary
 		    }
 		    else
 		    {
-			    HostDebugWriteLine("Stray data packet received. 0x{0:X2} ({1})", data, bitCount);
+			    Log.Add(Log.Severity.Debug, "Stray data packet received. 0x{0:X2} ({1})", data, bitCount);
 		    }
 	    }
 
@@ -766,7 +754,7 @@ namespace LazerTagHostLibrary
 
 		private void TransmitPacket(Packet packet)
 		{
-			HostDebugWriteLine("TX {0}: {1}", GetPacketTypeName(packet.Type), packet);
+			Log.Add(Log.Severity.Debug, "TX {0}: {1}", GetPacketTypeName(packet.Type), packet);
 			TransmitSignature(packet.Signatures);
 		}
 #endregion
@@ -796,7 +784,7 @@ namespace LazerTagHostLibrary
 					CalculateScoresKings();
 					break;
 				default:
-					HostDebugWriteLine("Unble to score game type {0}.", _gameDefinition.GameType);
+					Log.Add(Log.Severity.Warning, "Unable to score game type {0}.", _gameDefinition.GameType);
 					break;
 			}
         }
@@ -892,9 +880,9 @@ namespace LazerTagHostLibrary
 			{
 				var teamScore = (teamSurvivedPlayerCounts[teamNumber - 1] << 10) + (teamSurvivedPlayerScoreTotals[teamNumber - 1] << 2);
 				Teams.Team(teamNumber).Score = teamScore;
-				HostDebugWriteLine("Team {0} had {1} surviving players.", teamNumber, teamSurvivedPlayerCounts[teamNumber - 1]);
-				HostDebugWriteLine("The total score of the surviving players was {0}.", teamSurvivedPlayerScoreTotals[teamNumber - 1]);
-				HostDebugWriteLine("Team {0}'s final score was {1}.", teamNumber, teamScore);
+				Log.Add(Log.Severity.Information, "Team {0} had {1} surviving players.", teamNumber, teamSurvivedPlayerCounts[teamNumber - 1]);
+				Log.Add(Log.Severity.Information, "The total score of the surviving players was {0}.", teamSurvivedPlayerScoreTotals[teamNumber - 1]);
+				Log.Add(Log.Severity.Information, "Team {0}'s final score was {1}.", teamNumber, teamScore);
 		    }
 
 		    Teams.CalculateRanks();
@@ -917,8 +905,7 @@ namespace LazerTagHostLibrary
 					var teamNumber = player.TeamPlayerId.TeamNumber - 1;
 					teamKingSurvived[teamNumber] = player.Survived;
 					teamKingTagsTaken[teamNumber] = player.TagsTaken;
-					HostDebugWriteLine("Team {0}'s king took {1} tags and {2}.", teamNumber, player.TagsTaken,
-					                   player.Survived ? "survived" : "did not survive");
+					Log.Add(Log.Severity.Information, "Team {0}'s king took {1} tags and {2}.", teamNumber, player.TagsTaken, player.Survived ? "survived" : "did not survive");
 				}
 
 				for (var teamNumber = 1; teamNumber <= teamCount; teamNumber++)
@@ -926,7 +913,7 @@ namespace LazerTagHostLibrary
 					var teamKing = Players.Player(new TeamPlayerId(teamNumber, 1));
 					if (teamKing == null)
 					{
-						HostDebugWriteLine("Could not find the king for team {0}.", teamNumber);
+						Log.Add(Log.Severity.Warning, "Could not find the king for team {0}.", teamNumber);
 						return;
 					}
 
@@ -963,7 +950,7 @@ namespace LazerTagHostLibrary
         {
 	        var signature = PacketPacker.Tag(teamPlayerId, damage);
 			TransmitSignature(signature);
-			HostDebugWriteLine("Shot {0} tags as player {1}.", damage, teamPlayerId.ToString(_gameDefinition.IsTeamGame));
+			Log.Add(Log.Severity.Information, "Shot {0} tags as player {1}.", damage, teamPlayerId.ToString(_gameDefinition.IsTeamGame));
         }
 
         private void SendRequestJoinGame(byte gameId, int preferredTeamNumber)
@@ -971,8 +958,7 @@ namespace LazerTagHostLibrary
 			var taggerId = GenerateRandomId();
 			var packet = PacketPacker.RequestJoinGame(gameId, taggerId, preferredTeamNumber);
 			TransmitPacket(packet);
-	        HostDebugWriteLine("Sending request to join game 0x{0:X2} with tagger ID 0x{1:X2}. Requesting team {2}", gameId,
-	                           taggerId, preferredTeamNumber);
+	        Log.Add(Log.Severity.Information, "Sending request to join game 0x{0:X2} with tagger ID 0x{1:X2}. Requesting team {2}", gameId, taggerId, preferredTeamNumber);
 		}
 
 	    public void SendTextMessage(string message)
@@ -992,17 +978,17 @@ namespace LazerTagHostLibrary
 			        break;
 		        case HostingStates.Countdown:
 					if (previousState != HostingStates.Adding) return false;
-			        HostDebugWriteLine("Starting countdown");
+			        Log.Add(Log.Severity.Information, "Starting countdown");
 			        _stateChangeTimeout = DateTime.Now.AddSeconds(_gameDefinition.CountdownTimeSeconds);
 			        break;
 		        case HostingStates.ResendCountdown:
 					if (previousState != HostingStates.Playing) return false;
-			        HostDebugWriteLine("Resending countdown");
+					Log.Add(Log.Severity.Information, "Resending countdown");
 			        _resendCountdownPlayingStateChangeTimeout = _stateChangeTimeout;
 			        _stateChangeTimeout = DateTime.Now.AddSeconds(_gameDefinition.ResendCountdownTimeSeconds);
 			        break;
 		        case HostingStates.Adding:
-			        HostDebugWriteLine("Joining players");
+					Log.Add(Log.Severity.Information, "Adding players");
 
 					if (previousState != HostingStates.AcknowledgePlayerAssignment)
 			        {
@@ -1023,27 +1009,27 @@ namespace LazerTagHostLibrary
 			        }
 			        break;
 		        case HostingStates.AcknowledgePlayerAssignment:
-			        HostDebugWriteLine("Waiting for AcknowledgePlayerAssignment packet.");
+			        Log.Add(Log.Severity.Debug, "Waiting for AcknowledgePlayerAssignment packet.");
 			        _stateChangeTimeout = DateTime.Now.AddSeconds(AcknowledgePlayerAssignmentTimeoutSeconds);
 			        break;
 		        case HostingStates.Playing:
 					switch (previousState)
 			        {
 				        case HostingStates.Countdown:
-					        HostDebugWriteLine("Starting Game");
+					        Log.Add(Log.Severity.Information, "Starting Game");
 					        _stateChangeTimeout = DateTime.Now.AddMinutes(_gameDefinition.GameTimeMinutes);
 					        break;
 				        case HostingStates.ResendCountdown:
-					        HostDebugWriteLine("Continuing Game");
+					        Log.Add(Log.Severity.Information, "Continuing Game");
 					        _stateChangeTimeout = _resendCountdownPlayingStateChangeTimeout;
 					        break;
 			        }
 			        break;
 		        case HostingStates.Summary:
-			        HostDebugWriteLine("Debriefing");
+			        Log.Add(Log.Severity.Information, "Debriefing");
 			        break;
 		        case HostingStates.GameOver:
-			        HostDebugWriteLine("Debrief Done");
+			        Log.Add(Log.Severity.Information, "Debriefing completed");
 			        _rankReportTeamNumber = 1;
 			        break;
 		        default:
@@ -1103,7 +1089,7 @@ namespace LazerTagHostLibrary
 				case HostingStates.ResendCountdown:
 				case HostingStates.GameOver:
 				default:
-					HostDebugWriteLine("Next cannot be used while in the {0} hosting state.", HostingState);
+					Log.Add(Log.Severity.Warning, "Next cannot be used while in the {0} hosting state.", HostingState);
 					break;
             }
         }
@@ -1185,7 +1171,7 @@ namespace LazerTagHostLibrary
 			var player = Players.Player(teamPlayerId);
             if (player == null)
 			{
-                HostDebugWriteLine("Player not found.");
+                Log.Add(Log.Severity.Warning, "Player not found.");
                 return false;
             }
 
@@ -1199,7 +1185,7 @@ namespace LazerTagHostLibrary
 			var player = Players.Player(teamPlayerId);
             if (player == null)
 			{
-                HostDebugWriteLine("Player not found.");
+                Log.Add(Log.Severity.Warning, "Player not found.");
                 return;
             }
 
@@ -1224,7 +1210,7 @@ namespace LazerTagHostLibrary
 				case HostingStates.Idle:
 				case HostingStates.GameOver:
 				default:
-					HostDebugWriteLine("Players cannot be dropped while in the {0} hosting state.", HostingState);
+					Log.Add(Log.Severity.Warning, "Players cannot be dropped while in the {0} hosting state.", HostingState);
 					break;
 			}
 
@@ -1277,7 +1263,7 @@ namespace LazerTagHostLibrary
 						                                    playerCountTeam3);
 						TransmitPacket(packet);
 
-						HostDebugWriteLine("T-{0}", remainingSeconds);
+						Log.Add(Log.Severity.Information, "T-{0}", remainingSeconds);
 
 						_nextAnnouncement = DateTime.Now.AddSeconds(1);
 					}
@@ -1322,7 +1308,7 @@ namespace LazerTagHostLibrary
 
 						if (nextDebriefPlayer == null)
 						{
-							HostDebugWriteLine("All players debriefed");
+							Log.Add(Log.Severity.Information, "All players debriefed");
 
 							CalculateScores();
 							PrintScoreReport();
@@ -1375,9 +1361,7 @@ namespace LazerTagHostLibrary
 			    {
 					if (DateTime.Now < joinState.AssignPlayerSendTime.AddSeconds(AcknowledgePlayerAssignmentTimeoutSeconds)) continue;
 
-					HostDebugWriteLine(
-						"Timed out after {0} seconds waiting for AcknowledgePlayerAssignment from tagger 0x{1:X2} for game 0x{2:X2}.",
-						AcknowledgePlayerAssignmentTimeoutSeconds, taggerId, _gameDefinition.GameId);
+					Log.Add(Log.Severity.Warning, "Timed out after {0} seconds waiting for AcknowledgePlayerAssignment from tagger 0x{1:X2} for game 0x{2:X2}.", AcknowledgePlayerAssignmentTimeoutSeconds, taggerId, _gameDefinition.GameId);
 
 					joinState.Failed = true;
 				    joinState.AssignPlayerFailSendCount = 0;
