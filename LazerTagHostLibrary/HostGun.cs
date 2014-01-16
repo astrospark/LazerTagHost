@@ -105,10 +105,9 @@ namespace LazerTagHostLibrary
             _gameDefinition.CountdownTimeSeconds = countdownTimeSeconds;
         }
 
-        private static string GetPacketTypeName(PacketType code)
+        private static string GetPacketTypeName(PacketType packetType)
         {
-            Enum c = code;
-            return c.ToString();
+            return packetType.ToString();
         }
 
 	    private bool AssignTeamAndPlayer(int requestedTeam, Player newPlayer)
@@ -641,7 +640,7 @@ namespace LazerTagHostLibrary
 			    {
 				    _incomingPacket = new Packet
 					    {
-						    PacketTypeSignature = new Signature(SignatureType.PacketType, data),
+						    PacketTypeSignature = new Signature(SignatureType.Packet, data),
 					    };
 			    }
 			    else // checksum
@@ -744,7 +743,7 @@ namespace LazerTagHostLibrary
 
 			switch (signature.Type)
 			{
-				case SignatureType.PacketType:
+				case SignatureType.Packet:
 					data = (UInt16) (signature.Data & ~0x100);
 					bitCount = 9;
 					break;
@@ -1243,7 +1242,7 @@ namespace LazerTagHostLibrary
 
 					if (DateTime.Now >= _nextAnnouncement)
 					{
-						var packet = PacketPacker.AnnounceGame(_gameDefinition);
+						var packet = PacketPacker.AnnounceGame(GameDefinition);
 						TransmitPacket(packet);
 
 						_nextAnnouncement = DateTime.Now.AddMilliseconds(GameAnnouncementFrequencyMilliseconds);

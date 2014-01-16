@@ -24,7 +24,7 @@ namespace LazerTagHostLibrary
 			get
 			{
 				if (PacketTypeSignature == null) return false;
-				if (PacketTypeSignature.Type != SignatureType.PacketType) return false;
+				if (PacketTypeSignature.Type != SignatureType.Packet) return false;
 				if (PacketTypeSignature.BitCount != 8) return false;
 				return true;
 			}
@@ -39,7 +39,7 @@ namespace LazerTagHostLibrary
 			}
 			set
 			{
-				PacketTypeSignature = new Signature(SignatureType.PacketType, (UInt16) value);
+				PacketTypeSignature = new Signature(SignatureType.Packet, (UInt16) value);
 			}
 		}
 

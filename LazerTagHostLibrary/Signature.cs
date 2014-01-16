@@ -67,7 +67,7 @@ namespace LazerTagHostLibrary
 	{
 		Beacon,
 		Tag,
-		PacketType,
+		Packet,
 		Data,
 		Checksum,
 	};
