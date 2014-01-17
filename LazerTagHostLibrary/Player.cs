@@ -45,9 +45,20 @@ namespace LazerTagHostLibrary
 		{
 			get
 			{
-				var name = string.IsNullOrWhiteSpace(Name) ? "Player" : Name;
-				var playerId = TeamPlayerId.ToString(_hostGun.GameDefinition.IsTeamGame);
-				return string.Format("{0} ({1})", name, playerId);
+				return string.IsNullOrWhiteSpace(Name) ? NameAndNumber : Name;
+			}
+		}
+
+		public string NameAndNumber
+		{
+			get
+			{
+				var isTeamGame = _hostGun.GameDefinition.IsTeamGame;
+
+				if (string.IsNullOrWhiteSpace(Name)) return TeamPlayerId.ToStringFull(isTeamGame);
+
+				var teamPlayerId = TeamPlayerId.ToString(isTeamGame);
+				return string.Format("{0} ({1})", Name, teamPlayerId);
 			}
 		}
 
