@@ -9,9 +9,6 @@
 #include <IRremote.h>
 #include <LazerTagIr.h>
 
-#define LAZERTAG_RELAY_VERSION "1.0.0"
-#define LAZERTAG_RELAY_VERSION_FULL "LazerTagRelay Version " LAZERTAG_RELAY_VERSION " (" __DATE__ " " __TIME__ ")"
-
 int RECEIVE_PIN = 11;
 
 LazerTagIrReceive lazerTagReceive(RECEIVE_PIN);
@@ -25,9 +22,6 @@ void dump(decode_results *results);
 void setup()
 {
   Serial.begin(115200);
-  Serial.println(LAZERTAG_RELAY_VERSION_FULL);
-  Serial.println(LAZERTAG_IR_VERSION_FULL);
-  Serial.println("Start");
   lazerTagReceive.enableIRIn();
   lazerTagReceive.blink13(true);
 }
