@@ -6,15 +6,16 @@ namespace LazerTagHostLibrary
 {
 	public class Log
 	{
+		#region Public methods
+
 		public static void Add(Severity severity, string format, params object[] arguments)
 		{
-			if (severity < LogLevel) return;
 			try
 			{
+				var time = DateTime.Now;
 				var message = string.Format(format, arguments);
-				var entry = string.Format("{0}\t{1}", DateTime.Now, message);
-				Debug.WriteLine(entry);
-				OnEntryAdded(severity, entry);
+				Debug.WriteLine("{0}\t{1}\t{2}", time, severity, message);
+				OnEntryAdded(new Entry(time, severity, message));
 			}
 			catch (FormatException ex)
 			{
@@ -43,15 +44,52 @@ namespace LazerTagHostLibrary
 			return message;
 		}
 
-#if DEBUG
-		public static Severity LogLevel = Severity.Debug;
-#else
-		public static Severity LogLevel = Severity.Information;
-#endif
+		#endregion
+
+		#region Events
+
+		private static void OnEntryAdded(Entry entry)
+		{
+			if (EntryAdded != null) EntryAdded(null, new EntryAddedEventArgs(entry));
+		}
+
+		public static event EntryAddedEventHandler EntryAdded;
 
 		public delegate void EntryAddedEventHandler(object sender, EntryAddedEventArgs e);
 
-		public static event EntryAddedEventHandler EntryAdded;
+		[ImmutableObject(true)]
+		public class EntryAddedEventArgs : EventArgs
+		{
+			public EntryAddedEventArgs(Entry entry)
+			{
+				Entry = entry;
+			}
+
+			public Entry Entry { get; private set; }
+		}
+
+		#endregion
+
+		#region Public classes
+
+		[ImmutableObject(true)]
+		public class Entry
+		{
+			public Entry(DateTime time, Severity severity, string message)
+			{
+				Time = time;
+				Severity = severity;
+				Message = message;
+			}
+
+			public DateTime Time { get; private set; }
+			public Severity Severity { get; private set; }
+			public string Message { get; private set; }
+		}
+
+		#endregion
+
+		#region Public enumerations
 
 		public enum Severity
 		{
@@ -61,22 +99,6 @@ namespace LazerTagHostLibrary
 			Error = 3,
 		}
 
-		[ImmutableObject(true)]
-		public class EntryAddedEventArgs : EventArgs
-		{
-			public EntryAddedEventArgs(Severity severity, string entry)
-			{
-				Severity = severity;
-				Entry = entry;
-			}
-
-			public Severity Severity { get; private set; }
-			public string Entry { get; private set; }
-		}
-
-		private static void OnEntryAdded(Severity severity, string entry)
-		{
-			if (EntryAdded != null) EntryAdded(null, new EntryAddedEventArgs(severity, entry));
-		}
+		#endregion
 	}
 }
