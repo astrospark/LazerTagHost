@@ -329,25 +329,25 @@ namespace LazerTagHost_Test
 		public void ToStringTest1()
 		{
 			var target = new TeamPlayerId(0);
-			Assert.AreEqual("0:0", target.ToString(true));
+			Assert.AreEqual("T0:P0", target.ToString(true));
 
 			target = new TeamPlayerId(1);
-			Assert.AreEqual("1:1", target.ToString(true));
+			Assert.AreEqual("T1:P1", target.ToString(true));
 
 			target = new TeamPlayerId(8);
-			Assert.AreEqual("1:8", target.ToString(true));
+			Assert.AreEqual("T1:P8", target.ToString(true));
 
 			target = new TeamPlayerId(9);
-			Assert.AreEqual("2:1", target.ToString(true));
+			Assert.AreEqual("T2:P1", target.ToString(true));
 
 			target = new TeamPlayerId(16);
-			Assert.AreEqual("2:8", target.ToString(true));
+			Assert.AreEqual("T2:P8", target.ToString(true));
 
 			target = new TeamPlayerId(17);
-			Assert.AreEqual("3:1", target.ToString(true));
+			Assert.AreEqual("T3:P1", target.ToString(true));
 
 			target = new TeamPlayerId(24);
-			Assert.AreEqual("3:8", target.ToString(true));
+			Assert.AreEqual("T3:P8", target.ToString(true));
 		}
 	}
 }
