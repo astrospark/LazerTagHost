@@ -228,108 +228,93 @@ namespace LazerTagHostLibrary
             }
         }
 
-        private bool ProcessPacket(Packet packet)
-        {
-	        {
-		        var packetType = (PacketType) packet.PacketTypeSignature.Data;
-				switch (packetType)
-				{
-					case PacketType.SingleTagReport:
-						{
-							if (packet.Data.Count != 4) break;
-							var isReply = ((packet.Data[1].Data & 0x80) & (packet.Data[2].Data & 0x80)) != 0;
-							var teamPlayerId1 = TeamPlayerId.FromPacked34(packet.Data[1].Data);
-							var teamPlayerId2 = TeamPlayerId.FromPacked34(packet.Data[2].Data);
-							var tagsReceived = packet.Data[3].Data;
-							var replyText = isReply ? "replied to tag count request from" : "requested tag count from";
-							Log.Add(Log.Severity.Information, "Player {0} {1} player {2}. Player {0} received {3} tags from player {2}.", teamPlayerId1, replyText, teamPlayerId2, tagsReceived);
-							break;
-						}
-					case PacketType.TextMessage:
-						{
-							var message = new StringBuilder();
-							var i = 0;
-							while (i < packet.Data.Count &&
-								   packet.Data[i].Data >= 0x20 &&
-								   packet.Data[i].Data <= 0x7e &&
-								   packet.Data[i].BitCount == 8)
-							{
-								message.Append(Convert.ToChar(packet.Data[i].Data));
-								i++;
-							}
-							Log.Add(Log.Severity.Information, "Received Text Message: {0}", message); 
-							break;
-						}
-					case PacketType.SpecialAttack:
-						{
-							var type = "Unknown Type";
-							if (packet.Data.Count == 4)
-							{
-								switch (packet.Data[2].Data)
-								{
-									case 0x77:
-										type = "EM Peacemaker";
-										break;
-									case 0xb1:
-										type = "Talus Airstrike";
-										break;
-								}
-							}
-							Log.Add(Log.Severity.Information, "Special Attack: {0} - {1}", type, packet);
-							AssertUnknownBits("Special Attack Flags 1", packet.Data[1], 0xff);
-							AssertUnknownBits("Special Attack Flags 2", packet.Data[2], 0xff);
-							AssertUnknownBits("Special Attack Flags 3", packet.Data[3], 0xff);
-							AssertUnknownBits("Special Attack Flags 4", packet.Data[4], 0xff);
+	    private bool ProcessPacket(Packet packet)
+	    {
+		    var packetType = (PacketType) packet.PacketTypeSignature.Data;
+		    switch (packetType)
+		    {
+			    case PacketType.SingleTagReport:
+				    if (packet.Data.Count != 4) break;
+				    var isReply = ((packet.Data[1].Data & 0x80) & (packet.Data[2].Data & 0x80)) != 0;
+				    var teamPlayerId1 = TeamPlayerId.FromPacked34(packet.Data[1].Data);
+				    var teamPlayerId2 = TeamPlayerId.FromPacked34(packet.Data[2].Data);
+				    var tagsReceived = packet.Data[3].Data;
+				    var replyText = isReply ? "replied to tag count request from" : "requested tag count from";
+				    Log.Add(Log.Severity.Information, "Player {0} {1} player {2}. Player {0} received {3} tags from player {2}.",
+					    teamPlayerId1, replyText, teamPlayerId2, tagsReceived);
+				    return true;
+			    case PacketType.TextMessage:
+				    var message = new StringBuilder();
+				    var i = 0;
+				    while (i < packet.Data.Count &&
+							packet.Data[i].Data >= 0x20 &&
+							packet.Data[i].Data <= 0x7e &&
+							packet.Data[i].BitCount == 8)
+				    {
+					    message.Append(Convert.ToChar(packet.Data[i].Data));
+					    i++;
+				    }
+				    Log.Add(Log.Severity.Information, "Received Text Message: {0}", message);
+				    return true;
+			    case PacketType.SpecialAttack:
+				    var type = "Unknown Type";
+				    if (packet.Data.Count == 4)
+				    {
+					    switch (packet.Data[2].Data)
+					    {
+						    case 0x77:
+							    type = "EM Peacemaker";
+							    break;
+						    case 0xb1:
+							    type = "Talus Airstrike";
+							    break;
+					    }
+				    }
+				    Log.Add(Log.Severity.Information, "Special Attack: {0} - {1}", type, packet);
+				    AssertUnknownBits("Special Attack Flags 1", packet.Data[1], 0xff);
+				    AssertUnknownBits("Special Attack Flags 2", packet.Data[2], 0xff);
+				    AssertUnknownBits("Special Attack Flags 3", packet.Data[3], 0xff);
+				    AssertUnknownBits("Special Attack Flags 4", packet.Data[4], 0xff);
+				    return true;
+		    }
 
-							break;
-						}
-				}
-	        }
+		    switch (HostingState)
+		    {
+			    case HostingStates.Idle:
+				    return true;
+			    case HostingStates.Adding:
+			    case HostingStates.AcknowledgePlayerAssignment:
+				    if (packet.Data.Count < 2) return false;
 
-	        switch (HostingState)
-	        {
-		        case HostingStates.Idle:
-			        {
-				        return true;
-			        }
-		        case HostingStates.Adding:
-				case HostingStates.AcknowledgePlayerAssignment:
-					{
-				        if (packet.Data.Count < 2) return false;
+				    var gameId = packet.Data[0].Data;
+				    var taggerId = packet.Data[1].Data;
 
-						var gameId = packet.Data[0].Data;
-						var taggerId = packet.Data[1].Data;
+				    switch (packet.Type)
+				    {
+					    case PacketType.RequestJoinGame:
+						    var requestedTeam = (UInt16) (packet.Data[2].Data & 0x03);
+						    return ProcessRequestJoinGame(gameId, taggerId, requestedTeam);
+					    case PacketType.AcknowledgePlayerAssignment:
+						    return ProcessAcknowledgePlayerAssignment(gameId, taggerId);
+					    default:
+						    Log.Add(Log.Severity.Warning, "Unexpected packet: {0}", packet);
+						    return false;
+				    }
+			    case HostingStates.Summary:
+				    switch (packet.Type)
+				    {
+					    case PacketType.TagSummary:
+						    return ProcessTagSummary(packet);
+					    case PacketType.TeamOneTagReport:
+					    case PacketType.TeamTwoTagReport:
+					    case PacketType.TeamThreeTagReport:
+						    return ProcessTeamTagReport(packet);
+				    }
+				    break;
+		    }
 
-						switch (packet.Type)
-				        {
-							case PacketType.RequestJoinGame:
-						        var requestedTeam = (UInt16) (packet.Data[2].Data & 0x03);
-						        return ProcessRequestJoinGame(gameId, taggerId, requestedTeam);
-							case PacketType.AcknowledgePlayerAssignment:
-								return ProcessAcknowledgePlayerAssignment(gameId, taggerId);
-							default:
-						        Log.Add(Log.Severity.Warning, "Unexpected packet: {0}", packet);
-								return false;
-						}
-			        }
-		        case HostingStates.Summary:
-			        {
-						switch (packet.Type)
-				        {
-					        case PacketType.TagSummary:
-						        return ProcessTagSummary(packet);
-					        case PacketType.TeamOneTagReport:
-					        case PacketType.TeamTwoTagReport:
-					        case PacketType.TeamThreeTagReport:
-								return ProcessTeamTagReport(packet);
-				        }
-
-				        return false;
-			        }
-	        }
-
-	        return false;
-        }
+		    return false;
+	    }
 
 	    private bool ProcessRequestJoinGame(UInt16 gameId, UInt16 taggerId, UInt16 requestedTeam)
 	    {
