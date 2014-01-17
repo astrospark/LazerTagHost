@@ -46,7 +46,7 @@ Arduino Programming:
 
 1) Copy IRremote and LazerTagIr to the libraries folder of the Arduino IDE
 2) Launch the Arduino IDE
-3) Open Arduino\Sketches\LazerTagRelay\LazerTagRelay.ino
+3) Open Arduino\Sketches\Relay\Relay.ino
 5) Under Tools->Board, select Arduino Uno (or appropriate)
 6) Connect your Arduino
 7) Under Tools->Serial Port, select the USB serial port to which your Arduino is connected

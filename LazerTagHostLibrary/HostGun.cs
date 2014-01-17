@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -605,7 +604,7 @@ namespace LazerTagHostLibrary
 			}
 		}
 
-	    private void ProcessDataSignature(UInt16 data, byte bitCount)
+		private void ProcessDataSignature(UInt16 data, byte bitCount)
 	    {
 		    if (bitCount == 9)
 		    {
@@ -672,27 +671,19 @@ namespace LazerTagHostLibrary
 		    }
 	    }
 
-	    private void ProcessSignature(string command, IList<string> parameters)
-        {
-	        if (parameters.Count != 2) return;
+		private void ProcessSignature(UInt16 data, byte bitCount, bool isBeacon)
+	    {
+		    if (isBeacon)
+		    {
+			    ProcessBeaconSignature(data, bitCount);
+		    }
+		    else
+		    {
+			    ProcessDataSignature(data, bitCount);
+		    }
+	    }
 
-	        var data = UInt16.Parse(parameters[0], NumberStyles.AllowHexSpecifier);
-	        var bitCount = byte.Parse(parameters[1]);
-
-            switch (command)
-			{
-				case "LTTO":
-					ProcessBeaconSignature(data, bitCount);
-					break;
-				case "LTX":
-					ProcessDataSignature(data, bitCount);
-					break;
-				default:
-					return;
-			}
-        }
-
-#region SerialProtocol
+	    #region SerialProtocol
 		private void TransmitSignature(Signature signature)
 		{
 			_serial.Enqueue(EncodeSignature(signature));
@@ -711,30 +702,29 @@ namespace LazerTagHostLibrary
 			if (signature == null) throw new ArgumentException("signature");
 
 			var isBeacon = signature.Type == SignatureType.Beacon;
-			UInt16 data;
+
+			var data = signature.Data;
 			byte bitCount;
 
 			switch (signature.Type)
 			{
 				case SignatureType.Packet:
-					data = (UInt16) (signature.Data & ~0x100);
+					data &= 0xff;
 					bitCount = 9;
 					break;
 				case SignatureType.Checksum:
-					data = (UInt16) (signature.Data | 0x100);
+					data &= 0xff;
+					data |= 0x100; // set the 9th bit
 					bitCount = 9;
 					break;
 				default:
-					data = signature.Data;
 					bitCount = signature.BitCount;
 					break;
 			}
 
-			return new[]
-			{
-				(byte) (((isBeacon ? 1 : 0) << 5) | ((bitCount & 0xf) << 1) | ((data >> 8) & 0x1)),
-				(byte) (data & 0xff)
-			};
+			var command = string.Format("CMD 10 {0:X} {1:X} {2:X}\r\n", data, bitCount, isBeacon ? 1 : 0);
+
+			return Encoding.ASCII.GetBytes(command);
 		}
 
 		private void TransmitPacket(Packet packet)
@@ -1381,23 +1371,34 @@ namespace LazerTagHostLibrary
 			_serial.DataReceived += Serial_DataReceived;
 			_serial.IoError += Serial_IoError;
 	        _serial.Connect(portName);
+	        _serial.Enqueue(new [] {(byte) '\r', (byte) '\n'});
 		}
 
 	    private void Serial_DataReceived(object sender, LazerTagSerial.DataReceivedEventArgs e)
 	    {
 			if (e.Data == null) return;
 
-			var parts = e.Data.Split(new[] { ':' }, 2, StringSplitOptions.RemoveEmptyEntries);
-			if (parts.Count() == 2)
-			{
-				var command = parts[0].Trim();
-				var parameters = parts[1].Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-				for (var i = 0; i < parameters.Count(); i++)
-				{
-					parameters[i] = parameters[i].Trim();
-				}
-				ProcessSignature(command, parameters);
-			}
+		    var parts = e.Data.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries);
+		    switch (parts[0].ToUpperInvariant())
+		    {
+			    case "RCV":
+				    if (parts.Length < 4)
+				    {
+						Log.Add(Log.Severity.Debug, "Received truncated response, '{0}'.", e.Data);
+					    break;
+				    }
+				    var data = Convert.ToUInt16(parts[1], 16);
+				    var bitCount = Convert.ToByte(parts[2], 16);
+				    var isBeacon = (Convert.ToUInt16(parts[3], 16) != 0);
+				    ProcessSignature(data, bitCount, isBeacon);
+				    break;
+				case "ERROR":
+					Log.Add(Log.Severity.Debug, e.Data);
+				    break;
+				default:
+				    Log.Add(Log.Severity.Debug, "Received unrecognized response, '{0}'.", e.Data);
+				    break;
+		    }
 		}
 
 	    #region Events
