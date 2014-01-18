@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Ports;
 using System.Collections.Generic;
@@ -62,11 +63,12 @@ namespace LazerTagHostLibrary
 				if (string.IsNullOrWhiteSpace(portName)) return false;
 				_portName = portName;
 
-				_serialPort = new SerialPort(_portName, 115200)
-					{
-						Parity = Parity.None,
-						StopBits = StopBits.One,
-					};
+				_serialPort = new SerialPort(_portName, 115200, Parity.None, 8, StopBits.One)
+				{
+					Handshake = Handshake.None,
+					DtrEnable = true,
+					RtsEnable = true
+				};
 				_serialPort.PinChanged += SerialPinChanged;
 				_serialPort.DataReceived += SerialDataReceived;
 				_serialPort.Open();
