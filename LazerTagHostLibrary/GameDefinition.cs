@@ -6,7 +6,7 @@
 		{
 			CountdownTimeSeconds = 30;
 			ResendCountdownTimeSeconds = 10;
-			HuntDirection = true;
+			HuntDirection = false;
 		}
 
 		public GameType GameType
