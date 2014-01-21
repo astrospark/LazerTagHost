@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 
@@ -727,12 +728,17 @@ namespace LazerTagHostLibrary
 			return Encoding.ASCII.GetBytes(command);
 		}
 
-		private void TransmitPacket(Packet packet)
-		{
-			Log.Add(Log.Severity.Debug, "TX {0}: {1}", GetPacketTypeName(packet.Type), packet);
-			TransmitSignature(packet.Signatures);
-		}
-#endregion
+	    private void TransmitPacket(Packet packet)
+	    {
+		    var e = new PacketSendingEventArgs(packet);
+		    OnPacketSending(e);
+		    if (e.Cancel) return;
+
+		    Log.Add(Log.Severity.Debug, "TX {0}: {1}", GetPacketTypeName(packet.Type), packet);
+		    TransmitSignature(packet.Signatures);
+	    }
+
+	    #endregion
 
         private void CalculateScores()
         {
@@ -1401,7 +1407,25 @@ namespace LazerTagHostLibrary
 		    }
 		}
 
-	    #region Events
+		public bool SetDevice(string device)
+		{
+			_serial.Disconnect();
+			return _serial.Connect(device);
+		}
+
+		public void SendPlayerAssignment(TeamPlayerId teamPlayerId)
+		{
+			if (HostingState != HostingStates.Adding && HostingState != HostingStates.AcknowledgePlayerAssignment) return;
+
+			var gameId = _gameDefinition.GameId;
+			var player = Players.Player(teamPlayerId);
+			var taggerId = player.TaggerId;
+
+			var packet = PacketPacker.AssignPlayer(gameId, taggerId, teamPlayerId);
+			TransmitPacket(packet);
+		}
+		
+		#region Events
 	    public class PlayerListChangedEventArgs : EventArgs
 	    {
 		    public PlayerListChangedEventArgs(IEnumerable<Player> players)
@@ -1412,9 +1436,7 @@ namespace LazerTagHostLibrary
 		    public IEnumerable<Player> Players { get; set; }
 	    }
 
-	    public delegate void PlayerListChangedEventHandler(object sender, PlayerListChangedEventArgs e);
-
-	    public event PlayerListChangedEventHandler PlayerListChanged;
+		public event EventHandler<PlayerListChangedEventArgs> PlayerListChanged;
 
 	    protected virtual void OnPlayerListChanged(PlayerListChangedEventArgs e)
 	    {
@@ -1433,9 +1455,7 @@ namespace LazerTagHostLibrary
 		    public HostingStates State { get; set; }
 	    }
 
-	    public delegate void HostingStateChangedEventHandler(object sender, HostingStateChangedEventArgs e);
-
-	    public event HostingStateChangedEventHandler HostingStateChanged;
+	    public event EventHandler<HostingStateChangedEventArgs> HostingStateChanged;
 
 	    protected virtual void OnHostingStateChanged(HostingStateChangedEventArgs e)
 	    {
@@ -1450,23 +1470,25 @@ namespace LazerTagHostLibrary
 	    }
 	    #endregion
 
-	    public bool SetDevice(string device)
-		{
-            _serial.Disconnect();
-	        return _serial.Connect(device);
-		}
-#endregion
-
-	    public void SendPlayerAssignment(TeamPlayerId teamPlayerId)
+	    public class PacketSendingEventArgs : EventArgs
 	    {
-		    if (HostingState != HostingStates.Adding && HostingState != HostingStates.AcknowledgePlayerAssignment) return;
+		    public PacketSendingEventArgs(Packet packet)
+		    {
+				Cancel = false;
+				Packet = packet;
+		    }
 
-		    var gameId = _gameDefinition.GameId;
-			var player = Players.Player(teamPlayerId);
-			var taggerId = player.TaggerId;
+			public bool Cancel { get; set; }
+			public Packet Packet { get; set; }
+	    }
 
-			var packet = PacketPacker.AssignPlayer(gameId, taggerId, teamPlayerId);
-			TransmitPacket(packet);
-		}
+		public event EventHandler<PacketSendingEventArgs> PacketSending;
+
+		protected virtual void OnPacketSending(PacketSendingEventArgs e)
+	    {
+		    if (PacketSending != null) PacketSending(this, e);
+	    }
+
+	    #endregion
     }
 }
