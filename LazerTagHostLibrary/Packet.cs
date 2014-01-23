@@ -5,6 +5,16 @@ namespace LazerTagHostLibrary
 {
 	public class Packet
 	{
+		public Packet()
+		{
+			
+		}
+
+		public Packet(PacketType type)
+		{
+			Type = type;
+		}
+
 		public List<Signature> Signatures
 		{
 			get
