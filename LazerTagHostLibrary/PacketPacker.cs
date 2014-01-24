@@ -41,11 +41,11 @@ namespace LazerTagHostLibrary
 			var packet = new Packet();
 			packet.Type = gameDefinition.GameTypeInfo.PacketType;
 			packet.Data.Add(new Signature(SignatureType.Data, gameDefinition.GameId));
-			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.GameTimeMinutes)));
-			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.Tags)));
-			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.Reloads)));
-			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.Shields)));
-			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.Mega)));
+			packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.GameTimeMinutes)));
+			packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.Tags)));
+			packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.Reloads)));
+			packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.Shields)));
+			packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.Mega)));
 
 	        var flags1 = (byte) ((gameDefinition.ExtendedTagging ? 1 : 0) << 7 |
 								 (gameDefinition.LimitedReloads ? 1 : 0) << 6 |
@@ -67,13 +67,7 @@ namespace LazerTagHostLibrary
 			packet.Data.Add(new Signature(SignatureType.Data, flags1));
 			packet.Data.Add(new Signature(SignatureType.Data, flags2));
 
-			if (gameDefinition.Name != null && gameDefinition.Name.Length == 4)
-			{
-				for (var i = 0; i < 4; i ++)
-				{
-					packet.Data.Add(new Signature(SignatureType.Data, gameDefinition.Name[i]));
-				}
-			}
+	        //if (!gameDefinition.Name.IsEmpty()) packet.Data.AddRange(gameDefinition.Name.GetSignatures(4, true));
 
 			packet.PopulateChecksum();
 
@@ -85,11 +79,11 @@ namespace LazerTagHostLibrary
 			var packet = new Packet();
 			packet.Type = gameDefinition.GameTypeInfo.PacketType;
 			packet.Data.Add(new Signature(SignatureType.Data, gameDefinition.GameId));
-			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.GameTimeMinutes)));
-			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.Tags)));
-			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.Reloads)));
-			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.Shields)));
-			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal((byte)gameDefinition.Mega)));
+			packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.GameTimeMinutes)));
+			packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.Tags)));
+			packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.Reloads)));
+			packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.Shields)));
+			packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.Mega)));
 
 			byte flags1, flags2;
 			switch (gameDefinition.GameType)
@@ -122,13 +116,7 @@ namespace LazerTagHostLibrary
 			packet.Data.Add(new Signature(SignatureType.Data, flags1));
 			packet.Data.Add(new Signature(SignatureType.Data, flags2));
 
-			if (gameDefinition.Name != null && gameDefinition.Name.Length == 4)
-			{
-				for (var i = 0; i < 4; i++)
-				{
-					packet.Data.Add(new Signature(SignatureType.Data, gameDefinition.Name[i]));
-				}
-			}
+			if (!gameDefinition.Name.IsEmpty()) packet.Data.AddRange(gameDefinition.Name.GetSignatures(4, true));
 
 			packet.PopulateChecksum();
 
@@ -183,7 +171,7 @@ namespace LazerTagHostLibrary
 			var packet = new Packet();
 			packet.Type = PacketType.AnnounceCountdown;
 			packet.Data.Add(new Signature(SignatureType.Data, gameId));
-			packet.Data.Add(new Signature(SignatureType.Data, HexCodedDecimal.FromDecimal(remainingSeconds)));
+			packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal(remainingSeconds)));
 			packet.Data.Add(new Signature(SignatureType.Data, (UInt16)(playerCountTeam1 & 0xff)));
 			packet.Data.Add(new Signature(SignatureType.Data, (UInt16)(playerCountTeam2 & 0xff)));
 			packet.Data.Add(new Signature(SignatureType.Data, (UInt16)(playerCountTeam3 & 0xff)));

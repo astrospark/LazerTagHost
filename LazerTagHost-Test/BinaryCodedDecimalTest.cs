@@ -6,11 +6,11 @@ namespace LazerTagHost_Test
     
     
     /// <summary>
-    ///This is a test class for HexCodedDecimalTest and is intended
-    ///to contain all HexCodedDecimalTest Unit Tests
+    ///This is a test class for BinaryCodedDecimalTest and is intended
+    ///to contain all BinaryCodedDecimalTest Unit Tests
     ///</summary>
 	[TestClass()]
-	public class HexCodedDecimalTest
+	public class BinaryCodedDecimalTest
 	{
 
 
@@ -69,12 +69,12 @@ namespace LazerTagHost_Test
 		[TestMethod()]
 		public void FromDecimalTest()
 		{
-			Assert.AreEqual(HexCodedDecimal.FromDecimal(0), 0x0);
-			Assert.AreEqual(HexCodedDecimal.FromDecimal(1), 0x1);
-			Assert.AreEqual(HexCodedDecimal.FromDecimal(9), 0x9);
-			Assert.AreEqual(HexCodedDecimal.FromDecimal(10), 0x10);
-			Assert.AreEqual(HexCodedDecimal.FromDecimal(99), 0x99);
-			Assert.AreEqual(HexCodedDecimal.FromDecimal(255), 0xff);
+			Assert.AreEqual(BinaryCodedDecimal.FromDecimal(0), 0x0);
+			Assert.AreEqual(BinaryCodedDecimal.FromDecimal(1), 0x1);
+			Assert.AreEqual(BinaryCodedDecimal.FromDecimal(9), 0x9);
+			Assert.AreEqual(BinaryCodedDecimal.FromDecimal(10), 0x10);
+			Assert.AreEqual(BinaryCodedDecimal.FromDecimal(99), 0x99);
+			Assert.AreEqual(BinaryCodedDecimal.FromDecimal(255), 0xff);
 		}
 
 		/// <summary>
@@ -83,12 +83,12 @@ namespace LazerTagHost_Test
 		[TestMethod()]
 		public void ToDecimalTest()
 		{
-			Assert.AreEqual(HexCodedDecimal.ToDecimal(0x0), 0);
-			Assert.AreEqual(HexCodedDecimal.ToDecimal(0x1), 1);
-			Assert.AreEqual(HexCodedDecimal.ToDecimal(0x9), 9);
-			Assert.AreEqual(HexCodedDecimal.ToDecimal(0x10), 10);
-			Assert.AreEqual(HexCodedDecimal.ToDecimal(0x99), 99);
-			Assert.AreEqual(HexCodedDecimal.ToDecimal(0xff), 255);
+			Assert.AreEqual(BinaryCodedDecimal.ToDecimal(0x0), 0);
+			Assert.AreEqual(BinaryCodedDecimal.ToDecimal(0x1), 1);
+			Assert.AreEqual(BinaryCodedDecimal.ToDecimal(0x9), 9);
+			Assert.AreEqual(BinaryCodedDecimal.ToDecimal(0x10), 10);
+			Assert.AreEqual(BinaryCodedDecimal.ToDecimal(0x99), 99);
+			Assert.AreEqual(BinaryCodedDecimal.ToDecimal(0xff), 255);
 		}
 	}
 }

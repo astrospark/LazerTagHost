@@ -1,7 +1,9 @@
 ﻿using System;
+using System.ComponentModel;
 
 namespace LazerTagHostLibrary
 {
+	[ImmutableObject(true)]
 	public class Signature : IEquatable<Signature>
 	{
 		public Signature(SignatureType type, UInt16 data, byte bitCount = 8)
@@ -12,9 +14,17 @@ namespace LazerTagHostLibrary
 			BitCount = bitCount;
 		}
 
-		public SignatureType Type { get; set; }
-		public UInt16 Data { get; set; }
-		public byte BitCount { get; set; }
+		public Signature(SignatureType type, BinaryCodedDecimal data, byte bitCount = 8)
+		{
+			Type = type;
+			var mask = (UInt16)(Math.Pow(2, bitCount) - 1);
+			Data = (UInt16)(data.BinaryCodedValue & mask);
+			BitCount = bitCount;
+		}
+
+		public SignatureType Type { get; private set; }
+		public UInt16 Data { get; private set; }
+		public byte BitCount { get; private set; }
 
 		public static bool operator ==(Signature first, Signature second)
 		{

@@ -61,7 +61,9 @@
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="GameDefinition.cs" />
     <Compile Include="GameTypes.cs" />
-    <Compile Include="HexCodedDecimal.cs" />
+    <Compile Include="BinaryCodedDecimal.cs" />
+    <Compile Include="LazerTagProtocol.cs" />
+    <Compile Include="LazerTagString.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="ScoredObject.cs" />
     <Compile Include="Packet.cs" />

@@ -110,27 +110,7 @@
 			get { return (TeamCount > 1); }
 		}
 
-		private char[] _name;
-		public char[] Name
-		{
-			get
-			{
-				if (_name == null & GameTypeInfo.PacketType == PacketType.AnnounceGameSpecial)
-				{
-					return Tools.GetCharArrayExactLength(GameTypeInfo.Name, 4);
-				}
-				return _name;
-			}
-			set
-			{
-				if (value == null)
-				{
-					_name = null;
-					return;
-				}
-				_name = Tools.GetCharArrayExactLength(value, 4);
-			}
-		}
+		public LazerTagString Name { get; set; }
 
 		public int CountdownTimeSeconds { get; set; }
 		public int ResendCountdownTimeSeconds { get; set; }
