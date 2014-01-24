@@ -9,17 +9,27 @@ namespace LazerTagHostLibrary
 		public Signature(SignatureType type, UInt16 data, byte bitCount = 8)
 		{
 			Type = type;
-			var mask = (UInt16) (Math.Pow(2, bitCount) - 1);
-			Data = (UInt16) (data & mask);
+			var mask = (UInt16)(Math.Pow(2, bitCount) - 1);
+			Data = (UInt16)(data & mask);
 			BitCount = bitCount;
 		}
 
 		public Signature(SignatureType type, BinaryCodedDecimal data, byte bitCount = 8)
+			: this(type, data.BinaryCodedValue, bitCount)
 		{
-			Type = type;
-			var mask = (UInt16)(Math.Pow(2, bitCount) - 1);
-			Data = (UInt16)(data.BinaryCodedValue & mask);
-			BitCount = bitCount;
+
+		}
+
+		public Signature(UInt16 data, byte bitCount = 8)
+			: this(SignatureType.Data, data, bitCount)
+		{
+
+		}
+
+		public Signature(BinaryCodedDecimal data, byte bitCount = 8)
+			: this(SignatureType.Data, data, bitCount)
+		{
+
 		}
 
 		public SignatureType Type { get; private set; }

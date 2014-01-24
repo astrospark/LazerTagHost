@@ -15,6 +15,14 @@ namespace LazerTagHostLibrary
 			Type = type;
 		}
 
+		public Packet(Packet packet)
+		{
+			Type = packet.Type;
+			Data.Clear();
+			Data.AddRange(packet.Data.ToArray());
+			Checksum = packet.Checksum;
+		}
+
 		public List<Signature> Signatures
 		{
 			get
@@ -57,6 +65,21 @@ namespace LazerTagHostLibrary
 		public List<Signature> Data
 		{
 			get { return _data; }
+		}
+
+		public void DataAdd(byte data)
+		{
+			Data.Add(new Signature(data));
+		}
+
+		public void DataAdd(BinaryCodedDecimal data)
+		{
+			Data.Add(new Signature(data));
+		}
+
+		public void DataAdd(LazerTagString data, int maxLength, bool addPadding = false, bool addNullTerminator = false)
+		{
+			Data.AddRange(data.GetSignatures(maxLength, addPadding, addNullTerminator));
 		}
 
 		public bool DataValid

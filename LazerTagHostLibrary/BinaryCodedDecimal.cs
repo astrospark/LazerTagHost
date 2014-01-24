@@ -7,9 +7,16 @@
 
 		}
 
-		public BinaryCodedDecimal(int decimalValue)
+		public BinaryCodedDecimal(int value, bool binaryCoded = false)
 		{
-			BinaryCodedValue = FromDecimal(decimalValue);
+			if (binaryCoded)
+			{
+				BinaryCodedValue = (byte) value;
+			}
+			else
+			{
+				BinaryCodedValue = FromDecimal(value);
+			}
 		}
 
 		public static byte ToDecimal(int bcd)

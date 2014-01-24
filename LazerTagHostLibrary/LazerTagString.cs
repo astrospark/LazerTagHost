@@ -22,6 +22,16 @@ namespace LazerTagHostLibrary
 			Text = BytesToString(text);
 		}
 
+		public LazerTagString(IList<Signature> signatures)
+		{
+			var text = new byte[signatures.Count];
+			for (var x = 0; x < signatures.Count; x++)
+			{
+				text[x] = (byte) signatures[x].Data;
+			}
+			Text = BytesToString(text);
+		}
+
 		public bool IsEmpty()
 		{
 			return string.IsNullOrWhiteSpace(Text);
