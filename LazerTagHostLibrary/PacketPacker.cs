@@ -15,7 +15,13 @@ namespace LazerTagHostLibrary
 			return Tag(new TeamPlayerId(0), damage);
 		}
 
-		public static Signature Beacon(int teamNumber, bool tagReceived, int tagStrength)
+	    public static Signature HostileZoneTag(int teamNumber, int damage = 1)
+	    {
+		    var flags = (byte) (((teamNumber%4) + 4) << 2 | (damage & 0x3));
+		    return new Signature(SignatureType.Tag, flags, 7);
+	    }
+
+	    public static Signature Beacon(int teamNumber, bool tagReceived, int tagStrength)
         {
 	        if (!tagReceived) tagStrength = 0;
 	        
