@@ -532,12 +532,15 @@ namespace LazerTagHostLibrary
 					CalculateScoresOwnTheZone();
 					break;
 				case GameType.CustomLazerTag:
-					CalculateScoresCustomLazerTag();
+				case GameType.Respawn:
+					CalculateScoresSoloGames();
 					break;
 				case GameType.CustomLazerTagTwoTeams:
 				case GameType.CustomLazerTagThreeTeams:
 				case GameType.HuntThePrey:
 				case GameType.HideAndSeek:
+				case GameType.RespawnTwoTeams:
+				case GameType.RespawnThreeTeams:
 					CalculateScoresTeamGames();
 					break;
 				case GameType.KingsTwoTeams:
@@ -581,7 +584,7 @@ namespace LazerTagHostLibrary
 			Players.CalculateRanks();
 		}
 
-		private void CalculateScoresCustomLazerTag()
+		private void CalculateScoresSoloGames()
 		{
 			foreach (var player in _players)
 			{
