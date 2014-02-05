@@ -291,6 +291,7 @@ namespace LazerTagHostLibrary
 				    switch (packet.Type)
 				    {
 					    case PacketType.RequestJoinGame:
+						    if (packet.Data.Count < 3) return false;
 						    var requestedTeam = (UInt16) (packet.Data[2].Data & 0x03);
 						    return ProcessRequestJoinGame(gameId, taggerId, requestedTeam);
 					    case PacketType.AcknowledgePlayerAssignment:
