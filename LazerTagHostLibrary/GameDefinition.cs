@@ -7,6 +7,7 @@
 			CountdownTimeSeconds = 30;
 			ResendCountdownTimeSeconds = 10;
 			HuntDirection = false;
+			Name = new LazerTagString();
 		}
 
 		public GameType GameType
