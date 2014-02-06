@@ -9,7 +9,7 @@ namespace LazerTagHostLibrary
 	public class Player : ScoredObject
 	{
 		private readonly HostGun _hostGun;
-		public byte TaggerId { get; set; }
+		public RandomId TaggerId { get; set; }
 		public bool Confirmed = false;
 		public bool Dropped = false;
 		public bool TagSummaryReceived = false;

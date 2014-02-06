@@ -788,7 +788,7 @@ namespace LazerTagHostLibrary
             if (HostingState != HostingStates.Idle) return;
 
 			_gameDefinition = gameDefinition;
-			_gameDefinition.GameId = LazerTagProtocol.GenerateRandomId();
+			_gameDefinition.GameId = new RandomId();
 
             ChangeState(HostingStates.Adding);
         }

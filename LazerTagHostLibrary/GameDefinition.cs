@@ -22,7 +22,7 @@
 			get { return _gameTypeInfo; }
 		}
 
-		public byte GameId { get; set; }
+		public RandomId GameId { get; set; }
 		public int GameTimeMinutes { get; set; }
 		public int Tags { get; set; }
 

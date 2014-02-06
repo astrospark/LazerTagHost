@@ -60,7 +60,7 @@ namespace LazerTagHostLibrary
 
 		public void SendRequestJoinGame(byte gameId, int preferredTeamNumber)
 		{
-			var taggerId = GenerateRandomId();
+			var taggerId = new RandomId();
 			var packet = PacketPacker.RequestJoinGame(gameId, taggerId, preferredTeamNumber);
 			TransmitPacket(packet);
 			Log.Add(Log.Severity.Information,
@@ -72,11 +72,6 @@ namespace LazerTagHostLibrary
 		{
 			var packet = PacketPacker.TextMessage(message);
 			TransmitPacket(packet);
-		}
-
-		public static byte GenerateRandomId()
-		{
-			return (byte)(new Random().Next() & 0xff);
 		}
 
 		#endregion

@@ -65,6 +65,7 @@
     <Compile Include="LazerTagProtocol.cs" />
     <Compile Include="LazerTagString.cs" />
     <Compile Include="Log.cs" />
+    <Compile Include="RandomId.cs" />
     <Compile Include="ScoredObject.cs" />
     <Compile Include="Packet.cs" />
     <Compile Include="Player.cs" />
