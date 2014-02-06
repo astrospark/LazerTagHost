@@ -1,18 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Text;
 using System.Text.RegularExpressions;
 
 namespace LazerTagHostLibrary
 {
+	[ImmutableObject(true)]
 	public class LazerTagString
 	{
-		public LazerTagString()
-		{
-
-		}
-
-		public LazerTagString(string text)
+		public LazerTagString(string text = "")
 		{
 			Text = text;
 		}
@@ -30,6 +27,13 @@ namespace LazerTagHostLibrary
 				text[x] = (byte) signatures[x].Data;
 			}
 			Text = BytesToString(text);
+		}
+
+		private string _text;
+		public string Text
+		{
+			get { return _text; }
+			private set { _text = Sanitize(value); }
 		}
 
 		public bool IsEmpty()
@@ -74,13 +78,6 @@ namespace LazerTagHostLibrary
 		public static implicit operator LazerTagString(byte[] input)
 		{
 			return new LazerTagString(input);
-		}
-
-		private string _text;
-		public string Text
-		{
-			get { return _text; }
-			set { _text = Sanitize(value); }
 		}
 
 		private static string Sanitize(string text)
