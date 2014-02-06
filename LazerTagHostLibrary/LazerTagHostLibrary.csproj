@@ -58,14 +58,24 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AnnounceGamePacket.cs" />
     <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="FlagsByte.cs" />
     <Compile Include="GameDefinition.cs" />
+    <Compile Include="GameSettings.cs" />
+    <Compile Include="Games\GameBase.cs" />
+    <Compile Include="Games\GameFactory.cs" />
+    <Compile Include="GameType.cs" />
     <Compile Include="GameTypes.cs" />
     <Compile Include="BinaryCodedDecimal.cs" />
+    <Compile Include="GameZone.cs" />
+    <Compile Include="ImmutableObjectBuilder.cs" />
     <Compile Include="LazerTagProtocol.cs" />
     <Compile Include="LazerTagString.cs" />
     <Compile Include="Log.cs" />
+    <Compile Include="PlayerRole.cs" />
     <Compile Include="RandomId.cs" />
+    <Compile Include="Range.cs" />
     <Compile Include="ScoredObject.cs" />
     <Compile Include="Packet.cs" />
     <Compile Include="Player.cs" />
