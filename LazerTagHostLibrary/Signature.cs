@@ -15,7 +15,7 @@ namespace LazerTagHostLibrary
 		}
 
 		public Signature(SignatureType type, BinaryCodedDecimal data, byte bitCount = 8)
-			: this(type, data.BinaryCodedValue, bitCount)
+			: this(type, (UInt16) data.BinaryCodedValue, bitCount)
 		{
 
 		}
