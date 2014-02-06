@@ -23,12 +23,6 @@ namespace LazerTagHostLibrary
 			return input.DecimalValue;
 		}
 
-		// byte (decimal) -> BinaryCodedDecimal
-		public static implicit operator BinaryCodedDecimal(byte input)
-		{
-			return new BinaryCodedDecimal(input);
-		}
-
 		// int (decimal) -> BinaryCodedDecimal
 		public static explicit operator BinaryCodedDecimal(int input)
 		{
