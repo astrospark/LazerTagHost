@@ -41,9 +41,6 @@ namespace LazerTagHostLibrary
 
         public static Packet AnnounceGame(GameDefinition gameDefinition)
         {
-	        if (gameDefinition.GameTypeInfo.PacketType == PacketType.AnnounceGameSpecial)
-		        return AnnounceSpecialGame(gameDefinition);
-
 			var packet = new Packet();
 			packet.Type = gameDefinition.GameTypeInfo.PacketType;
 			packet.Data.Add(new Signature(SignatureType.Data, gameDefinition.GameId));
@@ -58,9 +55,9 @@ namespace LazerTagHostLibrary
 								 (gameDefinition.LimitedMega ? 1 : 0) << 5 |
 	                             (gameDefinition.TeamTags ? 1 : 0) << 4 |
 	                             (gameDefinition.MedicMode ? 1 : 0) << 3 |
-	                             (gameDefinition.SlowTags ? 1 : 0) << 2 |
+								 (gameDefinition.GameTypeInfo.SlowTags ? 1 : 0) << 2 |
 	                             (gameDefinition.GameTypeInfo.HuntThePrey ? 1 : 0) << 1 |
-	                             (gameDefinition.HuntDirection ? 1 : 0) << 0);
+								 (gameDefinition.GameTypeInfo.ReverseHuntDirection ? 1 : 0) << 0);
 
 	        var flags2 = (byte) ((gameDefinition.GameTypeInfo.Zones ? 1 : 0) << 7 |
 	                             (gameDefinition.GameTypeInfo.TeamZones ? 1 : 0) << 6 |
@@ -73,61 +70,64 @@ namespace LazerTagHostLibrary
 			packet.Data.Add(new Signature(SignatureType.Data, flags1));
 			packet.Data.Add(new Signature(SignatureType.Data, flags2));
 
-	        //if (!gameDefinition.Name.IsEmpty()) packet.Data.AddRange(gameDefinition.Name.GetSignatures(4, true));
+	        if (gameDefinition.GameTypeInfo.PacketType == PacketType.AnnounceGameSpecial)
+	        {
+		        packet.Data.AddRange(gameDefinition.GameTypeInfo.Name.GetSignatures(4, true));
+	        }
 
 			packet.PopulateChecksum();
 
 			return packet;
 		}
 
-		public static Packet AnnounceSpecialGame(GameDefinition gameDefinition)
-		{
-			var packet = new Packet();
-			packet.Type = gameDefinition.GameTypeInfo.PacketType;
-			packet.Data.Add(new Signature(SignatureType.Data, gameDefinition.GameId));
-			packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.GameTimeMinutes)));
-			packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.Tags)));
-			packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.Reloads)));
-			packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.Shields)));
-			packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.Mega)));
+		//public static Packet AnnounceSpecialGame(GameDefinition gameDefinition)
+		//{
+		//    var packet = new Packet();
+		//    packet.Type = gameDefinition.GameTypeInfo.PacketType;
+		//    packet.Data.Add(new Signature(SignatureType.Data, gameDefinition.GameId));
+		//    packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.GameTimeMinutes)));
+		//    packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.Tags)));
+		//    packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.Reloads)));
+		//    packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.Shields)));
+		//    packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.Mega)));
 
-			byte flags1, flags2;
-			switch (gameDefinition.GameType)
-			{
-				case GameType.HuntTheTagMaster: // TAGM
-					flags1 = 0x70;
-					flags2 = 0x02;
-					break;
-				case GameType.TagMasterHideAndSeek: // TMHS
-					flags1 = 0x63;
-					flags2 = 0x02;
-					break;
-				case GameType.Respawn: // RESP
-					flags1 = 0xe0;
-					flags2 = 0x31;
-					break;
-				case GameType.RespawnTwoTeams: // 2TRS
-					flags1 = 0xf8;
-					flags2 = 0x32;
-					break;
-				case GameType.RespawnThreeTeams: // 3TRS
-					flags1 = 0xf8;
-					flags2 = 0x33;
-					break;
-				default:
-					flags1 = flags2 = 0;
-					break;
-			}
+		//    byte flags1, flags2;
+		//    switch (gameDefinition.GameType)
+		//    {
+		//        case GameType.HuntTheTagMaster: // TAGM
+		//            flags1 = 0x70;
+		//            flags2 = 0x02;
+		//            break;
+		//        case GameType.TagMasterHideAndSeek: // TMHS
+		//            flags1 = 0x63;
+		//            flags2 = 0x02;
+		//            break;
+		//        case GameType.Respawn: // RESP
+		//            flags1 = 0xe0;
+		//            flags2 = 0x31;
+		//            break;
+		//        case GameType.RespawnTwoTeams: // 2TRS
+		//            flags1 = 0xf8;
+		//            flags2 = 0x32;
+		//            break;
+		//        case GameType.RespawnThreeTeams: // 3TRS
+		//            flags1 = 0xf8;
+		//            flags2 = 0x33;
+		//            break;
+		//        default:
+		//            flags1 = flags2 = 0;
+		//            break;
+		//    }
 
-			packet.Data.Add(new Signature(SignatureType.Data, flags1));
-			packet.Data.Add(new Signature(SignatureType.Data, flags2));
+		//    packet.Data.Add(new Signature(SignatureType.Data, flags1));
+		//    packet.Data.Add(new Signature(SignatureType.Data, flags2));
 
-			if (!gameDefinition.Name.IsEmpty()) packet.Data.AddRange(gameDefinition.Name.GetSignatures(4, true));
+		//    if (!gameDefinition.Name.IsEmpty()) packet.Data.AddRange(gameDefinition.Name.GetSignatures(4, true));
 
-			packet.PopulateChecksum();
+		//    packet.PopulateChecksum();
 
-			return packet;
-		}
+		//    return packet;
+		//}
 
 		public static Packet TextMessage(String message)
         {

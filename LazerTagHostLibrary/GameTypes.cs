@@ -101,13 +101,15 @@ namespace LazerTagHostLibrary
 					var nameAttribute = gameTypeNode.Attributes["Name"];
 					if (nameAttribute == null) throw new NullReferenceException("nameAttribute");
 					gameTypeInfo.Type = TypeFromName(nameAttribute.Value);
-					gameTypeInfo.Name = nameAttribute.Value;
+					gameTypeInfo.Name = (LazerTagString) nameAttribute.Value;
 
 					gameTypeInfo.DisplayName = XmlSerializer.GetNodeLocalizedText(gameTypeNode, "DisplayName");
 					gameTypeInfo.PacketType = (PacketType)XmlSerializer.GetNodeTextInt(gameTypeNode, "AnnounceGameCommandCode");
 					gameTypeInfo.TeamCount = XmlSerializer.GetNodeTextInt(gameTypeNode, "TeamCount");
 					gameTypeInfo.GameTimeStepMinutes = XmlSerializer.GetNodeTextInt(gameTypeNode, "GameTimeStepMinutes");
+					gameTypeInfo.SlowTags = XmlSerializer.GetNodeTextBool(gameTypeNode, "SlowTags");
 					gameTypeInfo.HuntThePrey = XmlSerializer.GetNodeTextBool(gameTypeNode, "HuntThePrey");
+					gameTypeInfo.ReverseHuntDirection = XmlSerializer.GetNodeTextBool(gameTypeNode, "ReverseHuntDirection");
 					gameTypeInfo.Zones = XmlSerializer.GetNodeTextBool(gameTypeNode, "Zones");
 					gameTypeInfo.NeutralizePlayersTaggedInZone = XmlSerializer.GetNodeTextBool(gameTypeNode, "NeutralizePlayersTaggedInZone");
 					gameTypeInfo.DefaultTeamTags = XmlSerializer.GetNodeTextBool(gameTypeNode, "DefaultTeamTags");
@@ -134,12 +136,14 @@ namespace LazerTagHostLibrary
 	public class GameTypeInfo
 	{
 		public GameType Type { get; set; }
-		public string Name { get; set; }
+		public LazerTagString Name { get; set; }
 		public string DisplayName { get; set; }
 		public PacketType PacketType { get; set; }
 		public int TeamCount { get; set; }
 		public int GameTimeStepMinutes { get; set; }
+		public bool SlowTags { get; set; }
 		public bool HuntThePrey { get; set; }
+		public bool ReverseHuntDirection { get; set; }
 		public bool Zones { get; set; }
 		public bool TeamZones { get; set; }
 		public bool NeutralizePlayersTaggedInZone { get; set; }
