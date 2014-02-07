@@ -18,6 +18,11 @@ namespace LazerTagHostLibrary
 
 		public byte Id { get; private set; }
 
+		public override string ToString()
+		{
+			return string.Format("0x{0:X2}", Id);
+		}
+
 		// RandomId -> byte
 		public static implicit operator byte(RandomId input)
 		{

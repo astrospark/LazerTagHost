@@ -109,6 +109,18 @@ namespace LazerTagHostLibrary
 
 		    if (GameDefinition.IsTeamGame)
 		    {
+			    bool isTagMasterGame;
+			    if (GameDefinition.GameType == GameType.TagMasterHideAndSeek ||
+					GameDefinition.GameType == GameType.TagMasterHuntThePrey ||
+					GameDefinition.GameType == GameType.HuntTheTagMasterTwoTeams)
+			    {
+				    isTagMasterGame = true;
+			    }
+			    else
+			    {
+				    isTagMasterGame = false;
+			    }
+
 			    // Count the players on each team and find the smallest team
 			    var teamPlayerCounts = new int[_gameDefinition.TeamCount];
 			    var smallestTeamNumber = 0;
@@ -120,6 +132,10 @@ namespace LazerTagHostLibrary
 				    {
 					    if (player.TeamPlayerId.TeamNumber == teamNumber) teamPlayerCount++;
 				    }
+
+					// In Tag Master games, team 1 is full once it has a player
+					if (isTagMasterGame && teamNumber == 1 && teamPlayerCount > 0) teamPlayerCount = 8;
+
 				    if (teamPlayerCount < smallestTeamPlayerCount)
 				    {
 					    smallestTeamNumber = teamNumber;
@@ -541,11 +557,26 @@ namespace LazerTagHostLibrary
 				case GameType.HideAndSeek:
 				case GameType.RespawnTwoTeams:
 				case GameType.RespawnThreeTeams:
+				case GameType.TagMasterHideAndSeek:
+				case GameType.TagMasterHuntThePrey:
 					CalculateScoresTeamGames();
 					break;
 				case GameType.KingsTwoTeams:
 				case GameType.KingsThreeTeams:
 					CalculateScoresKings();
+					break;
+				case GameType.OneOnOne:
+					CalculateScoresOneOnOne();
+					break;
+				case GameType.Survival:
+					CalculateScoresSurvivalSolo();
+					break;
+				case GameType.SurvivalTwoTeams:
+				case GameType.SurvivalThreeTeams:
+					CalculateScoresSurvivalTeams();
+					break;
+				case GameType.HuntTheTagMasterTwoTeams:
+					CalculateScoresHuntTheTagMasterTwoTeams();
 					break;
 				default:
 					Log.Add(Log.Severity.Warning, "Unable to score game type {0}.", _gameDefinition.GameType);
@@ -553,7 +584,7 @@ namespace LazerTagHostLibrary
 			}
         }
 
-	    private void RemoveDroppedPlayerTags()
+		private void RemoveDroppedPlayerTags()
 	    {
 		    foreach (var droppedPlayer in Players.Where(droppedPlayer => droppedPlayer.Dropped))
 		    {
@@ -703,6 +734,194 @@ namespace LazerTagHostLibrary
 
 			Teams.CalculateRanks();
 			Players.CalculateRanks();
+		}
+
+		private void CalculateScoresOneOnOne()
+		{
+			var teamCount = GameDefinition.TeamCount;
+			var teamSurvivedPlayerCounts = new int[teamCount];
+			var teamScoreTotals = new int[teamCount];
+
+			// Calculate player scores
+			foreach (var player in _players)
+			{
+				// Players lose 1 point for each tag they receive from another player
+				var score = -player.TagsTaken;
+
+				for (var teamNumber = 1; teamNumber <= teamCount; teamNumber++)
+				{
+					for (var playerNumber = 1; playerNumber <= 8; playerNumber++)
+					{
+						var teamPlayerId = new TeamPlayerId(teamNumber, playerNumber);
+						if (player.TeamPlayerId.TeamNumber == teamNumber)
+						{
+							// Players lose 2 points for each tag they land on players on their own team
+							score -= 2*player.TaggedPlayerCounts[teamPlayerId.PlayerNumber - 1];
+						}
+						else
+						{
+							// Players receive 2 points for each tag they land on their principal opponent
+							// Players receive 1 point for each tag they land on other players from other teams
+							var isPrincipalOpponent = playerNumber == player.TeamPlayerId.TeamPlayerNumber;
+							var multiplier = isPrincipalOpponent ? 2 : 1;
+							score += multiplier*player.TaggedPlayerCounts[teamPlayerId.PlayerNumber - 1];
+						}
+					}
+				}
+
+				player.Score = score;
+				teamScoreTotals[player.TeamPlayerId.TeamNumber - 1] += score;
+
+				if (player.Survived) teamSurvivedPlayerCounts[player.TeamPlayerId.TeamNumber - 1]++;
+			}
+
+			// Calculate team scores
+			for (var teamNumber = 1; teamNumber <= teamCount; teamNumber++)
+			{
+				var teamScore = teamScoreTotals[teamNumber - 1];
+				Teams.Team(teamNumber).Score = teamScore;
+				// TODO: Break ties based on survived player count
+				Log.Add(Log.Severity.Information, "Team {0} had {1} surviving players.", teamNumber, teamSurvivedPlayerCounts[teamNumber - 1]);
+				Log.Add(Log.Severity.Information, "The total score of the team was {0}.", teamScore);
+		    }
+
+		    Teams.CalculateRanks();
+		    Players.CalculateRanks();
+		}
+
+		private void CalculateScoresSurvivalSolo()
+		{
+			foreach (var player in _players)
+			{
+				// Players lose 1 point for each tag they receive from another player
+				player.Score = -player.TagsTaken;
+
+				for (var playerNumber = 1; playerNumber <= TeamPlayerId.MaximumPlayerNumber; playerNumber++)
+				{
+					// Players receive 10 points for each full minute they survived
+					player.Score += 10*(int) player.SurviveTime.TotalMinutes;
+
+					// Players receive 2 points for each tag they land on another player
+					player.Score += 2*player.TaggedPlayerCounts[playerNumber - 1];
+				}
+			}
+
+			Players.CalculateRanks();
+		}
+
+		private void CalculateScoresSurvivalTeams()
+		{
+			// TODO: Calculate
+			throw new NotImplementedException();
+		}
+
+		private void CalculateScoresHuntTheTagMasterTwoTeams()
+		{
+			var teamCount = GameDefinition.TeamCount;
+			var teamSurvivedPlayerCounts = new int[teamCount];
+			var teamScoreTotals = new int[teamCount];
+
+			// Calculate player scores
+			foreach (var player in _players)
+			{
+				var score = 0;
+
+				for (var teamNumber = 1; teamNumber <= teamCount; teamNumber++)
+				{
+					for (var teamPlayerNumber = 1; teamPlayerNumber <= 8; teamPlayerNumber++)
+					{
+						var playerNumber = new TeamPlayerId(teamNumber, teamPlayerNumber).PlayerNumber;
+
+						if (player.TeamPlayerId.TeamNumber == 1) // Tag Master
+						{
+							if (teamNumber != 1) // vs other players
+							{
+								// The Tag Master loses 1 point for each tag they received from other players
+								score -= player.TaggedByPlayerCounts[playerNumber - 1];
+
+								// The Tag Master receives 2 points for each tag they land on other players
+								score += 2*player.TaggedPlayerCounts[playerNumber - 1];
+							}
+						}
+						else // other players
+						{
+							if (teamNumber == 1) // vs Tag Master
+							{
+								// Players lose 1 point for each tag they received from the Tag Master
+								score -= player.TaggedByPlayerCounts[playerNumber - 1];
+
+								// Players receive 2 points for each tag they land on the Tag Master
+								score += 2*player.TaggedPlayerCounts[playerNumber - 1];
+							}
+							else if (teamNumber == player.TeamPlayerId.TeamNumber) // vs same team
+							{
+								// Players lose 2 points for each tag they land on players on their own team
+								score -= 2*player.TaggedPlayerCounts[playerNumber - 1];
+							}
+							// Score is not affected by players tagging or being tagged by the other team
+						}
+					}
+				}
+
+				player.Score = score;
+				teamScoreTotals[player.TeamPlayerId.TeamNumber - 1] += score;
+
+				if (player.Survived) teamSurvivedPlayerCounts[player.TeamPlayerId.TeamNumber - 1]++;
+			}
+
+			// Calculate team scores
+			for (var teamNumber = 1; teamNumber <= teamCount; teamNumber++)
+			{
+				var teamScore = teamScoreTotals[teamNumber - 1];
+				Teams.Team(teamNumber).Score = teamScore;
+				Log.Add(Log.Severity.Information, "Team {0} had {1} surviving players.", teamNumber, teamSurvivedPlayerCounts[teamNumber - 1]);
+				Log.Add(Log.Severity.Information, "The total score of the team was {0}.", teamScore);
+			}
+
+			Teams.CalculateRanks();
+			Players.CalculateRanks();
+
+			// Adjust the ranks based on whether or not the Tag Master survived
+			if (Players.Player(new TeamPlayerId(1, 1)).Survived) // The Tag Master survived
+			{
+				Teams.Team(1).Rank = 1;
+
+				if (Teams.Team(2).Rank < Teams.Team(3).Rank)
+				{
+					Teams.Team(2).Rank = 2;
+					Teams.Team(3).Rank = 3;
+				}
+				else if (Teams.Team(2).Rank == Teams.Team(3).Rank)
+				{
+					Teams.Team(2).Rank = 2;
+					Teams.Team(3).Rank = 2;
+				}
+				else
+				{
+					Teams.Team(2).Rank = 3;
+					Teams.Team(3).Rank = 2;
+				}
+			}
+			else // the Tag Master did not survive
+			{
+				Teams.Team(1).Rank = 3;
+
+				if (Teams.Team(2).Rank < Teams.Team(3).Rank)
+				{
+					Teams.Team(2).Rank = 1;
+					Teams.Team(3).Rank = 2;
+				}
+				else if (Teams.Team(2).Rank == Teams.Team(3).Rank)
+				{
+					Teams.Team(2).Rank = 1;
+					Teams.Team(3).Rank = 1;
+				}
+				else
+				{
+					Teams.Team(2).Rank = 2;
+					Teams.Team(3).Rank = 1;
+				}
+			}
 		}
 
         private bool ChangeState(HostingStates state)
@@ -1099,7 +1318,7 @@ namespace LazerTagHostLibrary
 			    {
 					if (DateTime.Now < joinState.AssignPlayerSendTime.AddSeconds(AcknowledgePlayerAssignmentTimeoutSeconds)) continue;
 
-					Log.Add(Log.Severity.Warning, "Timed out after {0} seconds waiting for AcknowledgePlayerAssignment from tagger 0x{1:X2} for game 0x{2:X2}.", AcknowledgePlayerAssignmentTimeoutSeconds, taggerId, _gameDefinition.GameId);
+					Log.Add(Log.Severity.Warning, "Timed out after {0} seconds waiting for AcknowledgePlayerAssignment from tagger 0x{1:X2} for game {2}.", AcknowledgePlayerAssignmentTimeoutSeconds, taggerId, GameDefinition.GameId);
 
 					joinState.Failed = true;
 				    joinState.AssignPlayerFailSendCount = 0;

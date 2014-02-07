@@ -6,8 +6,6 @@
 		{
 			CountdownTimeSeconds = 30;
 			ResendCountdownTimeSeconds = 10;
-			HuntDirection = false;
-			Name = new LazerTagString();
 		}
 
 		public GameType GameType
@@ -93,8 +91,6 @@
 
 		public bool TeamTags { get; set; }
 		public bool MedicMode { get; set; }
-		public bool SlowTags { get; set; }
-		public bool HuntDirection { get; set; }
 
 		public bool IsZoneGame
 		{
@@ -110,8 +106,6 @@
 		{
 			get { return (TeamCount > 1); }
 		}
-
-		public LazerTagString Name { get; set; }
 
 		public int CountdownTimeSeconds { get; set; }
 		public int ResendCountdownTimeSeconds { get; set; }
