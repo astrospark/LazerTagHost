@@ -7,7 +7,7 @@ using System.Xml;
 namespace LazerTagHostLibrary
 {
 	[ImmutableObject(true)]
-	public class GameType1
+	public class GameType1 : IImmutableObject
 	{
 		public Guid Guid { get; private set; }
 		public string Name { get; private set; }
@@ -149,18 +149,16 @@ namespace LazerTagHostLibrary
 
 					var teamCount = XmlSerializer.GetNodeTextInt(gameTypeNode, "TeamCount");
 
-					var gameSettings = new GameSettings
-					{
-						TagsAmount = (BinaryCodedDecimal)XmlSerializer.GetNodeTextInt(gameTypeNode, "DefaultTags"),
-						ReloadsAmount = (BinaryCodedDecimal)XmlSerializer.GetNodeTextInt(gameTypeNode, "DefaultReloads"),
-						ShieldsAmount = (BinaryCodedDecimal)XmlSerializer.GetNodeTextInt(gameTypeNode, "DefaultShields"),
-						MegaAmount = (BinaryCodedDecimal)XmlSerializer.GetNodeTextInt(gameTypeNode, "DefaultMega"),
-						NeutralizeAfterOneTag = XmlSerializer.GetNodeTextBool(gameTypeNode, "NeutralizePlayersTaggedInZone"),
-						HasTeamTags = XmlSerializer.GetNodeTextBool(gameTypeNode, "DefaultTeamTags"),
-						HasMedicMode = XmlSerializer.GetNodeTextBool(gameTypeNode, "DefaultMedicMode"),
-						IsHuntThePrey = XmlSerializer.GetNodeTextBool(gameTypeNode, "HuntThePrey"),
-						HasContestedZones = XmlSerializer.GetNodeTextBool(gameTypeNode, "Zones"),
-					};
+					var gameSettings = new GameSettings(
+						tagsAmount: (BinaryCodedDecimal) XmlSerializer.GetNodeTextInt(gameTypeNode, "DefaultTags"),
+						reloadsAmount: (BinaryCodedDecimal) XmlSerializer.GetNodeTextInt(gameTypeNode, "DefaultReloads"),
+						shieldsAmount: (BinaryCodedDecimal) XmlSerializer.GetNodeTextInt(gameTypeNode, "DefaultShields"),
+						megaAmount: (BinaryCodedDecimal) XmlSerializer.GetNodeTextInt(gameTypeNode, "DefaultMega"),
+						neutralizeAfterOneTag: XmlSerializer.GetNodeTextBool(gameTypeNode, "NeutralizePlayersTaggedInZone"),
+						hasTeamTags: XmlSerializer.GetNodeTextBool(gameTypeNode, "DefaultTeamTags"),
+						hasMedicMode: XmlSerializer.GetNodeTextBool(gameTypeNode, "DefaultMedicMode"),
+						isHuntThePrey: XmlSerializer.GetNodeTextBool(gameTypeNode, "HuntThePrey"),
+						hasContestedZones: XmlSerializer.GetNodeTextBool(gameTypeNode, "Zones"));
 
 					PlayerRole playerRole = new PlayerRole.Builder
 					{

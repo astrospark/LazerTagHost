@@ -5,7 +5,7 @@ using System.ComponentModel;
 namespace LazerTagHostLibrary
 {
 	[ImmutableObject(true)]
-	public class PlayerRole
+	public class PlayerRole : IImmutableObject
 	{
 		public string Name { get; private set; }
 		public LazerTagString ShortName { get; private set; }
@@ -14,7 +14,7 @@ namespace LazerTagHostLibrary
 		public ReadOnlyCollection<int> AllowedTeams { get; private set; }
 		public ReadOnlyCollection<int> AllowedSquads { get; private set; }
 		public Range<int> PlayerRange { get; private set; }
-		public IGameSettingsReadOnly GameSettings { get; private set; }
+		public GameSettings GameSettings { get; private set; }
 
 		public sealed class Builder : ImmutableObjectBuilder<PlayerRole>
 		{
@@ -60,7 +60,7 @@ namespace LazerTagHostLibrary
 				set { _instance.PlayerRange = value; }
 			}
 
-			public IGameSettingsReadOnly GameSettings
+			public GameSettings GameSettings
 			{
 				get { return _instance.GameSettings; }
 				set { _instance.GameSettings = value; }

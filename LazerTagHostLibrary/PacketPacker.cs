@@ -70,10 +70,10 @@ namespace LazerTagHostLibrary
 			packet.Data.Add(new Signature(SignatureType.Data, flags1));
 			packet.Data.Add(new Signature(SignatureType.Data, flags2));
 
-	        if (gameDefinition.GameTypeInfo.PacketType == PacketType.AnnounceGameSpecial)
-	        {
-		        packet.Data.AddRange(gameDefinition.GameTypeInfo.Name.GetSignatures(4, true));
-	        }
+			if (gameDefinition.GameTypeInfo.PacketType == PacketType.AnnounceGameSpecial)
+			{
+				packet.Data.AddRange(gameDefinition.GameTypeInfo.Name.GetSignatures(4, true));
+			}
 
 			packet.PopulateChecksum();
 

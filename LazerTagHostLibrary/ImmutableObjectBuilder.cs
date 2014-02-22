@@ -1,6 +1,14 @@
-﻿namespace LazerTagHostLibrary
+﻿using System.ComponentModel;
+
+namespace LazerTagHostLibrary
 {
-	public abstract class ImmutableObjectBuilder<T>
+	[ImmutableObject(true)]
+	public interface IImmutableObject
+	{
+
+	}
+
+	public abstract class ImmutableObjectBuilder<T> where T : IImmutableObject
 	{
 		public static implicit operator T(ImmutableObjectBuilder<T> builder)
 		{

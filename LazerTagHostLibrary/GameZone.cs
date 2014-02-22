@@ -3,7 +3,7 @@
 namespace LazerTagHostLibrary
 {
 	[ImmutableObject(true)]
-	public class GameZone
+	public class GameZone : IImmutableObject
 	{
 		public string Name { get; private set; }
 		public string Description { get; private set; }
