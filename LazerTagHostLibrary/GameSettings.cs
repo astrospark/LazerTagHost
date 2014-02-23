@@ -6,63 +6,40 @@ namespace LazerTagHostLibrary
 	public class GameSettings
 	{
 		public GameSettings(
-			GameSettings parent = null,
-			GameSetting<BinaryCodedDecimal> tagsAmount = null,
-			GameSetting<BinaryCodedDecimal> reloadsAmount = null,
-			GameSetting<BinaryCodedDecimal> shieldsAmount = null,
-			GameSetting<BinaryCodedDecimal> megaAmount = null,
-			GameSetting<bool> neutralizeAfterOneTag = null,
-			GameSetting<bool> neutralizeAfterTenTags = null,
-			GameSetting<bool> hasTeamTags = null,
-			GameSetting<bool> hasMedicMode = null,
-			GameSetting<bool> hasSlowTags = null,
-			GameSetting<bool> isHuntThePrey = null,
-			GameSetting<bool> reverseHuntDirection = null,
-			GameSetting<bool> hasContestedZones = null,
-			GameSetting<bool> zonesCanHaveTeams = null,
-			GameSetting<bool> hasUnneutralizeZones = null,
-			GameSetting<bool> hasHealingZones = null,
-			GameSetting<bool> hasHostileZones = null,
-			GameSettings gameSettings = null)
+			GameSettings gameSettings = null,
+			GameSetting<BinaryCodedDecimal> tagsAmount = new GameSetting<BinaryCodedDecimal>(),
+			GameSetting<BinaryCodedDecimal> reloadsAmount = new GameSetting<BinaryCodedDecimal>(),
+			GameSetting<BinaryCodedDecimal> shieldsAmount = new GameSetting<BinaryCodedDecimal>(),
+			GameSetting<BinaryCodedDecimal> megaAmount = new GameSetting<BinaryCodedDecimal>(),
+			GameSetting<bool> neutralizeAfterOneTag = new GameSetting<bool>(),
+			GameSetting<bool> neutralizeAfterTenTags = new GameSetting<bool>(),
+			GameSetting<bool> hasTeamTags = new GameSetting<bool>(),
+			GameSetting<bool> hasMedicMode = new GameSetting<bool>(),
+			GameSetting<bool> hasSlowTags = new GameSetting<bool>(),
+			GameSetting<bool> isHuntThePrey = new GameSetting<bool>(),
+			GameSetting<bool> reverseHuntDirection = new GameSetting<bool>(),
+			GameSetting<bool> hasContestedZones = new GameSetting<bool>(),
+			GameSetting<bool> zonesCanHaveTeams = new GameSetting<bool>(),
+			GameSetting<bool> hasUnneutralizeZones = new GameSetting<bool>(),
+			GameSetting<bool> hasHealingZones = new GameSetting<bool>(),
+			GameSetting<bool> hasHostileZones = new GameSetting<bool>())
 		{
-			if (gameSettings != null)
-			{
-				Parent = gameSettings.Parent;
-				TagsAmount = gameSettings.TagsAmount;
-				ReloadsAmount = gameSettings.ReloadsAmount;
-				ShieldsAmount = gameSettings.ShieldsAmount;
-				MegaAmount = gameSettings.MegaAmount;
-				NeutralizeAfterOneTag = gameSettings.NeutralizeAfterOneTag;
-				NeutralizeAfterTenTags = gameSettings.NeutralizeAfterTenTags;
-				HasTeamTags = gameSettings.HasTeamTags;
-				HasMedicMode = gameSettings.HasMedicMode;
-				HasSlowTags = gameSettings.HasSlowTags;
-				IsHuntThePrey = gameSettings.IsHuntThePrey;
-				ReverseHuntDirection = gameSettings.ReverseHuntDirection;
-				HasContestedZones = gameSettings.HasContestedZones;
-				ZonesCanHaveTeams = gameSettings.ZonesCanHaveTeams;
-				HasUnneutralizeZones = gameSettings.HasUnneutralizeZones;
-				HasHealingZones = gameSettings.HasHealingZones;
-				HasHostileZones = gameSettings.HasHostileZones;
-			}
-
-			Parent = parent ?? Parent;
-			TagsAmount = (tagsAmount == null ? null : tagsAmount.Clone()) ?? TagsAmount;
-			ReloadsAmount = (reloadsAmount == null ? null : reloadsAmount.Clone()) ?? ReloadsAmount;
-			ShieldsAmount = (shieldsAmount == null ? null : shieldsAmount.Clone()) ?? ShieldsAmount;
-			MegaAmount = (megaAmount == null ? null : megaAmount.Clone()) ?? MegaAmount;
-			NeutralizeAfterOneTag = (neutralizeAfterOneTag == null ? null : neutralizeAfterOneTag.Clone()) ?? NeutralizeAfterOneTag;
-			NeutralizeAfterTenTags = (neutralizeAfterTenTags == null ? null : neutralizeAfterTenTags.Clone()) ?? NeutralizeAfterTenTags;
-			HasTeamTags = (hasTeamTags == null ? null : hasTeamTags.Clone()) ?? HasTeamTags;
-			HasMedicMode = (hasMedicMode == null ? null : hasMedicMode.Clone()) ?? HasMedicMode;
-			HasSlowTags = (hasSlowTags == null ? null : hasSlowTags.Clone()) ?? HasSlowTags;
-			IsHuntThePrey = (isHuntThePrey == null ? null : isHuntThePrey.Clone()) ?? IsHuntThePrey;
-			ReverseHuntDirection = (reverseHuntDirection == null ? null : reverseHuntDirection.Clone()) ?? ReverseHuntDirection;
-			HasContestedZones = (hasContestedZones == null ? null : hasContestedZones.Clone()) ?? HasContestedZones;
-			ZonesCanHaveTeams = (zonesCanHaveTeams == null ? null : zonesCanHaveTeams.Clone()) ?? ZonesCanHaveTeams;
-			HasUnneutralizeZones = (hasUnneutralizeZones == null ? null : hasUnneutralizeZones.Clone()) ?? HasUnneutralizeZones;
-			HasHealingZones = (hasHealingZones == null ? null : hasHealingZones.Clone()) ?? HasHealingZones;
-			HasHostileZones = (hasHostileZones == null ? null : hasHostileZones.Clone()) ?? HasHostileZones;
+			TagsAmount = (gameSettings == null || tagsAmount.IsSet) ? tagsAmount : gameSettings.TagsAmount;
+			ReloadsAmount = (gameSettings == null || reloadsAmount.IsSet) ? reloadsAmount : gameSettings.ReloadsAmount;
+			ShieldsAmount = (gameSettings == null || shieldsAmount.IsSet) ? shieldsAmount : gameSettings.ShieldsAmount;
+			MegaAmount = (gameSettings == null || megaAmount.IsSet) ? megaAmount : gameSettings.MegaAmount;
+			NeutralizeAfterOneTag = (gameSettings == null || neutralizeAfterOneTag.IsSet) ? neutralizeAfterOneTag : gameSettings.NeutralizeAfterOneTag;
+			NeutralizeAfterTenTags = (gameSettings == null || neutralizeAfterTenTags.IsSet) ? neutralizeAfterTenTags : gameSettings.NeutralizeAfterTenTags;
+			HasTeamTags = (gameSettings == null || hasTeamTags.IsSet) ? hasTeamTags : gameSettings.HasTeamTags;
+			HasMedicMode = (gameSettings == null || hasMedicMode.IsSet) ? hasMedicMode : gameSettings.HasMedicMode;
+			HasSlowTags = (gameSettings == null || hasSlowTags.IsSet) ? hasSlowTags : gameSettings.HasSlowTags;
+			IsHuntThePrey = (gameSettings == null || isHuntThePrey.IsSet) ? isHuntThePrey : gameSettings.IsHuntThePrey;
+			ReverseHuntDirection = (gameSettings == null || reverseHuntDirection.IsSet) ? reverseHuntDirection : gameSettings.ReverseHuntDirection;
+			HasContestedZones = (gameSettings == null || hasContestedZones.IsSet) ? hasContestedZones : gameSettings.HasContestedZones;
+			ZonesCanHaveTeams = (gameSettings == null || zonesCanHaveTeams.IsSet) ? zonesCanHaveTeams : gameSettings.ZonesCanHaveTeams;
+			HasUnneutralizeZones = (gameSettings == null || hasUnneutralizeZones.IsSet) ? hasUnneutralizeZones : gameSettings.HasUnneutralizeZones;
+			HasHealingZones = (gameSettings == null || hasHealingZones.IsSet) ? hasHealingZones : gameSettings.HasHealingZones;
+			HasHostileZones = (gameSettings == null || hasHostileZones.IsSet) ? hasHostileZones : gameSettings.HasHostileZones;
 		}
 
 		public GameSetting<BinaryCodedDecimal> TagsAmount { get; private set; }
@@ -81,82 +58,5 @@ namespace LazerTagHostLibrary
 		public GameSetting<bool> HasUnneutralizeZones { get; private set; }
 		public GameSetting<bool> HasHealingZones { get; private set; }
 		public GameSetting<bool> HasHostileZones { get; private set; }
-
-		public GameSettings Parent { get; private set; }
-
-		public GameSettings Effective
-		{
-			get
-			{
-				if (Parent == null) return this;
-
-				var parent = Parent.Effective;
-
-				return new GameSettings(
-					parent: Parent,
-					tagsAmount: TagsAmount.Effective(parent.TagsAmount),
-					reloadsAmount: ReloadsAmount.Effective(parent.ReloadsAmount),
-					shieldsAmount: ShieldsAmount.Effective(parent.ShieldsAmount),
-					megaAmount: MegaAmount.Effective(parent.MegaAmount),
-					neutralizeAfterOneTag: NeutralizeAfterOneTag.Effective(parent.NeutralizeAfterOneTag),
-					neutralizeAfterTenTags: NeutralizeAfterTenTags.Effective(parent.NeutralizeAfterTenTags),
-					hasTeamTags: HasTeamTags.Effective(parent.HasTeamTags),
-					hasMedicMode: HasMedicMode.Effective(parent.HasMedicMode),
-					hasSlowTags: HasSlowTags.Effective(parent.HasSlowTags),
-					isHuntThePrey: IsHuntThePrey.Effective(parent.IsHuntThePrey),
-					reverseHuntDirection: ReverseHuntDirection.Effective(parent.ReverseHuntDirection),
-					hasContestedZones: HasContestedZones.Effective(parent.HasContestedZones),
-					zonesCanHaveTeams: ZonesCanHaveTeams.Effective(parent.ZonesCanHaveTeams),
-					hasUnneutralizeZones: HasUnneutralizeZones.Effective(parent.HasUnneutralizeZones),
-					hasHealingZones: HasHealingZones.Effective(parent.HasHealingZones),
-					hasHostileZones: HasHostileZones.Effective(parent.HasHostileZones));
-			}
-		}
-	}
-
-	[ImmutableObject(true)]
-	public class GameSetting<T> where T: struct 
-	{
-		public GameSetting(
-			bool isInherited = false,
-			bool isLocked = false,
-			T value = default(T))
-		{
-			IsInherited = isInherited;
-			IsLocked = isLocked;
-			Value = value;
-		}
-
-		public GameSetting(GameSetting<T> gameSetting) : this(
-			isInherited: gameSetting.IsInherited,
-			isLocked: gameSetting.IsLocked,
-			value: gameSetting.Value)
-		{
-
-		}
-
-		public GameSetting<T> Clone()
-		{
-			return new GameSetting<T>(this);
-		}
-
-		public static implicit operator T(GameSetting<T> gameSetting)
-		{
-			return gameSetting.Value;
-		}
-
-		public static implicit operator GameSetting<T>(T value)
-		{
-			return new GameSetting<T>(value: value);
-		}
-
-		public bool IsInherited { get; private set; }
-		public bool IsLocked { get; private set; }
-		public T Value { get; private set; }
-
-		public GameSetting<T> Effective(GameSetting<T> parentSetting)
-		{
-			return IsInherited ? parentSetting : this;
-		}
 	}
 }

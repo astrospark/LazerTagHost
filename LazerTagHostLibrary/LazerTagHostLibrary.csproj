@@ -60,20 +60,27 @@
   <ItemGroup>
     <Compile Include="AnnounceGamePacket.cs" />
     <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="EffectiveGameSettings.cs" />
     <Compile Include="FlagsByte.cs" />
     <Compile Include="GameDefinition.cs" />
+    <Compile Include="GameDefinition1.cs" />
+    <Compile Include="GameSetting.cs" />
     <Compile Include="GameSettings.cs" />
     <Compile Include="Games\GameBase.cs" />
     <Compile Include="Games\GameFactory.cs" />
-    <Compile Include="GameType.cs" />
+    <Compile Include="GameType1.cs" />
     <Compile Include="GameTypes.cs" />
     <Compile Include="BinaryCodedDecimal.cs" />
-    <Compile Include="GameZone.cs" />
+    <Compile Include="GameTypes1.cs" />
+    <Compile Include="GameTypeTeam.cs" />
+    <Compile Include="GameTypeZone.cs" />
     <Compile Include="ImmutableObjectBuilder.cs" />
+    <Compile Include="Inheritor.cs" />
     <Compile Include="LazerTagProtocol.cs" />
     <Compile Include="LazerTagString.cs" />
     <Compile Include="Log.cs" />
-    <Compile Include="PlayerRole.cs" />
+    <Compile Include="GameTypeRole.cs" />
+    <Compile Include="Player1.cs" />
     <Compile Include="RandomId.cs" />
     <Compile Include="Range.cs" />
     <Compile Include="ScoredObject.cs" />
@@ -85,6 +92,7 @@
     <Compile Include="Rank.cs" />
     <Compile Include="Signature.cs" />
     <Compile Include="Team.cs" />
+    <Compile Include="Team1.cs" />
     <Compile Include="XmlSerializer.cs" />
   </ItemGroup>
   <ItemGroup>
