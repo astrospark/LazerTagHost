@@ -214,7 +214,7 @@ namespace LazerTagHostLibrary
         {
             foreach (var player in _players)
             {
-	            Log.Add(Log.Severity.Information, "{0} (0x{1:X2})", player.NameAndNumber, player.TaggerId);
+	            Log.Add(Log.Severity.Information, "{0} ({1})", player.NameAndNumber, player.TaggerId);
 				if (_gameDefinition.IsTeamGame)
 				{
 					Log.Add(Log.Severity.Information, "\tPlayer Rank: {0}, Team Rank: {1}, Score: {2}", player.Rank, player.Team.Rank, player.Score);
