@@ -316,7 +316,7 @@
       <HuntThePrey>False</HuntThePrey>
       <ReverseHuntDirection>False</ReverseHuntDirection>
       <Zones>False</Zones>
-      <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+      <NeutralizePlayersTaggedInZone>True</NeutralizePlayersTaggedInZone>
       <DefaultTeamTags>False</DefaultTeamTags>
       <DefaultMedicMode>False</DefaultMedicMode>
       <DefaultGameTimeMinutes>10</DefaultGameTimeMinutes>
@@ -336,7 +336,7 @@
       <HuntThePrey>False</HuntThePrey>
       <ReverseHuntDirection>False</ReverseHuntDirection>
       <Zones>False</Zones>
-      <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+      <NeutralizePlayersTaggedInZone>True</NeutralizePlayersTaggedInZone>
       <DefaultTeamTags>True</DefaultTeamTags>
       <DefaultMedicMode>True</DefaultMedicMode>
       <DefaultGameTimeMinutes>15</DefaultGameTimeMinutes>
@@ -356,7 +356,7 @@
       <HuntThePrey>False</HuntThePrey>
       <ReverseHuntDirection>False</ReverseHuntDirection>
       <Zones>False</Zones>
-      <NeutralizePlayersTaggedInZone>False</NeutralizePlayersTaggedInZone>
+      <NeutralizePlayersTaggedInZone>True</NeutralizePlayersTaggedInZone>
       <DefaultTeamTags>True</DefaultTeamTags>
       <DefaultMedicMode>True</DefaultMedicMode>
       <DefaultGameTimeMinutes>30</DefaultGameTimeMinutes>

@@ -66,7 +66,21 @@ namespace LazerTagHostLibrary
 	                             (gameDefinition.GameTypeInfo.HospitalZones ? 1 : 0) << 3 |
 	                             (gameDefinition.GameTypeInfo.ZonesTagPlayers ? 1 : 0) << 2 |
 	                             (gameDefinition.TeamCount & 0x03));
-			
+
+			// hard code these here for now
+			switch (gameDefinition.GameType)
+			{
+				case GameType.Respawn: // RESP
+				case GameType.RespawnTwoTeams: // 2TRS
+				case GameType.RespawnThreeTeams: // 3TRS
+					flags1 |= 0x80;
+					flags2 |= 0x30;
+					break;
+				default:
+					flags1 = flags2 = 0;
+					break;
+			}
+
 			packet.Data.Add(new Signature(SignatureType.Data, flags1));
 			packet.Data.Add(new Signature(SignatureType.Data, flags2));
 
@@ -79,55 +93,6 @@ namespace LazerTagHostLibrary
 
 			return packet;
 		}
-
-		//public static Packet AnnounceSpecialGame(GameDefinition gameDefinition)
-		//{
-		//    var packet = new Packet();
-		//    packet.Type = gameDefinition.GameTypeInfo.PacketType;
-		//    packet.Data.Add(new Signature(SignatureType.Data, gameDefinition.GameId));
-		//    packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.GameTimeMinutes)));
-		//    packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.Tags)));
-		//    packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.Reloads)));
-		//    packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.Shields)));
-		//    packet.Data.Add(new Signature(SignatureType.Data, BinaryCodedDecimal.FromDecimal((byte)gameDefinition.Mega)));
-
-		//    byte flags1, flags2;
-		//    switch (gameDefinition.GameType)
-		//    {
-		//        case GameType.HuntTheTagMaster: // TAGM
-		//            flags1 = 0x70;
-		//            flags2 = 0x02;
-		//            break;
-		//        case GameType.TagMasterHideAndSeek: // TMHS
-		//            flags1 = 0x63;
-		//            flags2 = 0x02;
-		//            break;
-		//        case GameType.Respawn: // RESP
-		//            flags1 = 0xe0;
-		//            flags2 = 0x31;
-		//            break;
-		//        case GameType.RespawnTwoTeams: // 2TRS
-		//            flags1 = 0xf8;
-		//            flags2 = 0x32;
-		//            break;
-		//        case GameType.RespawnThreeTeams: // 3TRS
-		//            flags1 = 0xf8;
-		//            flags2 = 0x33;
-		//            break;
-		//        default:
-		//            flags1 = flags2 = 0;
-		//            break;
-		//    }
-
-		//    packet.Data.Add(new Signature(SignatureType.Data, flags1));
-		//    packet.Data.Add(new Signature(SignatureType.Data, flags2));
-
-		//    if (!gameDefinition.Name.IsEmpty()) packet.Data.AddRange(gameDefinition.Name.GetSignatures(4, true));
-
-		//    packet.PopulateChecksum();
-
-		//    return packet;
-		//}
 
 		public static Packet TextMessage(String message)
         {
