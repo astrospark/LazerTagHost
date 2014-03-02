@@ -345,14 +345,8 @@ namespace LazerTagHostLibrary
 
 			foreach (var checkPlayer in Players)
 			{
-				if (checkPlayer.TaggerId == taggerId)
+				if (checkPlayer.TaggerId == taggerId && !checkPlayer.Confirmed)
 				{
-					if (checkPlayer.Confirmed)
-					{
-						Log.Add(Log.Severity.Warning, "Tagger ID collision.");
-						return false;
-					}
-
 					player = checkPlayer;
 					break;
 				}
