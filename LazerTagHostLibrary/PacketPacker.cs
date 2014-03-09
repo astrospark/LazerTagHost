@@ -55,7 +55,7 @@ namespace LazerTagHostLibrary
 								 (gameDefinition.LimitedMega ? 1 : 0) << 5 |
 	                             (gameDefinition.TeamTags ? 1 : 0) << 4 |
 	                             (gameDefinition.MedicMode ? 1 : 0) << 3 |
-								 (gameDefinition.GameTypeInfo.SlowTags ? 1 : 0) << 2 |
+								 (gameDefinition.SlowTags ? 1 : 0) << 2 |
 	                             (gameDefinition.GameTypeInfo.HuntThePrey ? 1 : 0) << 1 |
 								 (gameDefinition.GameTypeInfo.ReverseHuntDirection ? 1 : 0) << 0);
 
@@ -75,9 +75,6 @@ namespace LazerTagHostLibrary
 				case GameType.RespawnThreeTeams: // 3TRS
 					flags1 |= 0x80;
 					flags2 |= 0x30;
-					break;
-				default:
-					flags1 = flags2 = 0;
 					break;
 			}
 
