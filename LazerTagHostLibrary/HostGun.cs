@@ -1234,7 +1234,9 @@ namespace LazerTagHostLibrary
 								Protocol.TransmitSignature(PacketPacker.ZoneBeacon(0, ZoneType.ContestedZone));
 								_nextAnnouncement = DateTime.Now.AddMilliseconds(ZoneBeaconFrequencyMilliseconds);
 								break;
-							case GameType.Respawn:
+							case GameType.Respawn: // RESP
+							case GameType.RespawnTwoTeams: // 2TRS
+							case GameType.RespawnThreeTeams: // 3TRS
 								Protocol.TransmitSignature(PacketPacker.ZoneBeacon(0, ZoneType.TeamZone));
 								_nextAnnouncement = DateTime.Now.AddMilliseconds(ZoneBeaconFrequencyMilliseconds);
 								break;
