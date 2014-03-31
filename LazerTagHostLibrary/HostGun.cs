@@ -109,17 +109,10 @@ namespace LazerTagHostLibrary
 
 		    if (GameDefinition.IsTeamGame)
 		    {
-			    bool isTagMasterGame;
-			    if (GameDefinition.GameType == GameType.TagMasterHideAndSeek ||
+			    var isTagMasterGame = (
+					GameDefinition.GameType == GameType.TagMasterHideAndSeek ||
 					GameDefinition.GameType == GameType.TagMasterHuntThePrey ||
-					GameDefinition.GameType == GameType.HuntTheTagMasterTwoTeams)
-			    {
-				    isTagMasterGame = true;
-			    }
-			    else
-			    {
-				    isTagMasterGame = false;
-			    }
+					GameDefinition.GameType == GameType.HuntTheTagMasterTwoTeams);
 
 			    // Count the players on each team and find the smallest team
 			    var teamPlayerCounts = new int[_gameDefinition.TeamCount];
