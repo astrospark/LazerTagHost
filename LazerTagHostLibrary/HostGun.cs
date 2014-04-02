@@ -1335,7 +1335,7 @@ namespace LazerTagHostLibrary
 		    }
 	    }
 
-		public void SendPlayerAssignment(TeamPlayerId teamPlayerId)
+		private void SendPlayerAssignment(TeamPlayerId teamPlayerId)
 		{
 			if (HostingState != HostingStates.Adding && HostingState != HostingStates.AcknowledgePlayerAssignment) return;
 
