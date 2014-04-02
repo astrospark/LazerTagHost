@@ -91,6 +91,7 @@
 
 		public bool TeamTags { get; set; }
 		public bool MedicMode { get; set; }
+		public bool SlowTags { get; set; }
 
 		public bool IsZoneGame
 		{

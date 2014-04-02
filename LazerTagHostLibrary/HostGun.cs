@@ -109,17 +109,10 @@ namespace LazerTagHostLibrary
 
 		    if (GameDefinition.IsTeamGame)
 		    {
-			    bool isTagMasterGame;
-			    if (GameDefinition.GameType == GameType.TagMasterHideAndSeek ||
+			    var isTagMasterGame = (
+					GameDefinition.GameType == GameType.TagMasterHideAndSeek ||
 					GameDefinition.GameType == GameType.TagMasterHuntThePrey ||
-					GameDefinition.GameType == GameType.HuntTheTagMasterTwoTeams)
-			    {
-				    isTagMasterGame = true;
-			    }
-			    else
-			    {
-				    isTagMasterGame = false;
-			    }
+					GameDefinition.GameType == GameType.HuntTheTagMasterTwoTeams);
 
 			    // Count the players on each team and find the smallest team
 			    var teamPlayerCounts = new int[_gameDefinition.TeamCount];
@@ -214,7 +207,7 @@ namespace LazerTagHostLibrary
         {
             foreach (var player in _players)
             {
-	            Log.Add(Log.Severity.Information, "{0} (0x{1:X2})", player.NameAndNumber, player.TaggerId);
+	            Log.Add(Log.Severity.Information, "{0} ({1})", player.NameAndNumber, player.TaggerId);
 				if (_gameDefinition.IsTeamGame)
 				{
 					Log.Add(Log.Severity.Information, "\tPlayer Rank: {0}, Team Rank: {1}, Score: {2}", player.Rank, player.Team.Rank, player.Score);
@@ -345,14 +338,8 @@ namespace LazerTagHostLibrary
 
 			foreach (var checkPlayer in Players)
 			{
-				if (checkPlayer.TaggerId == taggerId)
+				if (checkPlayer.TaggerId == taggerId && !checkPlayer.Confirmed)
 				{
-					if (checkPlayer.Confirmed)
-					{
-						Log.Add(Log.Severity.Warning, "Tagger ID collision.");
-						return false;
-					}
-
 					player = checkPlayer;
 					break;
 				}
@@ -1240,7 +1227,9 @@ namespace LazerTagHostLibrary
 								Protocol.TransmitSignature(PacketPacker.ZoneBeacon(0, ZoneType.ContestedZone));
 								_nextAnnouncement = DateTime.Now.AddMilliseconds(ZoneBeaconFrequencyMilliseconds);
 								break;
-							case GameType.Respawn:
+							case GameType.Respawn: // RESP
+							case GameType.RespawnTwoTeams: // 2TRS
+							case GameType.RespawnThreeTeams: // 3TRS
 								Protocol.TransmitSignature(PacketPacker.ZoneBeacon(0, ZoneType.TeamZone));
 								_nextAnnouncement = DateTime.Now.AddMilliseconds(ZoneBeaconFrequencyMilliseconds);
 								break;
@@ -1346,7 +1335,7 @@ namespace LazerTagHostLibrary
 		    }
 	    }
 
-		public void SendPlayerAssignment(TeamPlayerId teamPlayerId)
+		private void SendPlayerAssignment(TeamPlayerId teamPlayerId)
 		{
 			if (HostingState != HostingStates.Adding && HostingState != HostingStates.AcknowledgePlayerAssignment) return;
 
