@@ -19,6 +19,14 @@ namespace LazerTagHostLibrary
 		}
 
 		public int Number { get; set; }
+
+        public TimeSpan TotalSurviveTime
+        {
+            get
+            {
+                return Players.Select(player => player.SurviveTime).Aggregate((timeA, timeB) => timeA.Add(timeB));
+            }
+        }
 	}
 
 	public class TeamCollection: ICollection<Team>
