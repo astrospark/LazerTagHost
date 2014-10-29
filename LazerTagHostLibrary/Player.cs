@@ -277,10 +277,7 @@ namespace LazerTagHostLibrary
 			{
 				return string.Format("T{0}:P{1}", TeamNumber, TeamPlayerNumber);
 			}
-			else
-			{
-				return PlayerNumber.ToString(CultureInfo.InvariantCulture);
-			}
+			return PlayerNumber.ToString(CultureInfo.InvariantCulture);
 		}
 
 		public string ToStringFull(bool teamGame)
@@ -289,10 +286,7 @@ namespace LazerTagHostLibrary
 			{
 				return string.Format("Team {0}, Player {1}", TeamNumber, TeamPlayerNumber);
 			}
-			else
-			{
-				return string.Format("Player {0}", PlayerNumber);
-			}
+			return string.Format("Player {0}", PlayerNumber);
 		}
 	}
 }
