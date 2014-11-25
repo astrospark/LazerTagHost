@@ -1333,7 +1333,12 @@ namespace LazerTagHostLibrary
 				Players.Remove(player.TeamPlayerId);
 				_joinStates.Remove(key);
 		    }
-	    }
+
+		    if (removeKeys.Count > 0)
+		    {
+				OnPlayerListChanged(new PlayerListChangedEventArgs(Players));
+			}
+		}
 
 		private void SendPlayerAssignment(TeamPlayerId teamPlayerId)
 		{
