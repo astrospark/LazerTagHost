@@ -12,10 +12,10 @@ namespace LazerTagHostLibrary
 		public static Version VerifyFileInfo(XmlDocument xmlDocument, string expectedFileType, Version expectedFileTypeVersion)
 		{
 			var fileInfoNode = xmlDocument.SelectSingleNode("/LazerSwarm/FileInfo");
-			if (fileInfoNode == null) throw new NullReferenceException("fileInfoNode");
-			if (fileInfoNode.Attributes == null) throw new NullReferenceException("fileInfoNode.Attributes");
+			if (fileInfoNode == null) throw new NullReferenceException("The FileInfo node was not found.");
+			if (fileInfoNode.Attributes == null) throw new NullReferenceException("The FileInfo node does not contain any attributes.");
 			var fileInfoVersionAttribute = fileInfoNode.Attributes["Version"];
-			if (fileInfoVersionAttribute == null) throw new NullReferenceException("versionAttribute");
+			if (fileInfoVersionAttribute == null) throw new NullReferenceException("The FileInfo node does not contain a Version attribute.");
 			var fileInfoVersion = new Version(fileInfoVersionAttribute.Value);
 			if (fileInfoVersion > new Version(1, 0))
 			{
@@ -23,21 +23,19 @@ namespace LazerTagHostLibrary
 			}
 
 			var fileTypeNode = fileInfoNode.SelectSingleNode("./FileType");
-			if (fileTypeNode == null) throw new NullReferenceException("fileTypeNode");
+			if (fileTypeNode == null) throw new NullReferenceException("The FileType node was not found.");
 			var fileType = fileTypeNode.InnerText;
 			if (fileType != expectedFileType)
 			{
-				throw new FileFormatException(String.Format("Incorrect FileType, \"{0}\". Expected, \"{1}\".", fileType,
-				                                            expectedFileType));
+				throw new FileFormatException(String.Format("Incorrect FileType, \"{0}\". Expected, \"{1}\".", fileType, expectedFileType));
 			}
 
 			var fileTypeVersionNode = fileInfoNode.SelectSingleNode("./FileTypeVersion");
-			if (fileTypeVersionNode == null) throw new NullReferenceException("fileTypeVersionNode");
+			if (fileTypeVersionNode == null) throw new NullReferenceException("The FileTypeVersion node was not found.");
 			var fileTypeVersion = new Version(fileTypeVersionNode.InnerText);
 			if (fileTypeVersion > expectedFileTypeVersion)
 			{
-				throw new FileFormatException(String.Format("Unsupported FileTypeVersion, \"{0}\". Expected, \"{1}\".",
-				                                            fileInfoVersion, expectedFileTypeVersion));
+				throw new FileFormatException(String.Format("Unsupported FileTypeVersion, \"{0}\". Expected, \"{1}\".", fileInfoVersion, expectedFileTypeVersion));
 			}
 
 			return fileTypeVersion;
@@ -84,17 +82,17 @@ namespace LazerTagHostLibrary
 		public static string GetNodeText(XmlNode parentNode, string nodeName)
 		{
 			var node = parentNode.SelectSingleNode(String.Format("./{0}", nodeName));
-			if (node == null) throw new NullReferenceException("node");
+			if (node == null) throw new NullReferenceException(string.Format("The {0} node was not found.", nodeName));
 			return node.InnerText;
 		}
 
 		public static string GetNodeLocalizedText(XmlNode parentNode, string nodeName, CultureInfo cultureInfo = null)
 		{
 			var node = parentNode.SelectSingleNode(String.Format("./{0}", nodeName));
-			if (node == null) throw new NullReferenceException("node");
+			if (node == null) throw new NullReferenceException(string.Format("The {0} node was not found.", nodeName));
 
 			var localizedTextNode = SelectLocalizedTextNode(node, cultureInfo);
-			if (localizedTextNode == null) throw new NullReferenceException("localizedTextNode");
+			if (localizedTextNode == null) throw new NullReferenceException("A LocalizedText node was not found.");
 
 			return localizedTextNode.InnerText;
 		}
@@ -114,15 +112,13 @@ namespace LazerTagHostLibrary
 			XmlNode localizedTextNode = null;
 			if (cultureInfo != null)
 			{
-				localizedTextNode = parentNode.SelectSingleNode(String.Format("./LocalizedText[@Culture='{0}']",
-				                                                              cultureInfo.Name));
+				localizedTextNode = parentNode.SelectSingleNode(String.Format("./LocalizedText[@Culture='{0}']", cultureInfo.Name));
 			}
 
 			// Fall back to CurrentUICulture
 			if (localizedTextNode == null)
 			{
-				localizedTextNode = parentNode.SelectSingleNode(String.Format("./LocalizedText[@Culture='{0}']",
-				                                                              Thread.CurrentThread.CurrentUICulture.Name));
+				localizedTextNode = parentNode.SelectSingleNode(String.Format("./LocalizedText[@Culture='{0}']", Thread.CurrentThread.CurrentUICulture.Name));
 			}
 
 			// Fall back to first or only LocalizedText node
