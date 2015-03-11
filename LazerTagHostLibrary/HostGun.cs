@@ -1200,8 +1200,8 @@ namespace LazerTagHostLibrary
 						// ahead of time.  It only prevents those players from joining midgame.  The
 						// score report is bitmasked and only reports non-zero scores.
 						const int playerCountTeam1 = 8;
-						var playerCountTeam2 = (GameDefinition.IsTeamGame || TeamCount >= 2) ? 8 : 0;
-						var playerCountTeam3 = (GameDefinition.IsTeamGame || TeamCount >= 3) ? 8 : 0;
+						const int playerCountTeam2 = 8;
+						const int playerCountTeam3 = 8;
 
 						var packet = PacketPacker.Countdown(GameDefinition.GameId, remainingSeconds, playerCountTeam1, playerCountTeam2,
 						                                    playerCountTeam3);
