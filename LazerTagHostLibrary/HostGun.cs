@@ -98,7 +98,7 @@ namespace LazerTagHostLibrary
 
 	    private bool AssignTeamAndPlayer(int requestedTeam, Player newPlayer)
 	    {
-		    int assignedTeamNumber;
+		    int assignedTeamNumber = 0;
 		    var assignedPlayerNumber = 0;
 
 		    if (_players.Count >= TeamPlayerId.MaximumPlayerNumber)
@@ -165,17 +165,18 @@ namespace LazerTagHostLibrary
 		    }
 		    else
 		    {
-			    assignedTeamNumber = 1;
 			    // Assign player to the first open player number
 			    for (var playerNumber = 1; playerNumber <= 24; playerNumber++)
 			    {
-				    if (_players.Player(new TeamPlayerId(playerNumber)) != null) continue;
-				    assignedPlayerNumber = playerNumber;
+					var teamPlayerId = new TeamPlayerId(playerNumber);
+					if (_players.Player(teamPlayerId) != null) continue;
+					assignedTeamNumber = teamPlayerId.TeamNumber;
+					assignedPlayerNumber = playerNumber;
 					break;
 			    }
 		    }
 
-		    if (assignedPlayerNumber == 0)
+			if (assignedTeamNumber == 0 || assignedPlayerNumber == 0)
 		    {
 			    Log.Add(Log.Severity.Warning, "Unable to assign a player number.");
 			    return false;
@@ -616,7 +617,8 @@ namespace LazerTagHostLibrary
 				}
 			}
 
-		    Players.CalculateRanks();
+			Teams.CalculateRanks();
+			Players.CalculateRanks();
 		}
 
 		private void CalculateScoresTeamGames()
@@ -793,6 +795,7 @@ namespace LazerTagHostLibrary
 				}
 			}
 
+			Teams.CalculateRanks();
 			Players.CalculateRanks();
 		}
 
@@ -937,17 +940,12 @@ namespace LazerTagHostLibrary
 					if (previousState != HostingStates.AcknowledgePlayerAssignment)
 			        {
 				        Teams.Clear();
-				        if (_gameDefinition.IsTeamGame)
-				        {
-					        for (var teamNumber = 1; teamNumber <= _gameDefinition.TeamCount; teamNumber++)
-					        {
-						        Teams.Add(new Team(teamNumber));
-					        }
-				        }
-				        else
-				        {
-					        Teams.Add(new Team(1));
-				        }
+
+						var teamCount = _gameDefinition.IsTeamGame ? _gameDefinition.TeamCount : 3;
+						for (var teamNumber = 1; teamNumber <= teamCount; teamNumber++)
+						{
+							Teams.Add(new Team(teamNumber));
+						}
 
 				        _joinStates.Clear();
 			        }
@@ -988,7 +986,7 @@ namespace LazerTagHostLibrary
             return true;
         }
 
-#region PublicInterface
+		#region Public Interface
         public void StartServer(GameDefinition gameDefinition)
 		{
             if (HostingState != HostingStates.Idle) return;
@@ -1276,9 +1274,8 @@ namespace LazerTagHostLibrary
 
 						var team = Teams.Team(_rankReportTeamNumber);
 
-						_rankReportTeamNumber++;
 						var maxTeamNumber = GameDefinition.IsTeamGame ? _gameDefinition.TeamCount : 3;
-						if (_rankReportTeamNumber > maxTeamNumber) _rankReportTeamNumber = 1;
+						_rankReportTeamNumber = GetNextRankReportTeamNumber(_rankReportTeamNumber, maxTeamNumber, Teams);
 
 						if (team == null) break;
 
@@ -1293,6 +1290,30 @@ namespace LazerTagHostLibrary
 					}
 					break;
 			}
+		}
+
+		private static int GetNextRankReportTeamNumber(int currentTeamNumber, int maxTeamNumber, TeamCollection teams)
+		{
+			var nextTeamNumber = currentTeamNumber + 1;
+			var checkedTeamCount = 0;
+			Team team = null;
+
+			while (true)
+			{
+				if (nextTeamNumber > maxTeamNumber) nextTeamNumber = 1;
+				team = teams.Team(nextTeamNumber);
+				checkedTeamCount++;
+
+				if (team != null && team.Players != null && team.Players.Count > 0) break;
+
+				if (checkedTeamCount >= maxTeamNumber)
+				{
+					nextTeamNumber = 0;
+					break;
+				}
+			}
+
+			return nextTeamNumber;
 		}
 
 	    private void CheckAssignPlayerFailed()
