@@ -25,7 +25,7 @@ namespace LazerTagHostLibrary
 
 		public static void Add(string message, Exception ex)
 		{
-			Add(Severity.Error, string.Join(Environment.NewLine, new[] {message, GetExceptionMessageRecursive(ex)}));
+			Add(Severity.Error, string.Join(Environment.NewLine, message, GetExceptionMessageRecursive(ex)));
 		}
 
 		public static string GetExceptionMessageRecursive(Exception ex)
@@ -39,7 +39,7 @@ namespace LazerTagHostLibrary
 			if (ex.InnerException != null)
 			{
 				var innerMessage = GetExceptionMessageRecursive(ex, separator);
-				message = string.Join(separator, new[] {message, innerMessage});
+				message = string.Join(separator, message, innerMessage);
 			}
 			return message;
 		}
