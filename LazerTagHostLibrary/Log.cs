@@ -50,7 +50,15 @@ namespace LazerTagHostLibrary
 
 		private static void OnEntryAdded(Entry entry)
 		{
-			if (EntryAdded != null) EntryAdded(null, new EntryAddedEventArgs(entry));
+            try
+		    {
+                if (EntryAdded != null) EntryAdded(null, new EntryAddedEventArgs(entry));
+            }
+            catch(Exception ex)
+            {
+                // Logging this exception could cause an infinite loop so this is all we can do.
+                Debug.WriteLine(GetExceptionMessageRecursive(ex));
+            }
 		}
 
 		public static event EntryAddedEventHandler EntryAdded;
