@@ -1279,13 +1279,15 @@ namespace LazerTagHostLibrary
 
 						if (team == null) break;
 
+					    var teamRank = GameDefinition.IsTeamGame ? team.Rank : 0;
+
 						var playerRanks = new int[8];
 						foreach (var player in team.Players)
 						{
 							playerRanks[player.TeamPlayerId.TeamPlayerNumber - 1] = player.Rank;
 						}
 
-						var packet = PacketPacker.RankReport(GameDefinition.GameId, team.Number, team.Rank, playerRanks);
+						var packet = PacketPacker.RankReport(GameDefinition.GameId, team.Number, teamRank, playerRanks);
 						Protocol.TransmitPacket(packet);
 					}
 					break;
