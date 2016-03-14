@@ -113,6 +113,12 @@ namespace LazerTagHostLibrary
 			if (e.Data == null) return;
 
 			var parts = e.Data.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries);
+		    if (parts.Length < 1)
+		    {
+                Log.Add(Log.Severity.Debug, "Received empty response.");
+		        return;
+		    }
+
 			switch (parts[0].ToUpperInvariant())
 			{
 				case "RCV":
@@ -121,16 +127,42 @@ namespace LazerTagHostLibrary
 						Log.Add(Log.Severity.Debug, "Received truncated response, '{0}'.", e.Data);
 						break;
 					}
-					var data = Convert.ToUInt16(parts[1], 16);
-					var bitCount = Convert.ToByte(parts[2], 16);
-					var isBeacon = (Convert.ToUInt16(parts[3], 16) != 0);
-					ProcessSignature(data, bitCount, isBeacon);
-					break;
+
+			        UInt16 data;
+			        byte bitCount;
+			        bool isBeacon;
+
+			        try
+			        {
+			            data = Convert.ToUInt16(parts[1], 16);
+			            bitCount = Convert.ToByte(parts[2], 16);
+			            isBeacon = (Convert.ToUInt16(parts[3], 16) != 0);
+			        }
+			        catch (FormatException formatException)
+			        {
+                        Log.Add($"Could not parse number in response, '{e.Data}'.", formatException);
+                        break;
+			        }
+			        catch (OverflowException overflowException)
+			        {
+			            Log.Add($"Number overflow in response, '{e.Data}'.", overflowException);
+                        break;
+                    }
+
+			        try
+			        {
+			            ProcessSignature(data, bitCount, isBeacon);
+			        }
+			        catch (Exception ex)
+			        {
+			            Log.Add($"ProcessSignature() failed for response, '{e.Data}'.", ex);
+			        }
+			        break;
 				case "ERROR":
 					Log.Add(Log.Severity.Debug, e.Data);
 					break;
 				default:
-					Log.Add(Log.Severity.Debug, "Received unrecognized response, '{0}'.", e.Data);
+			        Log.Add(Log.Severity.Debug, $"Received unrecognized response, '{e.Data}'.");
 					break;
 			}
 		}
