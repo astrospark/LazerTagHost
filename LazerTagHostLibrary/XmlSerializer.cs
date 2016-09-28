@@ -35,7 +35,7 @@ namespace LazerTagHostLibrary
 			var fileTypeVersion = new Version(fileTypeVersionNode.InnerText);
 			if (fileTypeVersion > expectedFileTypeVersion)
 			{
-				throw new FileFormatException(String.Format("Unsupported FileTypeVersion, \"{0}\". Expected, \"{1}\".", fileInfoVersion, expectedFileTypeVersion));
+				throw new FileFormatException(String.Format("Unsupported FileTypeVersion, \"{0}\". Expected, \"{1}\".", fileTypeVersion, expectedFileTypeVersion));
 			}
 
 			return fileTypeVersion;
