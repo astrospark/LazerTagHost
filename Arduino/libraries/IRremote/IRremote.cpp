@@ -194,22 +194,30 @@ void IRsend::enableIROut(int khz) {
   // See my Secrets of Arduino PWM at http://arcfn.com/2009/07/secrets-of-arduino-pwm.html for details.
 
   
-  // Disable the Timer2 Interrupt (which is used for receiving IR)
-  TIMSK2 &= ~_BV(TOIE2); //Timer2 Overflow Interrupt
-  
-  pinMode(3, OUTPUT);
-  digitalWrite(3, LOW); // When not sending PWM, we want it low
-  
+  // disable all timer interrupts (TOIE2 is used for receiving IR)
+  TIMSK2 = 0;
+
+  // set OCR2B pin to input to ensure the emitters are not harmed while we configure the timer
+  PORTD &= ~(_BV(PORTD3)); // no pull up
+  DDRD &= ~(_BV(DDD3)); // input
+
+  // OCR1A is double buffered in this mode so make sure the timer is stopped so that OCR2A is updated immediately
+  TCCR2B = 0;
+  OCR2A = SYSCLOCK / 2 / khz / 1000;
+  OCR2B = OCR2A / 2; // 50% duty cycle
+  TCNT2 = 0;
+
+  // configure timer
   // COM2A = 00: disconnect OC2A
   // COM2B = 00: disconnect OC2B; to send signal set to 10: OC2B non-inverted
   // WGM2 = 101: phase-correct PWM with OCRA as top
-  // CS2 = 000: no prescaling
+  // CS2 = 001: no prescaling
   TCCR2A = _BV(WGM20);
   TCCR2B = _BV(WGM22) | _BV(CS20);
 
-  // The top value for the timer.  The modulation frequency will be SYSCLOCK / 2 / OCR2A.
-  OCR2A = SYSCLOCK / 2 / khz / 1000;
-  OCR2B = OCR2A / 2; // 50% duty cycle
+  // set OCR2B pin to OUTPUT
+  PORTD &= ~(_BV(PORTD3)); // low
+  DDRD |= _BV(DDD3); // output
 }
 
 IRrecv::IRrecv(int recvpin)
