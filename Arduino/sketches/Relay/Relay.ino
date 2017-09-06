@@ -64,7 +64,7 @@ void readSerial()
 {
     while (Serial.available())
     {
-      char previousChar;
+      char previousChar = '\0';
       if (serialBufferPosition > 0)
       {
         previousChar = serialBuffer[serialBufferPosition - 1];
