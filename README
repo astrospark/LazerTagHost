@@ -8,46 +8,43 @@ Lazer Tag Host is compatible with Lazer Tag Team Ops taggers from Tiger, Nerf, a
 
 Transceiver Shopping List:
  
-1x Arduino Duemilanove/Uno
-2x 17 Degree 40mW Infrared Emitters
+1x Arduino Duemilanove/UNO
+3x 25 Degree 25mW Infrared Emitters
    * Vishay Infrared Emitters
-   * Mfg P/N: TSAL6200, Mouser P/N: 782-TSAL6200
+   * Mfg P/N: TSAL6400, Mouser P/N: 782-TSAL6400
 1x 38kHz Infrared Receiver (4.5-5.5V)
    * Vishay Infrared Receiver
    * Mfg P/N: TSOP4138, Mouser P/N: 782-TSOP4138
 1x Transistor
    * Transistors Bipolar - BJT NPN General Purpose
    * Mfg P/N: 2N5172, Mouser P/N: 610-2N5172
-1x Capacitor (10uF, 16 volts)
+1x Capacitor (0.1uF, 50 volts)
    * TDK Multilayer Ceramic Capacitors (MLCC) - Leaded
-   * Mfg P/N: FK20X7R1C106K, Mouser P/N: 810-FK20X7R1C106K
+   * Mfg P/N: FA28X7R1H104KNU00, Mouser P/N: 810-FA28X7R1H10400
 1x Resistor (10 ohms, ¼ watt, 5%)
 1x Resistor (100 ohms, ¼ watt, 5%)
    * Vishay Metal Film Resistors - Through Hole
    * Mfg P/N: CCF07100RJKE36, Mouser P/N: 71-CCF07100RJKE36
-1x Resistor (1.5K ohms, ¼ watt, 5%)
 1x Resistor (2K ohms, ¼ watt, 5%)
+1x Resistor (10K ohms, ¼ watt, 5%)
 1x Breadboard
 
 Note that the 2N5172 transistor wire sequence is ECB. Other transistors will work, check the datasheet for the following specifications:
 
 * Emitter-Base Voltage (VEBO) of at least 5V
-* Collector Current - Continuous (IC) of at least 400mA
+* Collector Current - Continuous (IC) of at least 100mA
 * Minimum DC Current Gain (hFE(min)) of 100
-
-To use a single IR LED, change the 10R resistor to 18R.
-To use three IR LEDs instead of two, change the 10R resistor to 1.8R. Connect all three IR LEDs in series.
 
 Arduino Wiring:
 
-See Hardware\Schematic.png for wiring information.
+See Hardware\Schematic.pdf for wiring information.
 
 Arduino Programming:
 
 1) Copy IRremote and LazerTagIr to the libraries folder of the Arduino IDE
 2) Launch the Arduino IDE
 3) Open Arduino\Sketches\Relay\Relay.ino
-5) Under Tools->Board, select Arduino Uno (or appropriate)
+5) Under Tools->Board, select Arduino UNO (or appropriate)
 6) Connect your Arduino
 7) Under Tools->Serial Port, select the USB serial port to which your Arduino is connected
 8) Click Upload
